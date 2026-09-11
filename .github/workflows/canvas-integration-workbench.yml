@@ -1,0 +1,104 @@
+name: Unified canvas integration workbench
+on:
+  push:
+    branches: [work/unified-canvas]
+    paths: ['.workbench/**', '.github/workflows/canvas-integration-workbench.yml']
+permissions:
+  contents: write
+concurrency:
+  group: unified-canvas-workbench
+  cancel-in-progress: true
+jobs:
+  integrate:
+    if: github.ref == 'refs/heads/work/unified-canvas'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Linux native development and smoke tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev xvfb openbox xdotool imagemagick
+      - name: Apply exact revision-bound integration
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, pathlib, zlib
+          root = pathlib.Path('.workbench')
+          payload = ''.join((root / f'integration.{i}.b64').read_text().strip() for i in range(3))
+          source = zlib.decompress(base64.b64decode(payload, validate=True))
+          assert hashlib.sha256(source).hexdigest() == 'ca2a1f91d0812b95b6509396743a2cda07b9c04ad0f895ef75e2bb73f793c816'
+          (root / 'integrate.py').write_bytes(source)
+          exec(compile(source, str(root / 'integrate.py'), 'exec'))
+          if (root / 'repair.py').exists():
+              exec(compile((root / 'repair.py').read_text(), str(root / 'repair.py'), 'exec'))
+          PY
+      - name: Format integrated Rust
+        run: cargo fmt --all
+      - name: Integrated all-target tests
+        run: |
+          mkdir -p /tmp/canvas-evidence
+          set -o pipefail
+          cargo test --locked --all-targets 2>&1 | tee /tmp/canvas-evidence/tests.log
+      - name: Report Clippy
+        run: |
+          set -o pipefail
+          cargo clippy --locked --all-targets 2>&1 | tee /tmp/canvas-evidence/clippy.log
+      - name: Build native release and validate embedded design
+        run: |
+          set -o pipefail
+          cargo build --locked --release --bin system-designer --bin designer-check 2>&1 | tee /tmp/canvas-evidence/build.log
+          cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json | tee /tmp/canvas-evidence/design.log
+      - name: Actual Linux native render
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1000x24' bash -c '
+            openbox >/tmp/canvas-evidence/window-manager.log 2>&1 &
+            target/release/system-designer design/system-designer.project.json >/tmp/canvas-evidence/native.log 2>&1 &
+            app=$!
+            sleep 8
+            kill -0 "$app"
+            window=$(xdotool search --onlyvisible --name "System Designer" | head -1)
+            test -n "$window"
+            xdotool windowactivate --sync "$window"
+            xdotool windowsize "$window" 1580 950
+            xdotool windowmove "$window" 0 20
+            sleep 3
+            import -window root /tmp/canvas-evidence/native-detail.png
+            kill "$app"
+            wait "$app" || true
+          '
+      - name: Capture generated source and evidence
+        if: always()
+        run: |
+          mkdir -p /tmp/canvas-evidence
+          git diff --stat > /tmp/canvas-evidence/diff-stat.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          with zipfile.ZipFile('/tmp/canvas-evidence/integrated-source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for path in Path('.').rglob('*'):
+                  if path.is_file() and not set(path.parts) & {'.git','target','.workbench','dist'}:
+                      z.write(path,path.as_posix())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified-canvas-workbench
+          path: /tmp/canvas-evidence/
+          if-no-files-found: error
+      - name: Publish verified integration candidate and remove workbench
+        run: |
+          git config user.name 'System Designer integration'
+          git config user.email 'noreply@users.noreply.github.com'
+          rm -rf .workbench
+          rm .github/workflows/canvas-integration-workbench.yml
+          git add -A
+          git commit -m 'Integrate unified canvas overview focus tracing and arrangement'
+          git push origin HEAD:work/unified-canvas
