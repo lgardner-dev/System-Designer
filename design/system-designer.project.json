@@ -1415,7 +1415,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.",
+          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.\n\nExperiment C · Connection layout: Explicit undoable arrangement uses strongly connected groups, local rings for feedback and directional layers between groups. Cycle groups are temporary drawing data, not components. Measure card bounds before publishing only current-level positions; never infer execution order or alter connections. Do not add display-state fields to semantic JSON. Source: src/ui/canvas/arrangement.rs.",
           "kind": "component",
           "ports": [
             {

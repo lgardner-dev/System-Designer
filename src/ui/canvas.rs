@@ -5,6 +5,7 @@ use egui::{
 };
 use std::collections::BTreeMap;
 
+mod arrangement;
 mod geometry;
 mod motion;
 #[cfg(test)]
@@ -116,6 +117,7 @@ fn port_labels(painter: &egui::Painter, port: &Anchor, rect: Rect, zoom: f32) {
 }
 impl Designer {
     pub(super) fn canvas_view(&mut self, ui: &mut egui::Ui) {
+        arrangement::controls(self, ui);
         let motion = motion::Motion::controls(ui);
         let p = self.store.snapshot();
         let sid = self.current.clone();
