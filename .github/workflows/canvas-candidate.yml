@@ -1,0 +1,78 @@
+# Temporary, branch-scoped preparation while the authoring environment lacks Rust.
+# It formats only the candidate files and refreshes embedded documentation.
+# Remove this workflow before marking the pull request ready for review.
+name: Prepare and verify canvas candidate
+on:
+  push:
+    branches: [work/four-sided-ports-and-direction-lights]
+permissions:
+  contents: write
+concurrency:
+  group: canvas-candidate
+  cancel-in-progress: true
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/work/four-sided-ports-and-direction-lights'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/four-sided-ports-and-direction-lights
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Prepare source formatting and embedded design
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('design/system-designer.project.json')
+          project = json.loads(path.read_text())
+          descriptions = {
+              'canvas.projection': 'Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.',
+              'canvas.painting': 'Source: src/ui/canvas.rs and src/ui/canvas/motion.rs. Render node cards, typed anchors, shared sampled wire paths, tangent-aligned static arrowheads and optional white/light-blue directional lights with a soft glow. Off, Selected and All are session display choices. Lights illustrate direction only, not execution, scheduling, latency or traffic. Labels remain inspectable and model records are unchanged.',
+              'canvas.hit_test': 'Source: src/ui/canvas.rs and src/ui/canvas/geometry.rs. Resolve pointer locations against the same anchors and sampled paths used by drawing and animation, including top/bottom ports and self-loops. Preserve semantic source-to-destination direction regardless of drag direction or physical side.',
+          }
+          for system in project['systems']:
+              for node in system['nodes']:
+                  if node['id'] in descriptions:
+                      node['purpose'] = descriptions[node['id']]
+          path.write_text(json.dumps(project, indent=2, ensure_ascii=False) + '\n')
+          path = Path('assets/initialization.txt')
+          text = path.read_text()
+          marker = '## Canvas geometry and direction previews'
+          if marker not in text:
+              text += '\n\n' + marker + '\n\nPort side is chosen by the renderer and is not a semantic direction or an extra JSON field. Inputs and outputs can appear on any of the four card sides. Moving lights are a direction preview, not evidence of execution, scheduling, throughput or latency. Continue to use the declared port direction and edge endpoints as authoritative.\n'
+              path.write_text(text)
+          PY
+          cargo fmt --all
+          git diff --stat
+      - name: Publish formatting on the candidate branch only
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add src/ui/canvas.rs src/ui/canvas/geometry.rs src/ui/canvas/motion.rs src/ui/canvas/tests.rs design/system-designer.project.json assets/initialization.txt
+          if ! git diff --cached --quiet; then
+            actual=$(git ls-remote origin refs/heads/work/four-sided-ports-and-direction-lights | cut -f1)
+            test "$actual" = "$EXPECTED_HEAD" || { echo 'Candidate branch changed; refusing to overwrite it.'; exit 1; }
+            git -c user.name='System Designer formatting' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Format canvas candidate and update embedded design guidance'
+            git push origin HEAD:refs/heads/work/four-sided-ports-and-direction-lights
+          fi
+          git rev-parse HEAD
+      - name: Linux development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev
+      - name: Verify formatting
+        run: cargo fmt --all --check
+      - name: Core and native interaction tests
+        run: cargo test --locked --all-targets
+      - name: Report Clippy findings
+        run: cargo clippy --locked --all-targets
+      - name: Validate embedded design
+        run: cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json
