@@ -1,110 +1,46 @@
-# Temporary branch-scoped preparation; remove before final review.
+# Temporary candidate qualification; remove before final review.
 name: Prepare and verify canvas candidate
 on:
   push:
     branches: [work/four-sided-ports-and-direction-lights]
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: canvas-candidate
   cancel-in-progress: true
 jobs:
-  prepare:
-    if: github.ref == 'refs/heads/work/four-sided-ports-and-direction-lights'
+  verify:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: work/four-sided-ports-and-direction-lights
-          fetch-depth: 2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Apply bounded compiler and parallel-port corrections
-        shell: bash
+      - name: Bind evidence to the exact checked-out commit
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import re
-          from pathlib import Path
-          path = Path('src/ui/canvas/tests.rs')
-          text = path.read_text().replace('p.node_mut("B").expect("B").1.ports', 'p.node_mut("B").expect("B").ports')
-          if 'reciprocal_ports_align_without_an_avoidable_crossing' not in text:
-              text += '''
-          #[test]
-          fn reciprocal_ports_align_without_an_avoidable_crossing() {
-              let p = fixture();
-              for (b, side) in cases() {
-                  let scene = Scene::new(&p, "root", &positions(b));
-                  for edge in &p.system("root").expect("root").edges {
-                      let a = scene.port(&edge.from).expect("source");
-                      let b = scene.port(&edge.to).expect("target");
-                      let delta = match side {
-                          Side::Top | Side::Bottom => a.point.x - b.point.x,
-                          Side::Left | Side::Right => a.point.y - b.point.y,
-                      };
-                      assert!(delta.abs() < 0.01, "reciprocal ports should align");
-                  }
-              }
-          }
-          '''
-          path.write_text(text)
-          path = Path('src/ui/canvas/geometry.rs')
-          text = path.read_text()
-          if 'channel: String,' not in text:
-              assert text.count('    order: f32,') == 1
-              text = text.replace('    order: f32,', '    order: f32,\n    channel: String,')
-              old = '            Placement { port, side, order }'
-              assert old in text
-              text = text.replace(old, '''            // Equal neighbour positions should align both ends of a wire,
-                          // not sort inputs before outputs and cross reciprocal links.
-                          let channel = system.edges.iter()
-                              .filter(|edge| edge.from == endpoint || edge.to == endpoint)
-                              .map(|edge| edge.id.clone()).min()
-                              .unwrap_or_else(|| port.id.clone());
-                          Placement { port, side, order, channel }''')
-              old = 'a.order.total_cmp(&b.order).then(a.port.id.cmp(&b.port.id))'
-              assert old in text
-              text = text.replace(old, 'a.order.total_cmp(&b.order).then(a.channel.cmp(&b.channel)).then(a.port.id.cmp(&b.port.id))')
-          path.write_text(text)
-          path = Path('src/ui/canvas.rs')
-          text = path.read_text()
-          text = re.sub(r'Stroke::new\((\d+\.\d+),', r'Stroke::new(\1_f32,', text)
-          for a, b in [('3.0', '1.8'), ('2.0', '1.0')]:
-              text = text.replace('if selected { '+a+' } else { '+b+' }', 'if selected { '+a+'_f32 } else { '+b+'_f32 }')
-          path.write_text(text)
-          path = Path('src/ui/canvas/motion.rs')
-          path.write_text(path.read_text().replace('ui.horizontal(|ui| {', 'ui.horizontal_wrapped(|ui| {'))
-          PY
-          cargo fmt --all
-          git diff --stat
-      - name: Publish corrections on candidate branch only
-        env:
-          EXPECTED_HEAD: ${{ github.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add src/ui/canvas.rs src/ui/canvas/geometry.rs src/ui/canvas/motion.rs src/ui/canvas/tests.rs
-          if ! git diff --cached --quiet; then
-            actual=$(git ls-remote origin refs/heads/work/four-sided-ports-and-direction-lights | cut -f1)
-            test "$actual" = "$EXPECTED_HEAD" || { echo 'Candidate branch changed; refusing to overwrite it.'; exit 1; }
-            git -c user.name='System Designer formatting' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix test compilation and align reciprocal port slots'
-            git push origin HEAD:refs/heads/work/four-sided-ports-and-direction-lights
-          fi
           mkdir -p visual-check
           git rev-parse HEAD | tee visual-check/COMMIT.txt
       - name: Linux development and visual-check tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev xvfb xdotool imagemagick
+          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-0 libegl1-mesa-dev libgl1-mesa-dev xvfb xdotool imagemagick
       - name: Verify formatting
         run: cargo fmt --all --check
       - name: Core and native interaction tests
-        run: cargo test --locked --all-targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked --all-targets 2>&1 | tee visual-check/tests.log
       - name: Report Clippy findings
-        run: cargo clippy --locked --all-targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --locked --all-targets 2>&1 | tee visual-check/clippy.log
       - name: Validate embedded design
-        run: cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json 2>&1 | tee visual-check/self-design.log
       - name: Build native visual candidate
         run: cargo build --locked --bin system-designer
       - name: Prepare explicit four-sided visual fixture
