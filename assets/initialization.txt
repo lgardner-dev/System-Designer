@@ -126,3 +126,8 @@ Before returning JSON, check unique IDs, references, one owner per child, local 
 ## Canvas geometry and direction previews
 
 Port side is chosen by the renderer and is not a semantic direction or an extra JSON field. Inputs and outputs can appear on any of the four card sides. Moving lights are a direction preview, not evidence of execution, scheduling, throughput or latency. Continue to use the declared port direction and edge endpoints as authoritative.
+
+
+## Interface experiment: A · Focus and trace
+
+Selected components show only their direct incident wires at full emphasis. A port trace follows exact endpoints and projected child boundaries, never inferred internal causality. Focus is session presentation and cannot filter AI replacement packets. Do not add display-state fields to semantic JSON. All full-project and scoped replacements still use the existing exact version-1 format and full selected scope.

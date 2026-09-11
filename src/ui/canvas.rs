@@ -5,6 +5,7 @@ use egui::{
 };
 use std::collections::BTreeMap;
 
+pub(super) mod focus;
 mod geometry;
 mod motion;
 #[cfg(test)]
@@ -116,6 +117,7 @@ fn port_labels(painter: &egui::Painter, port: &Anchor, rect: Rect, zoom: f32) {
 }
 impl Designer {
     pub(super) fn canvas_view(&mut self, ui: &mut egui::Ui) {
+        let emphasis = focus::controls(self, ui);
         let motion = motion::Motion::controls(ui);
         let p = self.store.snapshot();
         let sid = self.current.clone();
@@ -218,6 +220,7 @@ impl Designer {
         for (edge, path) in local_paths {
             let path = path.screen(area.min, pan, z);
             let selected = self.selected == Selection::Edge(edge.id.clone());
+            let emphasized = emphasis.edge(&edge.id);
             if path.bounds.expand(15.0).intersects(area) {
                 painter.add(egui::Shape::line(
                     path.points.clone(),
@@ -225,8 +228,10 @@ impl Designer {
                         if selected { 3.0_f32 } else { 1.8_f32 },
                         if selected {
                             ACCENT
-                        } else {
+                        } else if emphasized {
                             Color32::from_rgb(111, 129, 151)
+                        } else {
+                            Color32::from_rgb(35, 44, 57)
                         },
                     ),
                 ));
@@ -236,34 +241,51 @@ impl Designer {
                     painter.arrow(
                         head - tangent * 13.0,
                         tangent * 13.0,
-                        Stroke::new(1.5_f32, if selected { ACCENT } else { MUTED }),
+                        Stroke::new(
+                            1.5_f32,
+                            if selected {
+                                ACCENT
+                            } else if emphasized {
+                                MUTED
+                            } else {
+                                Color32::from_rgb(43, 53, 67)
+                            },
+                        ),
                     );
                 }
-                if animate && path.length > 0.01 && motion.includes(edge, &self.selected) {
+                if animate
+                    && emphasized
+                    && path.length > 0.01
+                    && motion.includes(edge, &self.selected)
+                {
                     motion::paint(&painter, &path, time, &edge.id);
                     repaint = true;
                 }
-                let label = edge
-                    .label
-                    .as_deref()
-                    .filter(|s| !s.is_empty())
-                    .map(ToOwned::to_owned)
-                    .unwrap_or_else(|| {
-                        p.port(&sid, &edge.from)
-                            .and_then(|r| r.contract.as_ref())
-                            .map(ToString::to_string)
-                            .unwrap_or_default()
-                    });
-                let mid = path.at(path.length * 0.5).0;
-                let galley = painter.layout_no_wrap(
-                    short(&label, 32),
-                    FontId::proportional((11.0 * z).max(9.0)),
-                    MUTED,
-                );
-                let rect =
-                    Rect::from_center_size(mid - vec2(0.0, 11.0), galley.size() + vec2(10.0, 4.0));
-                painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
-                painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
+                if emphasized {
+                    let label = edge
+                        .label
+                        .as_deref()
+                        .filter(|s| !s.is_empty())
+                        .map(ToOwned::to_owned)
+                        .unwrap_or_else(|| {
+                            p.port(&sid, &edge.from)
+                                .and_then(|r| r.contract.as_ref())
+                                .map(ToString::to_string)
+                                .unwrap_or_default()
+                        });
+                    let mid = path.at(path.length * 0.5).0;
+                    let galley = painter.layout_no_wrap(
+                        short(&label, 32),
+                        FontId::proportional((11.0 * z).max(9.0)),
+                        MUTED,
+                    );
+                    let rect = Rect::from_center_size(
+                        mid - vec2(0.0, 11.0),
+                        galley.size() + vec2(10.0, 4.0),
+                    );
+                    painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
+                    painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
+                }
             }
             paths.push((edge.id.clone(), path));
         }
@@ -276,7 +298,16 @@ impl Designer {
             };
             let rect = screen_rect(card.rect);
             let selected = self.selected == Selection::Node(node.id.clone());
-            painter.rect_filled(rect, 7, Color32::from_rgb(30, 37, 47));
+            let emphasized = emphasis.node(&node.id);
+            painter.rect_filled(
+                rect,
+                7,
+                if emphasized {
+                    Color32::from_rgb(30, 37, 47)
+                } else {
+                    Color32::from_rgb(19, 24, 31)
+                },
+            );
             painter.rect_stroke(
                 rect,
                 7,
@@ -297,30 +328,36 @@ impl Designer {
                 Align2::LEFT_TOP,
                 short(&node.name, 30),
                 FontId::proportional(16.0 * z),
-                Color32::WHITE,
+                if emphasized {
+                    Color32::WHITE
+                } else {
+                    Color32::from_rgb(106, 115, 129)
+                },
             );
-            clipped.text(
-                header + vec2(15.0, 39.0) * z,
-                Align2::LEFT_TOP,
-                format!(
-                    "{}{}",
-                    node.kind.label(),
-                    if node.child.is_some() {
-                        "  ·  Enter >"
-                    } else {
-                        ""
-                    }
-                ),
-                FontId::proportional(11.0 * z),
-                ACCENT,
-            );
-            clipped.text(
-                header + vec2(15.0, 57.0) * z,
-                Align2::LEFT_TOP,
-                short(&node.purpose.replace('\n', " "), 42),
-                FontId::proportional(11.0 * z),
-                MUTED,
-            );
+            if emphasized {
+                clipped.text(
+                    header + vec2(15.0, 39.0) * z,
+                    Align2::LEFT_TOP,
+                    format!(
+                        "{}{}",
+                        node.kind.label(),
+                        if node.child.is_some() {
+                            "  ·  Enter >"
+                        } else {
+                            ""
+                        }
+                    ),
+                    FontId::proportional(11.0 * z),
+                    ACCENT,
+                );
+                clipped.text(
+                    header + vec2(15.0, 57.0) * z,
+                    Align2::LEFT_TOP,
+                    short(&node.purpose.replace('\n', " "), 42),
+                    FontId::proportional(11.0 * z),
+                    MUTED,
+                );
+            }
         }
         let dragging = match &self.canvas.gesture {
             Some(Gesture::Wire { port, .. }) => Some(port.clone()),
@@ -351,7 +388,13 @@ impl Designer {
                 .as_ref()
                 .is_some_and(|from| pair(&p, &sid, from, &anchor.endpoint).is_some());
             let hover = hovered_port.is_some_and(|q| q.endpoint == anchor.endpoint);
-            let color = if hover || compatible { ACCENT } else { MUTED };
+            let color = if hover || compatible {
+                ACCENT
+            } else if emphasis.port(&anchor.endpoint.port) {
+                MUTED
+            } else {
+                Color32::from_rgb(46, 56, 70)
+            };
             let radius = (5.0 * z).max(4.0);
             if anchor.direction == Direction::Out {
                 painter.circle_filled(point, radius, color);
@@ -362,7 +405,9 @@ impl Designer {
             if hover || compatible {
                 painter.circle_stroke(point, (9.0 * z).max(8.0), Stroke::new(1.0_f32, color));
             }
-            port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
+            if emphasis.port(&anchor.endpoint.port) || hover || compatible {
+                port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
+            }
             if hover {
                 response.clone().on_hover_text(format!(
                     "{} · {}\n{}{}",
@@ -414,9 +459,17 @@ impl Designer {
         if ui.input(|i| !i.pointer.any_down() && !i.pointer.any_released()) {
             self.canvas.gesture = None;
         }
+        if ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary)) {
+            if let Some(port) = hovered_port {
+                focus::select_port(self, ui.ctx(), &port.endpoint);
+            }
+        }
         let pressed = ui.input(|i| i.pointer.button_pressed(PointerButton::Primary));
         let middle = ui.input(|i| i.pointer.button_pressed(PointerButton::Middle));
         if (pressed || middle) && area.contains(cursor) {
+            if pressed {
+                focus::clear_port(ui.ctx());
+            }
             if middle {
                 self.canvas.gesture = Some(Gesture::Pan {
                     start: cursor,
