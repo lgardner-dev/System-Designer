@@ -29,7 +29,7 @@ impl Motion {
                 ui.selectable_value(&mut mode, Self::All, "All");
             });
             ui.small("Direction preview — not live execution");
-            ui.label("○ receives · ● produces").on_hover_text(
+            ui.label("Hollow receives · Filled produces").on_hover_text(
                 "Port side is visual only. Hollow ports receive; filled ports produce at this level. Full port names and contracts are available on hover and in the inspector.",
             );
         });
