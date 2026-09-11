@@ -10,8 +10,6 @@ source = path.read_text()
 old = 'self.selection == *selected || matches!(selected, Selection::Edge(id) if self.members.contains(id))'
 assert source.count(old) == 1
 source = source.replace(old, old + '\n            || matches!(selected, Selection::Summary(a,b) if self.edge.from.node.as_ref()==Some(a) && self.edge.to.node.as_ref()==Some(b))')
-# Only self-loop routes consume perimeter lanes. Ordinary output count must not
-# make an unrelated self-loop enormous in either representation.
 old = '*lane += 1;'
 assert source.count(old) == 1
 source = source.replace(old, 'if edge.from.node.is_some() && edge.from.node == edge.to.node { *lane += 1; }')
@@ -19,7 +17,7 @@ path.write_text(source)
 
 path = Path('src/ui/canvas.rs')
 source = path.read_text()
-start = source.index('        ui.horizontal_wrapped(|ui| {\n            ui.strong(')
+start = source.index('        ui.horizontal_wrapped(|ui|{\n            ui.strong(')
 end = source.index('        // Fixed status row', start)
 source = source[:start] + '''        let name = p.owner(&self.current).map(|(_, n)| n.name.as_str()).unwrap_or(&p.name);
         let mut title = format!("{name} · {} components · {} connections", counts.0, counts.1);
