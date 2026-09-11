@@ -15,7 +15,10 @@ impl Motion {
         // Session-wide, outside Project and CanvasState: navigation must not
         // turn motion back on after the user has disabled it.
         let id = Id::new("system-designer.direction-lights");
-        let mut mode = ui.ctx().data(|d| d.get_temp::<Self>(id)).unwrap_or_default();
+        let mut mode = ui
+            .ctx()
+            .data(|d| d.get_temp::<Self>(id))
+            .unwrap_or_default();
         ui.horizontal(|ui| {
             ui.label("Direction lights");
             egui::ComboBox::from_id_salt(id).selected_text(match mode {
@@ -39,16 +42,22 @@ impl Motion {
             Self::All => true,
             Self::Selected => match selected {
                 Selection::Edge(id) => edge.id == *id,
-                Selection::Node(id) => edge.from.node.as_ref() == Some(id) || edge.to.node.as_ref() == Some(id),
-                Selection::Boundary(id) => (edge.from.node.is_none() && edge.from.port == *id)
-                    || (edge.to.node.is_none() && edge.to.port == *id),
+                Selection::Node(id) => {
+                    edge.from.node.as_ref() == Some(id) || edge.to.node.as_ref() == Some(id)
+                }
+                Selection::Boundary(id) => {
+                    (edge.from.node.is_none() && edge.from.port == *id)
+                        || (edge.to.node.is_none() && edge.to.port == *id)
+                }
                 Selection::None => false,
             },
         }
     }
 }
 fn phase(id: &str) -> f64 {
-    let hash = id.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3));
+    let hash = id.bytes().fold(0xcbf29ce484222325u64, |h, b| {
+        (h ^ b as u64).wrapping_mul(0x100000001b3)
+    });
     (hash % 4096) as f64 / 4096.0
 }
 /// Arc length, not Bezier t: a light does not speed up through a tight bend.
@@ -62,8 +71,12 @@ pub(super) fn position(time: f64, length: f32, id: &str) -> Option<f32> {
     (distance <= length as f64).then_some(distance as f32)
 }
 pub(super) fn paint(painter: &Painter, path: &Path, time: f64, id: &str) {
-    let Some(distance) = position(time, path.length, id) else { return; };
-    let fade = (distance / 10.0).min((path.length - distance) / 10.0).clamp(0.0, 1.0);
+    let Some(distance) = position(time, path.length, id) else {
+        return;
+    };
+    let fade = (distance / 10.0)
+        .min((path.length - distance) / 10.0)
+        .clamp(0.0, 1.0);
     let color = |alpha: f32| Color32::from_rgba_unmultiplied(150, 222, 255, (alpha * fade) as u8);
     // Short tapered trail; these translucent layers approximate a soft bloom
     // without adding a postprocessing renderer or graphics dependency.
@@ -77,5 +90,9 @@ pub(super) fn paint(painter: &Painter, path: &Path, time: f64, id: &str) {
     for (radius, alpha) in [(11.0, 7.0), (8.0, 14.0), (5.0, 36.0), (3.0, 105.0)] {
         painter.circle_filled(point, radius, color(alpha));
     }
-    painter.circle_filled(point, 1.8, Color32::from_rgba_unmultiplied(240, 251, 255, (245.0 * fade) as u8));
+    painter.circle_filled(
+        point,
+        1.8,
+        Color32::from_rgba_unmultiplied(240, 251, 255, (245.0 * fade) as u8),
+    );
 }

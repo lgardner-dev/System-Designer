@@ -1415,7 +1415,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Derive selected-level node rectangles, ports, boundary frame, and parent-neighbor labels from the model.\n\nSource: src/ui/canvas.rs::canvas_view",
+          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.",
           "kind": "component",
           "ports": [
             {
@@ -1476,7 +1476,7 @@
         {
           "id": "canvas.painting",
           "name": "Drawing",
-          "purpose": "Paint typed wires, components, owner boundaries and selected states. No external nodes appear as fake children.\n\nSource: src/ui/canvas.rs::canvas_view",
+          "purpose": "Source: src/ui/canvas.rs and src/ui/canvas/motion.rs. Render node cards, typed anchors, shared sampled wire paths, tangent-aligned static arrowheads and optional white/light-blue directional lights with a soft glow. Off, Selected and All are session display choices. Lights illustrate direction only, not execution, scheduling, latency or traffic. Labels remain inspectable and model records are unchanged.",
           "kind": "component",
           "ports": [
             {
@@ -1502,7 +1502,7 @@
         {
           "id": "canvas.hit_test",
           "name": "Hit testing",
-          "purpose": "Resolve ports before components, then wires and background. Sample cubic curves for edge selection.\n\nSource: src/ui/canvas.rs::curve_distance; distance_segment",
+          "purpose": "Source: src/ui/canvas.rs and src/ui/canvas/geometry.rs. Resolve pointer locations against the same anchors and sampled paths used by drawing and animation, including top/bottom ports and self-loops. Preserve semantic source-to-destination direction regardless of drag direction or physical side.",
           "kind": "component",
           "ports": [
             {
