@@ -1,6 +1,4 @@
-# Temporary, branch-scoped preparation while the authoring environment lacks Rust.
-# It formats only the candidate files and refreshes embedded documentation.
-# Remove this workflow before marking the pull request ready for review.
+# Temporary branch-scoped preparation; remove before final review.
 name: Prepare and verify canvas candidate
 on:
   push:
@@ -22,52 +20,83 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Prepare source formatting and embedded design
+      - name: Apply bounded compiler and parallel-port corrections
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json
+          import re
           from pathlib import Path
-          path = Path('design/system-designer.project.json')
-          project = json.loads(path.read_text())
-          descriptions = {
-              'canvas.projection': 'Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.',
-              'canvas.painting': 'Source: src/ui/canvas.rs and src/ui/canvas/motion.rs. Render node cards, typed anchors, shared sampled wire paths, tangent-aligned static arrowheads and optional white/light-blue directional lights with a soft glow. Off, Selected and All are session display choices. Lights illustrate direction only, not execution, scheduling, latency or traffic. Labels remain inspectable and model records are unchanged.',
-              'canvas.hit_test': 'Source: src/ui/canvas.rs and src/ui/canvas/geometry.rs. Resolve pointer locations against the same anchors and sampled paths used by drawing and animation, including top/bottom ports and self-loops. Preserve semantic source-to-destination direction regardless of drag direction or physical side.',
+          path = Path('src/ui/canvas/tests.rs')
+          text = path.read_text().replace('p.node_mut("B").expect("B").1.ports', 'p.node_mut("B").expect("B").ports')
+          if 'reciprocal_ports_align_without_an_avoidable_crossing' not in text:
+              text += '''
+          #[test]
+          fn reciprocal_ports_align_without_an_avoidable_crossing() {
+              let p = fixture();
+              for (b, side) in cases() {
+                  let scene = Scene::new(&p, "root", &positions(b));
+                  for edge in &p.system("root").expect("root").edges {
+                      let a = scene.port(&edge.from).expect("source");
+                      let b = scene.port(&edge.to).expect("target");
+                      let delta = match side {
+                          Side::Top | Side::Bottom => a.point.x - b.point.x,
+                          Side::Left | Side::Right => a.point.y - b.point.y,
+                      };
+                      assert!(delta.abs() < 0.01, "reciprocal ports should align");
+                  }
+              }
           }
-          for system in project['systems']:
-              for node in system['nodes']:
-                  if node['id'] in descriptions:
-                      node['purpose'] = descriptions[node['id']]
-          path.write_text(json.dumps(project, indent=2, ensure_ascii=False) + '\n')
-          path = Path('assets/initialization.txt')
+          '''
+          path.write_text(text)
+          path = Path('src/ui/canvas/geometry.rs')
           text = path.read_text()
-          marker = '## Canvas geometry and direction previews'
-          if marker not in text:
-              text += '\n\n' + marker + '\n\nPort side is chosen by the renderer and is not a semantic direction or an extra JSON field. Inputs and outputs can appear on any of the four card sides. Moving lights are a direction preview, not evidence of execution, scheduling, throughput or latency. Continue to use the declared port direction and edge endpoints as authoritative.\n'
-              path.write_text(text)
+          if 'channel: String,' not in text:
+              assert text.count('    order: f32,') == 1
+              text = text.replace('    order: f32,', '    order: f32,\n    channel: String,')
+              old = '            Placement { port, side, order }'
+              assert old in text
+              text = text.replace(old, '''            // Equal neighbour positions should align both ends of a wire,
+                          // not sort inputs before outputs and cross reciprocal links.
+                          let channel = system.edges.iter()
+                              .filter(|edge| edge.from == endpoint || edge.to == endpoint)
+                              .map(|edge| edge.id.clone()).min()
+                              .unwrap_or_else(|| port.id.clone());
+                          Placement { port, side, order, channel }''')
+              old = 'a.order.total_cmp(&b.order).then(a.port.id.cmp(&b.port.id))'
+              assert old in text
+              text = text.replace(old, 'a.order.total_cmp(&b.order).then(a.channel.cmp(&b.channel)).then(a.port.id.cmp(&b.port.id))')
+          path.write_text(text)
+          path = Path('src/ui/canvas.rs')
+          text = path.read_text()
+          text = re.sub(r'Stroke::new\((\d+\.\d+),', r'Stroke::new(\1_f32,', text)
+          for a, b in [('3.0', '1.8'), ('2.0', '1.0')]:
+              text = text.replace('if selected { '+a+' } else { '+b+' }', 'if selected { '+a+'_f32 } else { '+b+'_f32 }')
+          path.write_text(text)
+          path = Path('src/ui/canvas/motion.rs')
+          path.write_text(path.read_text().replace('ui.horizontal(|ui| {', 'ui.horizontal_wrapped(|ui| {'))
           PY
           cargo fmt --all
           git diff --stat
-      - name: Publish formatting on the candidate branch only
+      - name: Publish corrections on candidate branch only
         env:
           EXPECTED_HEAD: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          git add src/ui/canvas.rs src/ui/canvas/geometry.rs src/ui/canvas/motion.rs src/ui/canvas/tests.rs design/system-designer.project.json assets/initialization.txt
+          git add src/ui/canvas.rs src/ui/canvas/geometry.rs src/ui/canvas/motion.rs src/ui/canvas/tests.rs
           if ! git diff --cached --quiet; then
             actual=$(git ls-remote origin refs/heads/work/four-sided-ports-and-direction-lights | cut -f1)
             test "$actual" = "$EXPECTED_HEAD" || { echo 'Candidate branch changed; refusing to overwrite it.'; exit 1; }
-            git -c user.name='System Designer formatting' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Format canvas candidate and update embedded design guidance'
+            git -c user.name='System Designer formatting' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix test compilation and align reciprocal port slots'
             git push origin HEAD:refs/heads/work/four-sided-ports-and-direction-lights
           fi
-          git rev-parse HEAD
-      - name: Linux development libraries
+          mkdir -p visual-check
+          git rev-parse HEAD | tee visual-check/COMMIT.txt
+      - name: Linux development and visual-check tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev
+          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev xvfb xdotool imagemagick
       - name: Verify formatting
         run: cargo fmt --all --check
       - name: Core and native interaction tests
@@ -76,3 +105,67 @@ jobs:
         run: cargo clippy --locked --all-targets
       - name: Validate embedded design
         run: cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json
+      - name: Build native visual candidate
+        run: cargo build --locked --bin system-designer
+      - name: Prepare explicit four-sided visual fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path('tests/fixtures/project.json').read_text())
+          contract = p['contracts'][0]
+          ref = {'id':contract['id'], 'version':contract['version']}
+          p.update(id='project.four-sides-visual', name='Four-sided ports - visual check', purpose='Rendering fixture, not live execution.', root='root', contracts=[contract])
+          def port(id, direction):
+              return {'id':id, 'name':id.split('.')[-1], 'direction':direction, 'contract':ref}
+          hub = {'id':'hub', 'name':'Four-sided component', 'purpose':'Inputs and outputs on every side', 'kind':'component', 'ports':[]}
+          nodes, edges, layout = [hub], [], {'hub':{'x':640,'y':510}}
+          for name,x,y in [('North',640,70), ('East',1170,510), ('South',640,1000), ('West',110,510)]:
+              hub['ports'] += [port('hub.'+name+'-in','in'), port('hub.'+name+'-out','out')]
+              nodes.append({'id':name, 'name':name+' peer', 'purpose':'Bidirectional exchange', 'kind':'component', 'ports':[port(name+'.receive','in'),port(name+'.send','out')]})
+              edges += [{'id':name+'.to-hub', 'from':{'node':name,'port':name+'.send'}, 'to':{'node':'hub','port':'hub.'+name+'-in'}}, {'id':name+'.from-hub', 'from':{'node':'hub','port':'hub.'+name+'-out'}, 'to':{'node':name,'port':name+'.receive'}}]
+              layout[name] = {'x':x,'y':y}
+          p['systems'] = [{'id':'root','nodes':nodes,'edges':edges}]
+          p['layout'] = {'root':layout}
+          Path('visual-check/four-sides.project.json').write_text(json.dumps(p, indent=2))
+          PY
+      - name: Capture native X11 software-rendered windows
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          WINIT_UNIX_BACKEND: x11
+        run: |
+          set -euo pipefail
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/designer-config"
+          export XDG_DATA_HOME="$RUNNER_TEMP/designer-data"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/designer-runtime"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          xvfb-run -a -s '-screen 0 1800x1200x24' bash -eu -o pipefail -c '
+            capture() {
+              target/debug/system-designer "$1" >"visual-check/$2.log" 2>&1 &
+              pid=$!
+              trap "kill $pid 2>/dev/null || true" EXIT
+              for n in $(seq 1 30); do
+                wid=$(xdotool search --onlyvisible --name "System Designer" 2>/dev/null | tail -1) || true
+                test -n "${wid:-}" && break
+                kill -0 "$pid"
+                sleep 1
+              done
+              test -n "${wid:-}"
+              xdotool windowfocus "$wid"
+              sleep 3
+              import -window "$wid" "visual-check/$2.png"
+              sleep 1
+              import -window "$wid" "visual-check/$2-next.png"
+              kill "$pid"
+              wait "$pid" || true
+              trap - EXIT
+            }
+            capture visual-check/four-sides.project.json four-sides
+            capture design/system-designer.project.json application-design
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canvas-native-visual-check
+          path: visual-check/
