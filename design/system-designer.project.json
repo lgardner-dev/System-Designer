@@ -1415,7 +1415,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.",
+          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.\n\nExperiment B · Compact overview: Overview draws compact cards and counted connection summaries by ordered local node pair. Each summary retains all member IDs; boundary ports and self-loops stay exact. Editing requires an exact edge, and full Detail restores port wiring. Summaries never change Project or scoped exports. Source: src/ui/canvas/overview.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1675,7 +1675,7 @@
         {
           "id": "inspectors.details",
           "name": "Context inspector",
-          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector",
+          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector\nExact summary-member inspection: src/ui/canvas/overview.rs (called by src/ui/inspector.rs).",
           "kind": "component",
           "ports": [
             {

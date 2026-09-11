@@ -458,3 +458,58 @@ fn reciprocal_ports_align_without_an_avoidable_crossing() {
         }
     }
 }
+
+#[test]
+fn clicking_a_summary_label_does_not_select_an_arbitrary_member() {
+    let ctx = egui::Context::default();
+    let mut a = app(cases()[1].0);
+    let mut p = a.store.project().clone();
+    let mut e = p.system("root").expect("root").edges[0].clone();
+    e.id = "incoming.extra".into();
+    p.system_mut("root").expect("root").edges.push(e);
+    a.store = edit::Store::new(p).expect("store");
+    let before = a.store.project().clone();
+    overview::enable_for_test(&ctx);
+    frame(&ctx, &mut a, vec![], 0.0);
+    let pos = a.canvas.summary_positions["incoming"];
+    frame(
+        &ctx,
+        &mut a,
+        vec![egui::Event::PointerMoved(pos), event(pos, true)],
+        0.1,
+    );
+    frame(&ctx, &mut a, vec![event(pos, false)], 0.2);
+    assert_eq!(a.selected, Selection::None);
+    assert!(a.dialog.is_none());
+    assert_eq!(a.store.project(), &before);
+    a.ask_delete();
+    assert!(
+        a.dialog.is_none(),
+        "summary must not choose a destructive target"
+    );
+}
+#[test]
+fn overview_frames_do_not_change_project_history_or_scope() {
+    let ctx = egui::Context::default();
+    let mut a = app(cases()[0].0);
+    let before = a.store.project().clone();
+    overview::enable_for_test(&ctx);
+    for i in 0..5 {
+        frame(&ctx, &mut a, vec![], i as f64 * 0.1);
+    }
+    assert_eq!(a.store.project(), &before);
+    assert!(a.store.undo_label().is_none());
+}
+#[test]
+fn returning_to_detail_restores_exact_port_dragging() {
+    let ctx = egui::Context::default();
+    let mut a = app(cases()[0].0);
+    overview::enable_for_test(&ctx);
+    frame(&ctx, &mut a, vec![], 0.0);
+    overview::expand(&ctx);
+    frame(&ctx, &mut a, vec![], 0.05);
+    let from = a.canvas.port_positions["B.out"];
+    let to = a.canvas.port_positions["A.in"];
+    drag(&ctx, &mut a, from, to);
+    assert!(matches!(a.dialog, Some(Dialog::Connection(_))));
+}

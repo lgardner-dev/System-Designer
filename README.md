@@ -1,3 +1,7 @@
+# Interface comparison: B — Compact overview
+
+See [experiment instructions and limits](docs/INTERFACE-EXPERIMENT.md). This branch starts from the merged four-sided-port baseline and contains only this strategy.
+
 # System Designer
 
 A native desktop editor for recursive system designs: components that contain
