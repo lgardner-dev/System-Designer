@@ -116,7 +116,7 @@ fn root_does_not_gain_fake_external_ports() {
 #[test]
 fn unconnected_draft_ports_remain_visible_and_unassigned() {
     let mut p = fixture();
-    p.node_mut("B").expect("B").1.ports.push(Port {
+    p.node_mut("B").expect("B").ports.push(Port {
         id: "draft.port".into(),
         name: "Draft".into(),
         direction: Direction::In,
@@ -440,4 +440,21 @@ fn motion_off_survives_navigation() {
     a.navigate("a".into());
     frame(&ctx, &mut a, vec![], 1.0);
     assert_eq!(ctx.data(|d| d.get_temp::<Motion>(id)), Some(Motion::Off));
+}
+
+#[test]
+fn reciprocal_ports_align_without_an_avoidable_crossing() {
+    let p = fixture();
+    for (b, side) in cases() {
+        let scene = Scene::new(&p, "root", &positions(b));
+        for edge in &p.system("root").expect("root").edges {
+            let a = scene.port(&edge.from).expect("source");
+            let b = scene.port(&edge.to).expect("target");
+            let delta = match side {
+                Side::Top | Side::Bottom => a.point.x - b.point.x,
+                Side::Left | Side::Right => a.point.y - b.point.y,
+            };
+            assert!(delta.abs() < 0.01, "reciprocal ports should align");
+        }
+    }
 }

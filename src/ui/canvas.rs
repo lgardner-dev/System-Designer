@@ -198,7 +198,7 @@ impl Designer {
             painter.rect_stroke(
                 rect,
                 8,
-                Stroke::new(1.5, Color32::from_rgb(70, 93, 111)),
+                Stroke::new(1.5_f32, Color32::from_rgb(70, 93, 111)),
                 StrokeKind::Inside,
             );
             if let Some((_, owner)) = p.owner(&sid) {
@@ -222,7 +222,7 @@ impl Designer {
                 painter.add(egui::Shape::line(
                     path.points.clone(),
                     Stroke::new(
-                        if selected { 3.0 } else { 1.8 },
+                        if selected { 3.0_f32 } else { 1.8_f32 },
                         if selected {
                             ACCENT
                         } else {
@@ -236,7 +236,7 @@ impl Designer {
                     painter.arrow(
                         head - tangent * 13.0,
                         tangent * 13.0,
-                        Stroke::new(1.5, if selected { ACCENT } else { MUTED }),
+                        Stroke::new(1.5_f32, if selected { ACCENT } else { MUTED }),
                     );
                 }
                 if animate && path.length > 0.01 && motion.includes(edge, &self.selected) {
@@ -281,7 +281,7 @@ impl Designer {
                 rect,
                 7,
                 Stroke::new(
-                    if selected { 2.0 } else { 1.0 },
+                    if selected { 2.0_f32 } else { 1.0_f32 },
                     if selected {
                         ACCENT
                     } else {
@@ -357,10 +357,10 @@ impl Designer {
                 painter.circle_filled(point, radius, color);
             } else {
                 painter.circle_filled(point, radius, Color32::from_rgb(14, 18, 24));
-                painter.circle_stroke(point, radius, Stroke::new(1.5, color));
+                painter.circle_stroke(point, radius, Stroke::new(1.5_f32, color));
             }
             if hover || compatible {
-                painter.circle_stroke(point, (9.0 * z).max(8.0), Stroke::new(1.0, color));
+                painter.circle_stroke(point, (9.0 * z).max(8.0), Stroke::new(1.0_f32, color));
             }
             port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
             if hover {
@@ -386,7 +386,7 @@ impl Designer {
                 } else {
                     Path::between(end, end_normal, screen(start.point), start.normal)
                 };
-                painter.add(egui::Shape::line(path.points, Stroke::new(2.5, ACCENT)));
+                painter.add(egui::Shape::line(path.points, Stroke::new(2.5_f32, ACCENT)));
             }
         }
         if system.nodes.is_empty() {

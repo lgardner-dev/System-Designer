@@ -112,6 +112,7 @@ struct Placement<'a> {
     port: &'a Port,
     side: Side,
     order: f32,
+    channel: String,
 }
 fn frame_for(rects: impl Iterator<Item = Rect>, port_count: usize) -> Rect {
     let mut extent = Rect::from_min_max(pos2(40.0, 40.0), pos2(900.0, 500.0));
@@ -187,7 +188,21 @@ fn placements<'a>(
             } else {
                 peers.iter().map(|p| side.projection(*p)).sum::<f32>() / peers.len() as f32
             };
-            Placement { port, side, order }
+            // Equal neighbour positions should align both ends of a wire,
+            // not sort inputs before outputs and cross reciprocal links.
+            let channel = system
+                .edges
+                .iter()
+                .filter(|edge| edge.from == endpoint || edge.to == endpoint)
+                .map(|edge| edge.id.clone())
+                .min()
+                .unwrap_or_else(|| port.id.clone());
+            Placement {
+                port,
+                side,
+                order,
+                channel,
+            }
         })
         .collect()
 }
@@ -224,7 +239,12 @@ fn anchors(
     let mut result = Vec::with_capacity(planned.len());
     for side in Side::ALL {
         let mut group: Vec<_> = planned.iter().filter(|p| p.side == side).collect();
-        group.sort_by(|a, b| a.order.total_cmp(&b.order).then(a.port.id.cmp(&b.port.id)));
+        group.sort_by(|a, b| {
+            a.order
+                .total_cmp(&b.order)
+                .then(a.channel.cmp(&b.channel))
+                .then(a.port.id.cmp(&b.port.id))
+        });
         let horizontal_step = rect.width() / (group.len() + 1) as f32;
         for (i, planned) in group.iter().enumerate() {
             let port = planned.port;

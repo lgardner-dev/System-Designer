@@ -19,7 +19,7 @@ impl Motion {
             .ctx()
             .data(|d| d.get_temp::<Self>(id))
             .unwrap_or_default();
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.label("Direction lights");
             egui::ComboBox::from_id_salt(id).selected_text(match mode {
                 Self::Off => "Off", Self::Selected => "Selected", Self::All => "All",
