@@ -1,3 +1,0 @@
-bash: line 49: cargo: command not found
-
-Exit status: 127

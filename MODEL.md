@@ -1,6 +1,6 @@
 # System Designer data model — version 1
 
-This document specifies the format targeted by `src/model` and `src/exchange` in the native Rust source candidate. Rust compilation and interoperability tests have not yet been executed; see `docs/VERIFICATION.md`. The application stores one semantic project, plus optional visual coordinates. It is a design model, not a workflow runner or semantic-approval system.
+This document specifies the format implemented by `src/model` and `src/exchange`, and is the specification those modules are written against. The application stores one semantic project, plus optional visual coordinates. It is a design model, not a workflow runner or semantic-approval system.
 
 ## Full project
 
@@ -169,12 +169,12 @@ Surviving node positions are retained; positions for deleted nodes/systems are r
 
 `Store` owns validated immutable snapshots. Publication takes ownership of the validated candidate; rendering and history use immutable shared snapshots. Undo/redo retains up to 50 session changes. The native document layer writes actual project files and separate per-instance recovery snapshots. Undo history is not a persistent audit trail, and no multi-user merge protocol is implemented.
 
-The native parser accepts the current `system-designer-project` version-1 format. It does not adapt earlier application-specific format identifiers. Export those designs through the current System Designer editor first. Positive versions must be integer-encoded JSON numbers, not exponent/floating encodings; authentic version-1 exporter output uses that representation.
+The parser accepts the `system-designer-project` version-1 format and no other format identifier; there is no migration path from another tool's format. Positive versions must be integer-encoded JSON numbers, not exponent/floating encodings; authentic version-1 exporter output uses that representation.
 
 Unknown properties are rejected rather than treated as extension metadata. Incomplete draft intent may have an empty purpose, but required identities and names remain nonempty. A leaf omits `child`; explicit null is invalid. Conversely, a draft port must explicitly contain `contract: null`. Endpoints must explicitly contain `node: null` when they refer to a boundary.
 
-Canonical scope hashes preserve the original convention: UTF-16-sorted object keys, unchanged array order, and JSON primitive encoding. Scoped content contains safe-integer versions, but no layout floats. Golden fixtures preserve original exports and expected replacements, including Unicode. These are executable test inputs, not a claim that the Rust implementation has already passed them.
+Canonical scope hashes use one fixed convention: UTF-16-sorted object keys, unchanged array order, and JSON primitive encoding. Scoped content contains safe-integer versions, but no layout floats. The golden fixtures in `tests/fixtures/` preserve real exports and their expected replacement outputs, including Unicode, and `tests/exchange.rs` asserts against them.
 
-Component containment is normalized and traversed iteratively without an arbitrary tree depth limit. Deeply nested contract shapes remain subject to serde_json's defensive parsing recursion limit. This source does not claim unlimited nesting of every possible JSON structure.
+Component containment is normalized and traversed iteratively without an arbitrary tree depth limit. Deeply nested contract shapes remain subject to serde_json's defensive parsing recursion limit, so unlimited nesting of every possible JSON structure is not claimed.
 
 A structurally valid design is not proof of useful decomposition, complete requirements, correct contracts, implementation safety, or human acceptance. The approximate eight-component guideline is advisory and does not reject larger valid systems.

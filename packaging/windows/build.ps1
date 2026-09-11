@@ -5,10 +5,8 @@ try {
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
         throw 'Rust/Cargo is required on the build machine. Install Rust stable and the Visual C++ build tools, then rerun.'
     }
-    cargo generate-lockfile
-    if ($LASTEXITCODE -ne 0) { throw 'Dependency resolution failed.' }
-    cargo fmt --all
-    if ($LASTEXITCODE -ne 0) { throw 'Formatting failed.' }
+    cargo fmt --all --check
+    if ($LASTEXITCODE -ne 0) { throw 'Source is not formatted. Run cargo fmt --all.' }
     cargo test --locked --all-targets
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed. No installer was produced.' }
     cargo build --locked --release --bin system-designer

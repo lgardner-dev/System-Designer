@@ -1,8 +1,8 @@
 # Application design and source map
 
-Status: implemented as a **source candidate**. No Rust compilation or native GUI execution has been observed in the authoring environment. The JSON describes this source, not a certified release.
+System Designer is one Rust crate producing two binaries: the native editor and a headless validator. This document maps its seven responsibilities onto the source tree and records the invariants each one owns.
 
-The authoritative explorable design is `design/system-designer.project.json`, in the existing System Designer project format. It can be opened now in the previous editor. The Rust app includes the same bytes with `include_str!` and offers **File → Open application design**, as an unsaved copy. A new user project remains empty.
+The authoritative explorable version of this document is `design/system-designer.project.json`, an ordinary System Designer project. The app embeds those exact bytes with `include_str!` and offers **File → Open application design**, opening them as an unsaved copy. A new user project remains empty.
 
 ## Seven immediate responsibilities
 

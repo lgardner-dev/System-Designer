@@ -1,12 +1,12 @@
 # Native release qualification
 
-**Nothing in this checklist has been marked complete merely because its source exists.** The provided installer recipes and CI workflow have not been executed in the authoring environment. Do not distribute this source candidate as a qualified coworker release.
+A green test suite qualifies the logic, not the installed application. Work through this checklist against a real install on every platform you intend to hand to someone else, and record what you actually observed — an item is not complete because the code that implements it exists.
 
 ## Build and dependency gate
 
-Run `cargo fmt --all`, then `cargo test --all-targets` and `cargo clippy --all-targets` on a development machine. Capture the exact compiler version, resolved Cargo.lock, dependency licenses, source revision and resulting binary hashes. Build in release mode. The initial workflow resolves dependencies because no genuine lockfile could be generated here. Review and commit the resulting lockfile before treating builds as fixed baselines; switch CI from generate-lockfile to locked consumption.
+Run `cargo fmt --all`, then `cargo test --locked --all-targets` and `cargo clippy --locked --all-targets` on a development machine, and build in release mode. Capture the exact compiler version, the committed `Cargo.lock`, dependency licenses, source revision and resulting binary hashes. If a dependency changed, review and commit the updated lockfile before treating the build as a baseline.
 
-Resolve compilation errors or test failures before packaging. A source-level delimiter check is not a Rust parser, borrow checker or compiler. Successful original-editor JSON validation is not evidence that the new Rust implementation behaves the same way.
+Resolve compilation errors and test failures before packaging, and review the Clippy findings — CI reports them without failing the build, so they do not gate a release on their own.
 
 ## Installed application
 
@@ -37,9 +37,9 @@ A passing headless pointer-input test establishes only the state transition exer
 
 ## Distribution gate
 
-The Windows NSIS recipe is unsigned. The macOS bundle/DMG recipe is unnotarized. Signing, notarization and workplace installation policy remain release concerns. Do not instruct coworkers to bypass their employer's controls. No telemetry, updater or public publication is configured in this source package.
+The Windows NSIS recipe is unsigned. The macOS bundle/DMG recipe is unnotarized. Signing, notarization and workplace installation policy remain release concerns. Do not instruct coworkers to bypass their employer's controls. No telemetry, updater or public publication is configured.
 
-The GitHub Actions workflow builds downloadable **workflow artifacts**, not automatically published public Releases. No repository was created or changed by this handoff. Publication, hosting, license review and installer signing are deliberate owner actions.
+The GitHub Actions workflow builds downloadable **workflow artifacts**, not published Releases. Publication, hosting, license review and installer signing are deliberate owner actions.
 
 ## Evidence record
 

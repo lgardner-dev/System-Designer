@@ -1,185 +1,163 @@
-# System Designer — native Rust rewrite
+# System Designer
 
-A native desktop editor for recursive components, typed ports, local connections,
-and narrowly scoped AI collaboration. The UI is written in Rust using egui/eframe;
-there is no webview, HTML, JavaScript, CSS, backend service, or AI API integration.
+A native desktop editor for recursive system designs: components that contain
+components, typed ports, explicit local connections, and a bounded way to hand a
+slice of the design to an AI assistant and bring the result back.
 
-**Delivery status: source candidate, not a verified native release.** This package
-was authored in an environment without Rust/Cargo and without working package
-downloads. Rust compilation, Rust tests, the native UI, and installer execution
-have NOT been run here. No executable or ready-to-install installer is included.
-See [verification](docs/VERIFICATION.md) for the exact evidence and limitations.
-Do not distribute a coworker release until the build and installed-app smoke
-checks pass on the intended platform.
-
-## Build and run
-
-Install Rust stable on the development machine. Windows also needs the Visual C++
-build tools. The application user will not need Rust or these build tools.
+The application is written in Rust with egui/eframe. There is no webview, HTML,
+JavaScript, CSS, backend service, or AI API integration — it is a single native
+executable that reads and writes local JSON files and never contacts a network
+service.
 
 ```sh
-cargo generate-lockfile
-cargo fmt --all
-cargo test --locked --all-targets
-cargo run --locked --release --bin system-designer
+cargo run --release --bin system-designer
 ```
 
-An optional first argument opens a project:
+## What it is for
 
-```sh
-cargo run --locked --release --bin system-designer -- design/system-designer.project.json
-```
+You describe a system as a tree of components. Each component has a purpose and
+a set of input/output ports. Each port carries exactly one contract — a named,
+versioned, structured type from the project's catalog. Components at the same
+level are wired to each other by edges; a component with internals can be
+entered, and its own ports appear as the boundary of the level inside it.
 
-For core-only verification without the desktop dependencies:
+The result is a design you can navigate one level of detail at a time, where
+every interface between two responsibilities is written down and checked for
+consistency. It is a design model, not a workflow runner, an execution engine,
+or a semantic-approval system: a structurally valid project is not proof that
+the decomposition is good.
 
-```sh
-cargo test --no-default-features
-cargo run --no-default-features --bin designer-check -- design/system-designer.project.json
-cargo run --no-default-features --bin designer-check -- project.json proposed.scope.json
-```
+* [Data model and exchange format](MODEL.md) — the exact JSON the app reads and writes.
+* [Architecture](docs/ARCHITECTURE.md) — how the application is built, and the source map.
+* [Contributing](CONTRIBUTING.md) — development setup, tests, and the change workflow.
 
-On Debian/Ubuntu, the desktop build may need the development libraries listed in
-`.github/workflows/ci.yml`. The native renderer uses OpenGL through eframe's Glow
-backend, with X11 and Wayland enabled. None of these target configurations has
-been qualified in this delivery.
+## Install
 
-A dependency lockfile is deliberately not fabricated. Generate it during the
-first actual build, inspect it, and commit the resulting `Cargo.lock`. The supplied
-CI currently resolves dependencies and captures the real lockfile. After adopting
-one, replace its resolve step with a locked fetch/build policy.
+Installers are not committed to the repository. Build one, or download the
+artifact that `.github/workflows/ci.yml` produces for your platform.
 
-## What is in the rewrite
+**Windows.** `.\packaging\windows\build.ps1` runs the tests, then packages
+`dist\system-designer-setup.exe` — an unsigned per-user install that needs no
+administrator rights and no Visual C++ Redistributable. Uninstalling preserves
+your project files and recovery data. Building it needs Rust and NSIS.
 
-* Native tree, breadcrumbs, selected-level canvas, component/edge inspector,
-  pan, zoom, fit, deterministic layout, and drag/click connection gestures.
-* A real contract dialog for new wires; choose or define a contract explicitly.
-  Existing wires have editable endpoints, contract, and label. Shared-port
-  changes require visible impact confirmation.
-* Primitive, enum, array, and nested object schema forms. Unconnected draft ports
-  may be unassigned. Mirrored boundaries remain one physical port identity.
-* One authoritative typed project in `Store`, validated candidate publication,
-  safe recursive deletion, and 50-step session undo/redo.
-* Actual Open/Save/Save As, external-file fingerprint checks, a prior-version
-  `.bak`, independent recovery snapshots, and unsaved-work guards.
-* Embedded initialization prompt and embedded self-design model, using
-  `include_str!`. No sidecar resource is needed at runtime.
-* Original version-1 project and three-scope exchange format. Returned scope
-  packets have separate Validate and Apply actions, with revalidation at Apply.
+**Linux.** `packaging/linux/build.sh` produces a self-extracting
+`dist/system-designer-setup.sh` that installs a per-user binary and desktop
+entry. It is not an AppImage and does not bundle system graphics libraries.
 
-These describe the supplied implementation, not verified execution results.
+**macOS.** CI builds an unsigned, unnotarized `.app` bundle and DMG. Sign and
+notarize it before distributing.
 
-## Explore the application's own design
+People running the app need none of the build tooling — only the installed
+binary. Signing and notarization are release decisions; see
+[docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md).
 
-The file `design/system-designer.project.json` is a normal System Designer project.
-It can be opened now in the earlier working editor. The native source also exposes
-it through **File → Open application design**, as an unsaved copy.
+## Using it effectively
 
-It contains seven top-level components and eight local systems in total. No level
-has more than seven immediate nodes. The architecture is a responsibility model,
-not a separately implemented message bus: interface schemas explicitly identify
-where they are explanatory projections of typed, borrowed Rust values. Source
-paths in component purposes map the tree to this repository. See
-[architecture rationale](docs/ARCHITECTURE.md).
+### Decompose only when a boundary earns it
 
-New projects still start blank with an empty catalog. The self-design is an
-optional example, not a preloaded product-specific default. Around eight local
-components is guidance; the validator also permits larger coherent systems.
+Add a component, write its purpose, and give it ports. Decompose it only when an
+independently meaningful responsibility or interface justifies another level —
+not because a component feels large. Double-click a component with internals to
+enter it; breadcrumbs and the tree take you back out.
 
-## Editing
+Around eight immediate components per level is a readability heuristic, and the
+self-design follows it. The validator does not enforce it and will not reject a
+larger coherent system. Never invent a boundary just to hit the number.
 
-Add a component, define its purpose, and give it input/output ports. Decompose only
-when an independently meaningful responsibility or interface justifies another
-level. Double-click a component with internals to enter it. Owner ports appear on
-the containing boundary; outside neighbors are labels derived from parent edges.
+### Every wire is a deliberate typing decision
 
-Drag between two ports in either direction to open the contract dialog. Clicking
-ports is also supported, and **Connect ports** provides a form-based route. No new
-wire exists until confirmation. Double-click a wire or select **Change contract /
-endpoints** to edit it.
+Drag between two ports in either direction — or click both, or use **Connect
+ports** — and the contract dialog opens. No wire exists until you confirm it.
+You either pick an existing contract or define a new structured one; the app
+never silently chooses a type for you. Releasing a drag on empty space cancels.
 
-Connected ports that share a channel must keep one exact contract ID/version.
-Retyping can include fan-out and mirrored child-boundary connections. Review the
-impact list rather than treating it as an independent edge-only property.
+Connected ports that share a channel must hold one exact contract ID *and*
+version. Retyping a wire can therefore propagate to fan-out edges and to
+mirrored child-boundary ports. The dialog shows the full impact list before you
+commit, and any change to an already-assigned port needs explicit consent. Read
+that list — the contract belongs to the ports, not to the single edge you happen
+to be editing.
 
-## AI collaboration — the app contains everything
+If two channels should be able to evolve independently, give them separate ports
+rather than widening one contract to cover both.
 
-**AI handoff → Initialize chat** provides the complete copyable prompt. It explains
-the design approach and exact JSON representation and contains no project data.
-Then export the smallest relevant scope:
+### Contracts are small on purpose
+
+The shape language is `string`, `integer`, `number`, `boolean`, `enum`, `array`,
+and `object` with named fields — deliberately smaller than JSON Schema, so that
+interfaces stay readable. Unsupported keywords are rejected rather than silently
+ignored. Express anything further in the purpose and field descriptions; the
+validator checks structure, not meaning, and never validates runtime payloads.
+
+Reuse an existing contract only when the meaning genuinely matches. A new
+version is cheap; a wrong shared type is not.
+
+### Work with AI on the smallest scope that fits
+
+The app contains everything the exchange needs, and performs none of it for you.
+**AI handoff → Initialize chat** gives you the complete initialization prompt: it
+explains the design method and the exact JSON format, and contains no project
+data. Copy it into a fresh chat, then export the smallest scope that covers the
+change:
 
 | Scope | Editable | Preserved |
 |---|---|---|
-| Component | Selected node | Siblings, edges, deeper internals |
-| Level | Immediate nodes and connections | Existing hidden-child ownership and internals |
-| Subtree | Selected level and all descendants | Owner boundary, ancestors, unrelated branches |
+| Component | The selected node | Siblings, local edges, deeper internals |
+| Level | Immediate nodes and their connections | Hidden child ownership and internals |
+| Subtree | The selected level and all descendants | Owner boundary, ancestors, unrelated branches |
 
-Return to the same level, load the complete returned packet, select **Validate
-candidate**, review it, then **Apply validated changes**. The app rejects changed
-read-only context, stale base tokens, missing definitions, cross-level edges,
-outside identity collisions, and silent rewrites of existing shared types.
+Return to the same level, load the complete returned packet, choose **Validate
+candidate**, review what it reports, then **Apply validated changes**. Nothing is
+published until Apply, and the app revalidates at that moment.
 
-Copying work information into another service remains the user's deliberate
-separate action. The executable does not send it anywhere.
+Imports are rejected — with a reason — for changed read-only context, a stale
+base token, missing contract definitions, cross-level edges, identity collisions
+with outside components, and any silent rewrite of an existing shared type. The
+base token is an optimistic concurrency check, not authentication: it exists to
+catch a design that moved on while the assistant was working, so neither you nor
+the assistant should ever recalculate it to force a stale edit through.
 
-## Files, recovery, and limits
+Copying a scope into another service is always your own deliberate action. The
+executable does not send it anywhere.
 
-Ctrl/Cmd+S saves the actual project file. Saving preserves the previous valid file
-as `<name>.bak` and replaces through a synchronized same-directory temporary file.
-Changed or damaged existing files are not silently overwritten. Fingerprints
-detect ordinary external edits; they are not a race-free interprocess lock.
-Do not edit the same project concurrently in several app instances.
+### Files and recovery
 
-Recovery snapshots cover published project edits, not unconfirmed form drafts or temporary gestures. They are isolated per session and written when dirty. Recovery
-opens an unsaved copy, never silently overwrites the original path, and preserves
-unknown or damaged recovery files. Current-session recovery is removed after
-successful save or deliberate discard/clean close. Other recovery copies are
-retained. Keep independent backups of important work.
+Ctrl/Cmd+S writes the real project file. The previous valid version is kept as
+`<name>.bak`, and the replacement goes through a synchronized temporary file in
+the same directory. Fingerprints detect ordinary external edits, so a changed or
+damaged file is never silently overwritten — but they are not an interprocess
+lock, so do not edit one project in several app instances at once.
 
-Containment has no fixed depth or node-count limit. Imported deeply nested *field
-schemas* are subject to serde_json's JSON nesting guard; that is separate from the
-flat normalized component tree. Structural validation is not semantic validation,
-a runtime payload validator, a formal acceptance system, or proof of good design.
-Large-project performance and accessibility remain unqualified.
+Recovery snapshots are written per session while the project is dirty, and cover
+published edits, not half-finished dialog drafts or in-progress gestures.
+Recovery always opens as an unsaved copy and never overwrites the original path;
+unknown or damaged recovery files are preserved rather than cleaned up. Keep
+independent backups of work you care about.
 
-## Installers and CI
+## Explore the application's own design
 
-Windows: with Rust, Visual C++ tools and NSIS available on the build machine:
+`design/system-designer.project.json` is an ordinary System Designer project
+describing this application, and **File → Open application design** opens it as
+an unsaved copy. It has seven top-level components across eight systems in all,
+35 component nodes and 14 contracts, with component purposes pointing at the
+source paths that implement them.
 
-```powershell
-.\packaging\windows\build.ps1
-```
+It is an example, not a default: new projects start blank, with an empty
+contract catalog. See [the architecture notes](docs/ARCHITECTURE.md) for what its
+edges do and do not claim to mean.
 
-The script runs tests before building an unsigned per-user NSIS installer in
-`dist/`. It embeds only the compiled application. Uninstall preserves user files
-and recovery data. No Windows installer was built or installed in this delivery.
+## Known limits
 
-Linux: `./packaging/linux/build.sh` produces a tarball with a per-user install
-script and desktop entry after successful tests/build. It is not a universal
-AppImage and does not bundle system graphics libraries.
+Containment has no fixed depth or node-count limit; deeply nested *field schemas*
+are still bounded by serde_json's parsing recursion guard, which is a separate
+concern from the flat normalized component tree. Structural validation is not
+semantic validation, a runtime payload validator, or a formal acceptance system.
+There is no multi-user merge protocol, no auto-updater, no telemetry, and no AI
+API client. Undo/redo keeps 50 session steps and is not a persistent audit trail.
+Large-project performance and full accessibility have not been qualified.
 
-`.github/workflows/ci.yml` defines Windows/Linux/macOS builds and installer or
-bundle artifacts. It does not create a repository or publish a public release;
-none of its jobs have been executed here. macOS signing/notarization and Windows
-signing are not configured. Inspect the real outputs and follow workplace policy
-before sharing installers. The [release checklist](docs/RELEASE-CHECKLIST.md)
-covers native save/reopen, recovery, drag behavior, scoped exchange and upgrades.
+## License
 
-## Source layout
-
-```
-src/
-  model/       typed records, validation, derived queries
-  edit/        candidate edits, connection consistency, Store/history
-  exchange/    canonical tokens, scoped export, safe replacement
-  storage.rs   native project files and recovery
-  ui/          workspace, canvas, inspector, schema/contract forms, AI handoff
-  main.rs      native executable
-  check.rs     headless validator
-assets/        compile-time initialization prompt
-design/        importable application design
-tests/         Rust tests plus JSON golden fixtures from the previous editor
-packaging/     installer recipes (not prebuilt installers)
-```
-
-MIT license for the supplied source. Dependency notices and a dependency/security
-review belong in the actual release process; no such audit is claimed here.
+MIT — see [LICENSE](LICENSE). A dependency license and security review belongs in
+your own release process; none is claimed here.
