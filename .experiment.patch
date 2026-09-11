@@ -1,0 +1,568 @@
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -48,6 +48,7 @@
+           $version4 = ($parts[0..3]) -join '.'
+           & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" "/DAPP_VERSION=$version" "/DAPP_VERSION_4=$version4" "/DAPP_BINARY=$bin" "/DOUT_FILE=$out" packaging/windows/setup.nsi
+           if ($LASTEXITCODE -ne 0) { throw 'Installer failed' }
++          Copy-Item $bin dist/system-designer-preview.exe
+           Copy-Item Cargo.lock dist/
+       - name: Package Linux installer
+         if: runner.os == 'Linux'
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,7 @@
++# Interface comparison: C — Connection-aware layout
++
++See [experiment instructions and limits](docs/INTERFACE-EXPERIMENT.md). This branch starts from the merged four-sided-port baseline and contains only this strategy.
++
+ # System Designer
+ 
+ A native desktop editor for recursive system designs: components that contain
+--- a/assets/initialization.txt
++++ b/assets/initialization.txt
+@@ -126,3 +126,8 @@
+ ## Canvas geometry and direction previews
+ 
+ Port side is chosen by the renderer and is not a semantic direction or an extra JSON field. Inputs and outputs can appear on any of the four card sides. Moving lights are a direction preview, not evidence of execution, scheduling, throughput or latency. Continue to use the declared port direction and edge endpoints as authoritative.
++
++
++## Interface experiment: C · Connection layout
++
++Explicit undoable arrangement uses strongly connected groups, local rings for feedback and directional layers between groups. Cycle groups are temporary drawing data, not components. Measure card bounds before publishing only current-level positions; never infer execution order or alter connections. Do not add display-state fields to semantic JSON. All full-project and scoped replacements still use the existing exact version-1 format and full selected scope.
+--- a/design/system-designer.project.json
++++ b/design/system-designer.project.json
+@@ -1415,7 +1415,7 @@
+         {
+           "id": "canvas.projection",
+           "name": "Geometry projection",
+-          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.",
++          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.\n\nExperiment C · Connection layout: Explicit undoable arrangement uses strongly connected groups, local rings for feedback and directional layers between groups. Cycle groups are temporary drawing data, not components. Measure card bounds before publishing only current-level positions; never infer execution order or alter connections. Do not add display-state fields to semantic JSON. Source: src/ui/canvas/arrangement.rs.",
+           "kind": "component",
+           "ports": [
+             {
+--- /dev/null
++++ b/docs/INTERFACE-EXPERIMENT.md
+@@ -0,0 +1,37 @@
++# C — Connection-aware layout
++
++Branch: `experiment/connection-layout`
++
++Common baseline: `267db9364311327ca0b7e663f854b6569ef6b18f` (merged four-sided ports and direction lights). This is an independent comparison candidate, not stacked on either of the other two experiments.
++
++This is the strongest candidate for improving the global geometry without concealing any relationship. It borrows layered-layout principles from ELK, adapted to this editor's freely cyclic local graphs and four-sided ports.
++
++## Try it
++
++Select **Left to right** or **Top to bottom**, then **Arrange by connections**. This explicitly rearranges the current level and fits it into view. **Undo** restores the previous positions in one action. The old Auto-layout grid remains available for comparison.
++
++The algorithm finds strongly connected groups on a temporary local drawing graph. Feedback groups are arranged as small rings (two-node feedback is a pair), while connections between groups determine directional layers. Bounded barycenter sweeps reduce some crossings between layers. Port-aware card dimensions are measured again as placement changes and reserved drawing cells grow until the actual cards fit.
++
++A feedback group is not a new component. No edge is reversed or deleted to obtain a cleaner drawing. Boundary ports remain derived from the owner, and no artificial Start or End is invented. The graph may have multiple roots, cycles, disconnected components, or only one node.
++
++## Boundaries
++
++Only current-level visual positions are published, using the ordinary validated Store and undo history. Component purposes, ports, contracts, connections, hidden internals, other levels' layouts, and AI scope hashes remain unchanged. Node positions do not encode execution order or prerequisites.
++
++This is a small native heuristic, **not the ELK implementation**, a complete obstacle-avoiding router, or a minimum-crossing guarantee. Large feedback regions can occupy more area than a carefully arranged manual design. Existing arrow/light geometry remains unchanged. There is a bounded sizing iteration; failure leaves the prior layout intact instead of partially publishing.
++
++The implementation is `src/ui/canvas/arrangement.rs`. No new runtime dependency, schema field, graph engine, or semantic grouping is introduced.
++
++## Prior-art reference
++
++https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html
++
++ELK is the reference for directional layers and crossing-reduction considerations; the cycle-ring policy is this experiment's deliberate adaptation, not a claim that ELK uses this exact policy.
++
++## Comparison and verification
++
++Use separate copies of the same project for A/B/C. All use the existing version-1 JSON and embedded prompt. Close one preview before opening another on the same file. Do not merge these alternatives cumulatively merely to test them.
++
++For each, try finding a contract's producer, understanding a return path, inspecting an exact child boundary, editing one connection, and exporting the level. Compare correctness and comfort before appearance alone.
++
++Unit and headless input tests are included and must pass alongside the unchanged core/exchange/storage tests. The existing CI runs Windows, Linux and macOS builds; it additionally includes a portable Windows executable in its preview artifact so comparisons do not require overwriting the installed application. Check the PR for exact executed commit/run evidence. A passing build is not a full native interaction, accessibility, performance, or usability qualification.
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -3,7 +3,7 @@
+ fn main() -> eframe::Result {
+     let options = eframe::NativeOptions {
+         viewport: egui::ViewportBuilder::default()
+-            .with_title("System Designer")
++            .with_title("System Designer — C · Connection layout")
+             .with_inner_size([1440.0, 900.0])
+             .with_min_inner_size([1024.0, 650.0]),
+         renderer: eframe::Renderer::Glow,
+--- /dev/null
++++ b/src/ui/canvas/arrangement.rs
+@@ -0,0 +1,454 @@
++//! SCC-aware layered drawing. Cycle groups exist ONLY in the layout algorithm.
++//! No edge is reversed, removed, or interpreted as a prerequisite/execution order.
++use super::*;
++use std::collections::{BTreeSet, VecDeque};
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++enum Axis {
++    #[default]
++    Horizontal,
++    Vertical,
++}
++#[derive(Clone)]
++struct Block {
++    members: Vec<usize>,
++    positions: BTreeMap<usize, Vec2>,
++    size: Vec2,
++}
++fn graph(p: &Project, sid: &str) -> (Vec<String>, Vec<Vec<usize>>) {
++    let Some(system) = p.system(sid) else {
++        return (vec![], vec![]);
++    };
++    let mut ids: Vec<_> = system.nodes.iter().map(|n| n.id.clone()).collect();
++    ids.sort();
++    let index: BTreeMap<_, _> = ids
++        .iter()
++        .enumerate()
++        .map(|(i, id)| (id.as_str(), i))
++        .collect();
++    let mut adjacency = vec![BTreeSet::new(); ids.len()];
++    for edge in &system.edges {
++        if let (Some(a), Some(b)) = (&edge.from.node, &edge.to.node)
++            && let (Some(&a), Some(&b)) = (index.get(a.as_str()), index.get(b.as_str()))
++        {
++            adjacency[a].insert(b);
++        }
++    }
++    (
++        ids,
++        adjacency
++            .into_iter()
++            .map(|set| set.into_iter().collect())
++            .collect(),
++    )
++}
++/// Iterative Kosaraju: component-tree depth and graph depth do not use the call stack.
++fn components(adjacency: &[Vec<usize>]) -> Vec<Vec<usize>> {
++    let n = adjacency.len();
++    let mut seen = vec![false; n];
++    let mut finish = vec![];
++    for root in 0..n {
++        if seen[root] {
++            continue;
++        }
++        seen[root] = true;
++        let mut stack = vec![(root, 0)];
++        while let Some((v, index)) = stack.last_mut() {
++            if *index < adjacency[*v].len() {
++                let next = adjacency[*v][*index];
++                *index += 1;
++                if !seen[next] {
++                    seen[next] = true;
++                    stack.push((next, 0));
++                }
++            } else {
++                let (v, _) = stack.pop().expect("nonempty DFS stack");
++                finish.push(v);
++            }
++        }
++    }
++    let mut reverse = vec![vec![]; n];
++    for (a, targets) in adjacency.iter().enumerate() {
++        for &b in targets {
++            reverse[b].push(a);
++        }
++    }
++    seen.fill(false);
++    let mut result = vec![];
++    for &root in finish.iter().rev() {
++        if seen[root] {
++            continue;
++        }
++        seen[root] = true;
++        let mut pending = vec![root];
++        let mut group = vec![];
++        while let Some(v) = pending.pop() {
++            group.push(v);
++            for &next in &reverse[v] {
++                if !seen[next] {
++                    seen[next] = true;
++                    pending.push(next);
++                }
++            }
++        }
++        group.sort();
++        result.push(group);
++    }
++    result.sort_by_key(|g| g[0]);
++    result
++}
++/// A ring prevents a genuine feedback network being forced into a false linear story.
++fn block(members: Vec<usize>, sizes: &[Vec2], axis: Axis, adjacency: &[Vec<usize>]) -> Block {
++    let mut order = members.clone();
++    // Greedy neighbour ordering shortens likely ring chords; stable identity breaks ties.
++    if order.len() > 3 {
++        let mut remaining: BTreeSet<_> = order.iter().copied().collect();
++        let mut sorted = vec![];
++        let mut current = order[0];
++        remaining.remove(&current);
++        sorted.push(current);
++        while !remaining.is_empty() {
++            let next = remaining
++                .iter()
++                .copied()
++                .max_by_key(|&v| {
++                    (
++                        (adjacency[current].contains(&v) as u8)
++                            + (adjacency[v].contains(&current) as u8),
++                        std::cmp::Reverse(v),
++                    )
++                })
++                .expect("remaining");
++            remaining.remove(&next);
++            sorted.push(next);
++            current = next;
++        }
++        order = sorted;
++    }
++    let mut positions = BTreeMap::new();
++    if order.len() == 1 {
++        positions.insert(order[0], Vec2::ZERO);
++    } else if order.len() == 2 {
++        positions.insert(order[0], Vec2::ZERO);
++        let size = sizes[order[0]];
++        positions.insert(
++            order[1],
++            if axis == Axis::Horizontal {
++                vec2(0.0, size.y + 120.0)
++            } else {
++                vec2(size.x + 140.0, 0.0)
++            },
++        );
++    } else {
++        let diameter = order
++            .iter()
++            .map(|&i| sizes[i].length())
++            .fold(0.0_f32, f32::max)
++            + 120.0;
++        let radius = diameter / (2.0 * (std::f32::consts::PI / order.len() as f32).sin());
++        for (j, &i) in order.iter().enumerate() {
++            let angle = 2.0 * std::f32::consts::PI * j as f32 / order.len() as f32
++                - std::f32::consts::FRAC_PI_2;
++            positions.insert(i, vec2(angle.cos(), angle.sin()) * radius - sizes[i] * 0.5);
++        }
++    }
++    let bounds = positions.iter().fold(Rect::NOTHING, |r, (&i, pos)| {
++        r.union(Rect::from_min_size(pos2(pos.x, pos.y), sizes[i]))
++    });
++    for pos in positions.values_mut() {
++        *pos -= bounds.min.to_vec2();
++    }
++    Block {
++        members,
++        positions,
++        size: bounds.size(),
++    }
++}
++fn place(
++    ids: &[String],
++    adjacency: &[Vec<usize>],
++    sizes: &[Vec2],
++    axis: Axis,
++    child: bool,
++) -> BTreeMap<String, Position> {
++    if ids.is_empty() {
++        return BTreeMap::new();
++    }
++    let blocks: Vec<_> = components(adjacency)
++        .into_iter()
++        .map(|g| block(g, sizes, axis, adjacency))
++        .collect();
++    let mut owner = vec![0; ids.len()];
++    for (i, b) in blocks.iter().enumerate() {
++        for &v in &b.members {
++            owner[v] = i;
++        }
++    }
++    let mut next = vec![BTreeSet::new(); blocks.len()];
++    let mut prev = next.clone();
++    for (a, targets) in adjacency.iter().enumerate() {
++        for &b in targets {
++            let (u, v) = (owner[a], owner[b]);
++            if u != v {
++                next[u].insert(v);
++                prev[v].insert(u);
++            }
++        }
++    }
++    let mut indegree: Vec<_> = prev.iter().map(BTreeSet::len).collect();
++    let mut pending: VecDeque<_> = (0..blocks.len()).filter(|&i| indegree[i] == 0).collect();
++    let mut ranks = vec![0_usize; blocks.len()];
++    while let Some(v) = pending.pop_front() {
++        for &other in &next[v] {
++            ranks[other] = ranks[other].max(ranks[v] + 1);
++            indegree[other] -= 1;
++            if indegree[other] == 0 {
++                pending.push_back(other);
++            }
++        }
++    }
++    let mut layers = vec![vec![]; ranks.iter().max().copied().unwrap_or(0) + 1];
++    for (i, &rank) in ranks.iter().enumerate() {
++        layers[rank].push(i);
++    }
++    // A few barycenter sweeps reduce crossings without an unbounded optimizer.
++    for sweep in 0..8 {
++        let order: BTreeMap<_, _> = layers
++            .iter()
++            .flat_map(|layer| layer.iter().enumerate().map(|(j, &b)| (b, j as f32)))
++            .collect();
++        for layer in &mut layers {
++            layer.sort_by(|&a, &b| {
++                let score = |i: usize| {
++                    let neighbours = if sweep % 2 == 0 { &prev[i] } else { &next[i] };
++                    if neighbours.is_empty() {
++                        order[&i]
++                    } else {
++                        neighbours.iter().map(|n| order[n]).sum::<f32>() / neighbours.len() as f32
++                    }
++                };
++                score(a).total_cmp(&score(b)).then(a.cmp(&b))
++            });
++        }
++    }
++    let along = |s: Vec2| if axis == Axis::Horizontal { s.x } else { s.y };
++    let across = |s: Vec2| if axis == Axis::Horizontal { s.y } else { s.x };
++    let heights: Vec<f32> = layers
++        .iter()
++        .map(|layer| {
++            layer.iter().map(|&i| across(blocks[i].size)).sum::<f32>()
++                + 120.0 * layer.len().saturating_sub(1) as f32
++        })
++        .collect();
++    let maximum = heights.iter().copied().fold(0.0_f32, f32::max);
++    let mut forward = 0.0_f32;
++    let mut positions = BTreeMap::new();
++    for (rank, layer) in layers.iter().enumerate() {
++        let mut cross = (maximum - heights[rank]) * 0.5;
++        for &i in layer {
++            let origin = if axis == Axis::Horizontal {
++                vec2(forward, cross)
++            } else {
++                vec2(cross, forward)
++            };
++            for (&v, offset) in &blocks[i].positions {
++                let p = origin + *offset + vec2(if child { 280.0 } else { 100.0 }, 150.0);
++                positions.insert(
++                    ids[v].clone(),
++                    Position {
++                        x: p.x as f64,
++                        y: p.y as f64,
++                    },
++                );
++            }
++            cross += across(blocks[i].size) + 120.0;
++        }
++        forward += layer
++            .iter()
++            .map(|&i| along(blocks[i].size))
++            .fold(0.0_f32, f32::max)
++            + 180.0;
++    }
++    positions
++}
++fn arranged(p: &Project, sid: &str, axis: Axis) -> Result<BTreeMap<String, Position>> {
++    let (ids, adjacency) = graph(p, sid);
++    if ids.is_empty() {
++        return Ok(BTreeMap::new());
++    }
++    let initial = Scene::new(p, sid, &auto_layout(p, sid));
++    let mut sizes: Vec<_> = ids
++        .iter()
++        .map(|id| {
++            initial
++                .cards
++                .iter()
++                .find(|c| c.id == *id)
++                .map(|c| c.rect.size())
++                .unwrap_or(vec2(300.0, 160.0))
++        })
++        .collect();
++    // Changing neighbours may change which side owns the label slots. Grow the
++    // measured envelope until the actual projected cards fit their reserved cells.
++    for _ in 0..16 {
++        let positions = place(&ids, &adjacency, &sizes, axis, sid != p.root);
++        let projected = Scene::new(p, sid, &positions);
++        let mut grew = false;
++        for (i, id) in ids.iter().enumerate() {
++            if let Some(card) = projected.cards.iter().find(|c| c.id == *id) {
++                let actual = card.rect.size();
++                if actual.x > sizes[i].x + 0.01 || actual.y > sizes[i].y + 0.01 {
++                    sizes[i] = sizes[i].max(actual);
++                    grew = true;
++                }
++            }
++        }
++        if !grew {
++            return Ok(positions);
++        }
++    }
++    Err(ModelError::one(
++        "Connection layout did not settle its card sizes. Existing positions were preserved.",
++    ))
++}
++pub(super) fn controls(app: &mut Designer, ui: &mut egui::Ui) {
++    let id = egui::Id::new("system-designer.arrangement-axis");
++    let mut axis = ui
++        .ctx()
++        .data(|d| d.get_temp::<Axis>(id))
++        .unwrap_or_default();
++    let mut run = false;
++    ui.horizontal_wrapped(|ui|{
++        ui.strong("C · Connection layout");
++        ui.selectable_value(&mut axis,Axis::Horizontal,"Left to right");
++        ui.selectable_value(&mut axis,Axis::Vertical,"Top to bottom");
++        run=ui.button("Arrange by connections").on_hover_text("Arrange this level only. Feedback groups stay cyclic; the rest uses directional layers. One undoable layout edit; no edge or contract changes.").clicked();
++    });
++    ui.small("Cycles use local rings, not invented start/end points. Layout direction is not execution order. Use Undo to restore your positions.");
++    ui.ctx().data_mut(|d| d.insert_temp(id, axis));
++    if run {
++        app.canvas.cancel();
++        let sid = app.current.clone();
++        let candidate = arranged(app.store.project(), &sid, axis).and_then(|positions| {
++            edit::candidate(app.store.project(), |p| {
++                p.layout.insert(sid, positions);
++                Ok(())
++            })
++        });
++        app.publish("Arrange by connections", candidate);
++        app.canvas.fit_requested = true;
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn fixture() -> Project {
++        parse(include_str!("../../../tests/fixtures/project.json")).expect("fixture")
++    }
++    #[test]
++    fn cycles_group_without_reversing_edges() {
++        assert_eq!(
++            components(&[vec![1], vec![0, 2], vec![]]),
++            vec![vec![0, 1], vec![2]]
++        );
++    }
++    #[test]
++    fn deep_graph_uses_no_recursive_dfs() {
++        let mut g = vec![vec![]; 4096];
++        for (i, successors) in g.iter_mut().enumerate().take(4095) {
++            successors.push(i + 1);
++        }
++        assert_eq!(components(&g).len(), 4096);
++    }
++    #[test]
++    fn condensation_ranks_follow_forward_edges() {
++        let ids = vec!["a".into(), "b".into(), "c".into()];
++        let g = vec![vec![1], vec![2], vec![]];
++        let positions = place(&ids, &g, &[vec2(300.0, 150.0); 3], Axis::Horizontal, false);
++        assert!(positions["a"].x < positions["b"].x && positions["b"].x < positions["c"].x);
++    }
++    #[test]
++    fn vertical_orientation_uses_y_ranks() {
++        let ids = vec!["a".into(), "b".into()];
++        let positions = place(
++            &ids,
++            &[vec![1], vec![]],
++            &[vec2(300.0, 150.0); 2],
++            Axis::Vertical,
++            false,
++        );
++        assert!(positions["a"].y < positions["b"].y);
++    }
++    #[test]
++    fn layout_is_deterministic() {
++        let p = fixture();
++        assert_eq!(
++            arranged(&p, "root", Axis::Horizontal).expect("layout"),
++            arranged(&p, "root", Axis::Horizontal).expect("layout")
++        );
++    }
++    #[test]
++    fn leaf_and_empty_system_work() {
++        let p = Project::blank();
++        assert!(
++            arranged(&p, "root", Axis::Horizontal)
++                .expect("empty")
++                .is_empty()
++        );
++        let p = fixture();
++        assert!(arranged(&p, "a", Axis::Horizontal).is_ok());
++    }
++    #[test]
++    fn application_design_has_no_overlapping_cards() {
++        let p = parse(crate::APPLICATION_DESIGN).expect("design");
++        for s in &p.systems {
++            for axis in [Axis::Horizontal, Axis::Vertical] {
++                let positions = arranged(&p, &s.id, axis).expect("layout");
++                let scene = Scene::new(&p, &s.id, &positions);
++                for (i, a) in scene.cards.iter().enumerate() {
++                    for b in &scene.cards[i + 1..] {
++                        assert!(
++                            !a.rect.expand(5.0).intersects(b.rect.expand(5.0)),
++                            "{} {} overlap",
++                            a.id,
++                            b.id
++                        );
++                    }
++                }
++            }
++        }
++    }
++    #[test]
++    fn all_edges_contracts_and_scope_base_are_preserved() {
++        use crate::exchange::{Scope, export};
++        let p = fixture();
++        let packet = serde_json::to_value(export(&p, "root", Scope::Level, None).expect("export"))
++            .expect("json");
++        let mut q = p.clone();
++        q.layout.insert(
++            "root".into(),
++            arranged(&p, "root", Axis::Horizontal).expect("layout"),
++        );
++        assert_eq!(q.systems, p.systems);
++        assert_eq!(q.contracts, p.contracts);
++        assert_eq!(
++            packet,
++            serde_json::to_value(export(&q, "root", Scope::Level, None).expect("export"))
++                .expect("json")
++        );
++    }
++    #[test]
++    fn arrangement_is_one_undoable_local_edit() {
++        let p = fixture();
++        let mut store = edit::Store::new(p.clone()).expect("store");
++        let mut q = p.clone();
++        q.layout.insert(
++            "a".into(),
++            arranged(&p, "a", Axis::Horizontal).expect("layout"),
++        );
++        store.publish("layout", q).expect("publish");
++        store.undo();
++        assert_eq!(store.project(), &p);
++        store.redo();
++        assert_ne!(store.project(), &p);
++    }
++}
+--- a/src/ui/canvas.rs
++++ b/src/ui/canvas.rs
+@@ -5,6 +5,7 @@
+ };
+ use std::collections::BTreeMap;
+ 
++mod arrangement;
+ mod geometry;
+ mod motion;
+ #[cfg(test)]
+@@ -116,6 +117,7 @@
+ }
+ impl Designer {
+     pub(super) fn canvas_view(&mut self, ui: &mut egui::Ui) {
++        arrangement::controls(self, ui);
+         let motion = motion::Motion::controls(ui);
+         let p = self.store.snapshot();
+         let sid = self.current.clone();
