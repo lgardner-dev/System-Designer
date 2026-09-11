@@ -1,8 +1,8 @@
-# One-use source transport. Removed by the verified candidate commit.
+# One-use source transport; workflow cleanup is a separate owner-authorized API edit.
 name: Apply verified interface experiment
 on:
   push:
-    branches: [experiment/connection-layout]
+    branches: [experiment/focus-trace, experiment/compact-overview, experiment/connection-layout]
     paths: [.github/workflows/apply-interface-experiment.yml, .experiment.patch]
 permissions:
   contents: write
@@ -16,27 +16,32 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Apply exact checked source patch
+      - name: Apply exact source without changing workflow files
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = 'experiment/connection-layout'
-          echo '9535c9e3afdd5e73ad6f9f6a63a246a433195d85603bc93c83def5223accf4e7  .experiment.patch' | sha256sum --check
-          git apply --check .experiment.patch
-          git apply .experiment.patch
-          rm .experiment.patch .github/workflows/apply-interface-experiment.yml
+          case "$GITHUB_REF_NAME" in
+            experiment/focus-trace) expected=17a18894d19e24cf4f8b7dcfc54fb1fff0714a4c58de21858eba41f59222bb04 ;;
+            experiment/compact-overview) expected=02beec3f77e5f1d6887ddd527b15da893df3354885764138ab58b591655aa3ee ;;
+            experiment/connection-layout) expected=9535c9e3afdd5e73ad6f9f6a63a246a433195d85603bc93c83def5223accf4e7 ;;
+            *) echo 'Not an experiment branch'; exit 1 ;;
+          esac
+          echo "$expected  .experiment.patch" | sha256sum --check
+          git apply --check --exclude='.github/workflows/*' .experiment.patch
+          git apply --exclude='.github/workflows/*' .experiment.patch
+          rm .experiment.patch
           git diff --check
       - name: Linux development libraries
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev
-      - name: Check exact source formatting
+      - name: Check formatting
         run: cargo fmt --all --check
-      - name: Run all target tests
+      - name: Test all targets
         run: cargo test --locked --all-targets
-      - name: Validate embedded self-design
+      - name: Validate embedded design
         run: cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json
-      - name: Commit on the experiment branch only
+      - name: Publish verified application source only
         shell: bash
         env:
           EXPECTED_HEAD: ${{ github.sha }}
@@ -44,8 +49,9 @@ jobs:
           set -euo pipefail
           actual=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
           test "$actual" = "$EXPECTED_HEAD" || { echo 'Branch changed; preserving newer work'; exit 1; }
-          git add src README.md docs assets design .github/workflows/ci.yml
+          git add src README.md docs assets design
           git add -u
-          git -c user.name='System Designer experiment verification' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Implement connection-layout from locally verified source'
+          test -z "$(git diff --cached --name-only -- .github/workflows)"
+          git -c user.name='System Designer experiment verification' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "Implement ${GITHUB_REF_NAME#experiment/} from verified source"
           git push origin HEAD:"$GITHUB_REF"
           git rev-parse HEAD
