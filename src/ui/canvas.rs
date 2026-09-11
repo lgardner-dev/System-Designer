@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 
 mod geometry;
 mod motion;
+pub(super) mod overview;
 #[cfg(test)]
 mod tests;
 use geometry::{Anchor, Path, Scene, Side};
@@ -39,6 +40,8 @@ pub(super) struct CanvasState {
     pending: Option<Endpoint>,
     #[cfg(test)]
     port_positions: BTreeMap<String, Pos2>,
+    #[cfg(test)]
+    summary_positions: BTreeMap<String, Pos2>,
 }
 impl Default for CanvasState {
     fn default() -> Self {
@@ -50,6 +53,8 @@ impl Default for CanvasState {
             pending: None,
             #[cfg(test)]
             port_positions: BTreeMap::new(),
+            #[cfg(test)]
+            summary_positions: BTreeMap::new(),
         }
     }
 }
@@ -116,6 +121,7 @@ fn port_labels(painter: &egui::Painter, port: &Anchor, rect: Rect, zoom: f32) {
 }
 impl Designer {
     pub(super) fn canvas_view(&mut self, ui: &mut egui::Ui) {
+        let view = overview::controls(self, ui);
         let motion = motion::Motion::controls(ui);
         let p = self.store.snapshot();
         let sid = self.current.clone();
@@ -138,24 +144,19 @@ impl Designer {
         // Geometry is derived from actual endpoints, not inferred process order.
         // Wire previews do not move ports or mutate the project.
         let scene = Scene::new(&p, &sid, &positions);
+        let scene = if view.compact {
+            overview::compact_scene(scene)
+        } else {
+            scene
+        };
         let mut bounds = scene.bounds;
-        let mut local_paths = Vec::with_capacity(system.edges.len());
-        let mut loop_lanes: BTreeMap<String, usize> = BTreeMap::new();
-        for edge in &system.edges {
-            let lane = if edge.from.node.is_some() && edge.from.node == edge.to.node {
-                let next = loop_lanes
-                    .entry(edge.from.node.clone().unwrap_or_default())
-                    .or_default();
-                let lane = *next;
-                *next += 1;
-                lane
-            } else {
-                0
-            };
-            if let Some(path) = scene.route(&edge.from, &edge.to, lane) {
-                bounds = bounds.union(path.bounds.expand(20.0));
-                local_paths.push((edge, path));
-            }
+        let local_paths = overview::links_for(&p, &sid, &scene, view.compact);
+        let member_map: BTreeMap<String, Vec<String>> = local_paths
+            .iter()
+            .map(|l| (l.edge.id.clone(), l.members.clone()))
+            .collect();
+        for link in &local_paths {
+            bounds = bounds.union(link.path.bounds.expand(20.0));
         }
         if self.canvas.fit_requested {
             self.canvas.zoom = ((area.width() - 32.0) / bounds.width())
@@ -212,12 +213,15 @@ impl Designer {
             }
         }
         let mut paths = Vec::with_capacity(local_paths.len());
+        let mut label_hits = Vec::new();
         let time = ui.input(|i| i.time);
         let animate = ui.is_enabled() && ui.input(|i| i.focused);
         let mut repaint = false;
-        for (edge, path) in local_paths {
-            let path = path.screen(area.min, pan, z);
-            let selected = self.selected == Selection::Edge(edge.id.clone());
+        for link in local_paths {
+            let edge = link.edge;
+            let path = link.path.screen(area.min, pan, z);
+            let selected = self.selected == Selection::Edge(edge.id.clone())
+                || (view.compact && view.group == link.members);
             if path.bounds.expand(15.0).intersects(area) {
                 painter.add(egui::Shape::line(
                     path.points.clone(),
@@ -239,21 +243,15 @@ impl Designer {
                         Stroke::new(1.5_f32, if selected { ACCENT } else { MUTED }),
                     );
                 }
-                if animate && path.length > 0.01 && motion.includes(edge, &self.selected) {
+                if animate
+                    && path.length > 0.01
+                    && (motion.includes(edge, &self.selected)
+                        || (view.compact && selected && motion == motion::Motion::Selected))
+                {
                     motion::paint(&painter, &path, time, &edge.id);
                     repaint = true;
                 }
-                let label = edge
-                    .label
-                    .as_deref()
-                    .filter(|s| !s.is_empty())
-                    .map(ToOwned::to_owned)
-                    .unwrap_or_else(|| {
-                        p.port(&sid, &edge.from)
-                            .and_then(|r| r.contract.as_ref())
-                            .map(ToString::to_string)
-                            .unwrap_or_default()
-                    });
+                let label = link.label;
                 let mid = path.at(path.length * 0.5).0;
                 let galley = painter.layout_no_wrap(
                     short(&label, 32),
@@ -262,6 +260,7 @@ impl Designer {
                 );
                 let rect =
                     Rect::from_center_size(mid - vec2(0.0, 11.0), galley.size() + vec2(10.0, 4.0));
+                label_hits.push((edge.id.clone(), rect));
                 painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
                 painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
             }
@@ -292,35 +291,85 @@ impl Designer {
             );
             let clipped = painter.with_clip_rect(rect.shrink(8.0 * z).intersect(area));
             let header = screen(pos2(card.rect.left(), card.header_y));
-            clipped.text(
-                header + vec2(15.0, 15.0) * z,
-                Align2::LEFT_TOP,
-                short(&node.name, 30),
-                FontId::proportional(16.0 * z),
-                Color32::WHITE,
-            );
-            clipped.text(
-                header + vec2(15.0, 39.0) * z,
-                Align2::LEFT_TOP,
-                format!(
-                    "{}{}",
-                    node.kind.label(),
+            if view.compact {
+                let galley = clipped.layout(
+                    node.name.clone(),
+                    FontId::proportional((16.0 * z).max(12.0)),
+                    Color32::WHITE,
+                    (rect.width() - 24.0 * z).max(30.0),
+                );
+                let title_clip = Rect::from_min_max(
+                    rect.min + vec2(12.0, 10.0) * z,
+                    rect.max - vec2(12.0, 39.0) * z,
+                );
+                clipped.with_clip_rect(title_clip.intersect(area)).galley(
+                    title_clip.min,
+                    galley,
+                    Color32::WHITE,
+                );
+                clipped.text(
+                    rect.left_bottom() + vec2(12.0, -37.0) * z,
+                    Align2::LEFT_TOP,
                     if node.child.is_some() {
-                        "  ·  Enter >"
+                        "Has internals · double-click to enter"
                     } else {
-                        ""
-                    }
-                ),
-                FontId::proportional(11.0 * z),
-                ACCENT,
-            );
-            clipped.text(
-                header + vec2(15.0, 57.0) * z,
-                Align2::LEFT_TOP,
-                short(&node.purpose.replace('\n', " "), 42),
-                FontId::proportional(11.0 * z),
-                MUTED,
-            );
+                        "Leaf component"
+                    },
+                    FontId::proportional((10.0 * z).max(8.0)),
+                    ACCENT,
+                );
+            } else {
+                clipped.text(
+                    header + vec2(15.0, 15.0) * z,
+                    Align2::LEFT_TOP,
+                    short(&node.name, 30),
+                    FontId::proportional(16.0 * z),
+                    Color32::WHITE,
+                );
+                clipped.text(
+                    header + vec2(15.0, 39.0) * z,
+                    Align2::LEFT_TOP,
+                    format!(
+                        "{}{}",
+                        node.kind.label(),
+                        if node.child.is_some() {
+                            "  ·  Enter >"
+                        } else {
+                            ""
+                        }
+                    ),
+                    FontId::proportional(11.0 * z),
+                    ACCENT,
+                );
+                clipped.text(
+                    header + vec2(15.0, 57.0) * z,
+                    Align2::LEFT_TOP,
+                    short(&node.purpose.replace('\n', " "), 42),
+                    FontId::proportional(11.0 * z),
+                    MUTED,
+                );
+            }
+        }
+        if view.compact {
+            for card in &scene.cards {
+                if let Some((_, node)) = p.node(&card.id) {
+                    let count = system
+                        .edges
+                        .iter()
+                        .filter(|e| {
+                            e.from.node.as_ref() == Some(&node.id)
+                                || e.to.node.as_ref() == Some(&node.id)
+                        })
+                        .count();
+                    painter.text(
+                        screen(card.rect.left_bottom()) + vec2(15.0, -20.0) * z,
+                        Align2::LEFT_TOP,
+                        format!("{} ports · {count} connections", node.ports.len()),
+                        FontId::proportional(10.0 * z),
+                        MUTED,
+                    );
+                }
+            }
         }
         let dragging = match &self.canvas.gesture {
             Some(Gesture::Wire { port, .. }) => Some(port.clone()),
@@ -330,6 +379,7 @@ impl Designer {
             scene
                 .ports
                 .iter()
+                .filter(|r| !view.compact || r.boundary)
                 .filter(|r| screen(r.point).distance(pos) < (11.0 * z).max(9.0))
                 .min_by(|a, b| {
                     screen(a.point)
@@ -346,6 +396,9 @@ impl Designer {
                 .collect();
         }
         for anchor in &scene.ports {
+            if view.compact && !anchor.boundary {
+                continue;
+            }
             let point = screen(anchor.point);
             let compatible = dragging
                 .as_ref()
@@ -402,6 +455,13 @@ impl Designer {
                 MUTED,
             );
         }
+        #[cfg(test)]
+        {
+            self.canvas.summary_positions = label_hits
+                .iter()
+                .map(|(id, rect)| (id.clone(), rect.center()))
+                .collect();
+        }
         if !ui.is_enabled() {
             return;
         }
@@ -426,16 +486,21 @@ impl Designer {
                 if port.boundary {
                     self.selected = Selection::Boundary(port.endpoint.port.clone());
                 }
-                self.canvas.gesture = Some(Gesture::Wire {
-                    port: port.endpoint.clone(),
-                    start: cursor,
-                });
+                if view.compact {
+                    self.canvas.gesture = None;
+                } else {
+                    self.canvas.gesture = Some(Gesture::Wire {
+                        port: port.endpoint.clone(),
+                        start: cursor,
+                    });
+                }
             } else if let Some(card) = scene
                 .cards
                 .iter()
                 .rev()
                 .find(|c| screen_rect(c.rect).contains(cursor))
             {
+                overview::clear(ui.ctx());
                 self.selected = Selection::Node(card.id.clone());
                 self.canvas.gesture = Some(Gesture::Move {
                     id: card.id.clone(),
@@ -443,14 +508,27 @@ impl Designer {
                     initial: card.position,
                     current: card.position,
                 });
+            } else if let Some((id, _)) = label_hits.iter().find(|(_, rect)| rect.contains(cursor))
+            {
+                if view.compact {
+                    overview::select(self, ui.ctx(), &member_map[id]);
+                } else {
+                    self.selected = Selection::Edge(id.clone());
+                }
+                self.canvas.gesture = Some(Gesture::Edge(id.clone()));
             } else if let Some((id, _)) = paths
                 .iter()
                 .filter(|(_, p)| p.distance(cursor) < 7.0)
                 .min_by(|(_, a), (_, b)| a.distance(cursor).total_cmp(&b.distance(cursor)))
             {
-                self.selected = Selection::Edge(id.clone());
+                if view.compact {
+                    overview::select(self, ui.ctx(), &member_map[id]);
+                } else {
+                    self.selected = Selection::Edge(id.clone());
+                }
                 self.canvas.gesture = Some(Gesture::Edge(id.clone()));
             } else {
+                overview::clear(ui.ctx());
                 self.selected = Selection::None;
                 self.canvas.pending = None;
                 self.canvas.gesture = Some(Gesture::Pan {
@@ -535,6 +613,13 @@ impl Designer {
                 }
                 Some(Gesture::Edge(id)) => {
                     if ui.input(|i| i.pointer.button_double_clicked(PointerButton::Primary)) {
+                        if view.compact
+                            && member_map.get(&id).is_some_and(|members| members.len() > 1)
+                        {
+                            overview::expand(ui.ctx());
+                            self.canvas.cancel();
+                            return;
+                        }
                         self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
                             &p,
                             &sid,
