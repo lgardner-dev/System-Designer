@@ -1,0 +1,94 @@
+name: Native build and verification
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Linux development libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev
+      # The authoring environment could not resolve Cargo dependencies. Until an
+      # audited Cargo.lock is committed, capture the actual resolved lock per build.
+      - name: Resolve dependencies
+        run: cargo generate-lockfile
+      - name: Format source candidate
+        run: cargo fmt --all
+      - name: Test core and native interaction logic
+        run: cargo test --locked --all-targets
+      - name: Report Clippy findings
+        run: cargo clippy --locked --all-targets
+      - name: Build native executable
+        run: cargo build --locked --release --bin system-designer --bin designer-check
+      - name: Validate embedded application design
+        run: cargo run --locked --no-default-features --bin designer-check -- design/system-designer.project.json
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        run: choco install nsis --no-progress -y
+      - name: Package Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $bin = (Resolve-Path target/release/system-designer.exe).Path
+          $out = Join-Path $pwd 'dist/system-designer-setup.exe'
+          $version = ([regex]::Match((Get-Content Cargo.toml -Raw), '(?m)^version\s*=\s*"([^"]+)"')).Groups[1].Value
+          $numeric = ($version -split '[-+]')[0]
+          $parts = @($numeric -split '\.') + @('0','0','0','0')
+          $version4 = ($parts[0..3]) -join '.'
+          & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" "/DAPP_VERSION=$version" "/DAPP_VERSION_4=$version4" "/DAPP_BINARY=$bin" "/DOUT_FILE=$out" packaging/windows/setup.nsi
+          if ($LASTEXITCODE -ne 0) { throw 'Installer failed' }
+          Copy-Item Cargo.lock dist/
+      - name: Package Linux installer
+        if: runner.os == 'Linux'
+        run: |
+          bash packaging/linux/make-installer.sh
+          cp Cargo.lock dist/
+      # Prove the installer actually installs, rather than only that it built.
+      - name: Verify Linux installer round trip
+        if: runner.os == 'Linux'
+        run: |
+          bash dist/system-designer-setup.sh --prefix "$RUNNER_TEMP/sd" --no-desktop-icon
+          test -x "$RUNNER_TEMP/sd/bin/system-designer"
+          bash dist/system-designer-setup.sh --prefix "$RUNNER_TEMP/sd" --uninstall
+          test ! -e "$RUNNER_TEMP/sd/bin/system-designer"
+      - name: Package macOS application bundle
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p 'dist/System Designer.app/Contents/MacOS'
+          cp target/release/system-designer 'dist/System Designer.app/Contents/MacOS/SystemDesigner'
+          cat > 'dist/System Designer.app/Contents/Info.plist' <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>CFBundleName</key><string>System Designer</string>
+          <key>CFBundleIdentifier</key><string>org.systemdesigner.desktop</string>
+          <key>CFBundleExecutable</key><string>SystemDesigner</string>
+          <key>CFBundlePackageType</key><string>APPL</string>
+          <key>CFBundleShortVersionString</key><string>0.2.0</string>
+          <key>NSHighResolutionCapable</key><true/>
+          </dict></plist>
+          PLIST
+          hdiutil create -volname 'System Designer' -srcfolder 'dist/System Designer.app' -ov -format UDZO dist/SystemDesigner-macOS.dmg
+          cp Cargo.lock dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SystemDesigner-${{ matrix.os }}
+          path: |
+            dist/
+            Cargo.lock
+          if-no-files-found: error

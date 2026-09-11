@@ -1,0 +1,287 @@
+{
+  "status": "PASS",
+  "method": "Executed the pre-existing editor core in Node. NO Rust code was executed.",
+  "reference": {
+    "path": "core.js from previously delivered system-designer-package.zip",
+    "sha256": "e662f56ce40024472586081c747b68ecfe5295c7d503ed0a366968c2faeb1219"
+  },
+  "subject": {
+    "path": "design/system-designer.project.json",
+    "sha256": "c1b54528d8130fa415bd298a855714be1c91692628e9c90f68b1b9baf89e6ffb"
+  },
+  "counts": {
+    "checks": 66,
+    "scope_round_trips": 51,
+    "systems": 8,
+    "components": 35,
+    "edges": 82,
+    "contracts": 14,
+    "max_local_nodes": 7
+  },
+  "checks": [
+    {
+      "name": "Self-design is valid in the existing System Designer validator",
+      "status": "PASS"
+    },
+    {
+      "name": "Seven immediate root components",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design local node counts are within eight",
+      "status": "PASS"
+    },
+    {
+      "name": "root: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/workspace: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/canvas: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/inspectors: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/transactions: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/model: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/collaboration: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "root/files: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal/workspace.host: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal/workspace.document: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal/workspace.navigation: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal/workspace.controls: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "workspace.internal/workspace.dialogs: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal/canvas.projection: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal/canvas.camera: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal/canvas.painting: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal/canvas.hit_test: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "canvas.internal/canvas.gestures: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal/inspectors.details: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal/inspectors.component: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal/inspectors.connection: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal/inspectors.catalog: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "inspectors.internal/inspectors.schema: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "model.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "model.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "model.internal/model.types: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "model.internal/model.validation: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "model.internal/model.queries: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "transactions.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "transactions.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "transactions.internal/transactions.operations: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "transactions.internal/transactions.connection: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "transactions.internal/transactions.history: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "collaboration.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "collaboration.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "collaboration.internal/collaboration.panel: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "collaboration.internal/collaboration.prompt: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "collaboration.internal/collaboration.export: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "collaboration.internal/collaboration.replace: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "files.internal: level exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "files.internal: subtree exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "files.internal/files.read: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "files.internal/files.save: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "files.internal/files.recovery: component exchange round trip in original editor",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: root-level.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: root-subtree.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: a-level.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: a-subtree.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: x-level.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: x-subtree.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: A-component.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: X-component.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden export remains authentic: W-component.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden replacement remains authentic",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden retyping remains authentic",
+      "status": "PASS"
+    },
+    {
+      "name": "Golden Unicode scope remains authentic",
+      "status": "PASS"
+    }
+  ]
+}

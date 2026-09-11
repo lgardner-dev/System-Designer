@@ -1,0 +1,45 @@
+[package]
+name = "system-designer"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Native recursive systems designer with typed interfaces and scoped AI handoff"
+license = "MIT"
+
+[lib]
+name = "system_designer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "system-designer"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[[bin]]
+name = "designer-check"
+path = "src/check.rs"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:eframe", "dep:rfd"]
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+sha2 = "0.10.9"
+uuid = { version = "1.18.1", features = ["v4"] }
+tempfile = "3.23.0"
+directories = "6.0.0"
+eframe = { version = "=0.33.3", optional = true, default-features = false, features = ["accesskit", "default_fonts", "glow", "x11", "wayland"] }
+rfd = { version = "=0.15.4", optional = true }
+
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"

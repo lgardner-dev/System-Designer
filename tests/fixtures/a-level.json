@@ -1,0 +1,171 @@
+{
+  "format": "system-designer-scope",
+  "version": 1,
+  "scope": "level",
+  "projectId": "p",
+  "systemId": "a",
+  "base": "98f6194002806756e5091fb2655d00615c63546b08e4f7b4525df8b367c9d88c",
+  "boundary": {
+    "ownerId": "A",
+    "name": "A",
+    "purpose": "Purpose A",
+    "ports": [
+      {
+        "id": "A.in",
+        "name": "A.in",
+        "direction": "in",
+        "contract": {
+          "id": "T",
+          "version": 1
+        }
+      },
+      {
+        "id": "A.out",
+        "name": "A.out",
+        "direction": "out",
+        "contract": {
+          "id": "T",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "systems": [
+    {
+      "id": "a",
+      "nodes": [
+        {
+          "id": "X",
+          "name": "X",
+          "purpose": "Purpose X",
+          "kind": "component",
+          "ports": [
+            {
+              "id": "X.in",
+              "name": "X.in",
+              "direction": "in",
+              "contract": {
+                "id": "T",
+                "version": 1
+              }
+            },
+            {
+              "id": "X.out",
+              "name": "X.out",
+              "direction": "out",
+              "contract": {
+                "id": "T",
+                "version": 1
+              }
+            }
+          ],
+          "child": "x"
+        }
+      ],
+      "edges": [
+        {
+          "id": "enter",
+          "from": {
+            "node": null,
+            "port": "A.in"
+          },
+          "to": {
+            "node": "X",
+            "port": "X.in"
+          },
+          "label": "condition"
+        },
+        {
+          "id": "exit",
+          "from": {
+            "node": "X",
+            "port": "X.out"
+          },
+          "to": {
+            "node": null,
+            "port": "A.out"
+          },
+          "label": "condition"
+        }
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "T",
+      "version": 1,
+      "name": "Test",
+      "purpose": "A test shape",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "context": {
+    "project": {
+      "name": "Fixture",
+      "purpose": "Test"
+    },
+    "ancestors": [
+      {
+        "system": "root",
+        "node": "A",
+        "name": "A",
+        "purpose": "Purpose A"
+      }
+    ],
+    "externalConnections": [
+      {
+        "port": "A.in",
+        "direction": "in",
+        "links": [
+          {
+            "edge": "incoming",
+            "node": "B",
+            "name": "B",
+            "port": "B.out",
+            "portName": "B.out",
+            "label": "condition",
+            "contract": {
+              "id": "T",
+              "version": 1
+            }
+          }
+        ]
+      },
+      {
+        "port": "A.out",
+        "direction": "out",
+        "links": [
+          {
+            "edge": "outgoing",
+            "node": "B",
+            "name": "B",
+            "port": "B.in",
+            "portName": "B.in",
+            "label": "condition",
+            "contract": {
+              "id": "T",
+              "version": 1
+            }
+          }
+        ]
+      }
+    ],
+    "preservedChildren": [
+      {
+        "ownerId": "X",
+        "systemId": "x"
+      }
+    ]
+  }
+}

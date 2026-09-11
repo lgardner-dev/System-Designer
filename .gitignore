@@ -1,0 +1,5 @@
+/target/
+/dist/
+*.sd-recovery.json
+*.bak
+.DS_Store

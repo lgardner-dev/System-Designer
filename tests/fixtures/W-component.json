@@ -1,0 +1,130 @@
+{
+  "format": "system-designer-scope",
+  "version": 1,
+  "scope": "component",
+  "projectId": "p",
+  "systemId": "x",
+  "nodeId": "W",
+  "base": "f6828c7a8118e3243d55187df3eaa3a637614882c23320c8a9cefd120c7413c8",
+  "component": {
+    "id": "W",
+    "name": "W",
+    "purpose": "Purpose W",
+    "kind": "component",
+    "ports": [
+      {
+        "id": "W.in",
+        "name": "W.in",
+        "direction": "in",
+        "contract": {
+          "id": "T",
+          "version": 1
+        }
+      },
+      {
+        "id": "W.out",
+        "name": "W.out",
+        "direction": "out",
+        "contract": {
+          "id": "T",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "contracts": [
+    {
+      "id": "T",
+      "version": 1,
+      "name": "Test",
+      "purpose": "A test shape",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "value",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "context": {
+    "project": {
+      "name": "Fixture",
+      "purpose": "Test"
+    },
+    "ancestors": [
+      {
+        "system": "root",
+        "node": "A",
+        "name": "A",
+        "purpose": "Purpose A"
+      },
+      {
+        "system": "a",
+        "node": "X",
+        "name": "X",
+        "purpose": "Purpose X"
+      }
+    ],
+    "connections": [
+      {
+        "id": "deep-enter",
+        "from": {
+          "node": null,
+          "port": "X.in"
+        },
+        "to": {
+          "node": "W",
+          "port": "W.in"
+        },
+        "label": "condition"
+      },
+      {
+        "id": "deep-exit",
+        "from": {
+          "node": "W",
+          "port": "W.out"
+        },
+        "to": {
+          "node": null,
+          "port": "X.out"
+        },
+        "label": "condition"
+      }
+    ],
+    "neighbors": [
+      {
+        "node": null,
+        "name": "Parent boundary",
+        "port": {
+          "id": "X.in",
+          "name": "X.in",
+          "direction": "in",
+          "contract": {
+            "id": "T",
+            "version": 1
+          }
+        }
+      },
+      {
+        "node": null,
+        "name": "Parent boundary",
+        "port": {
+          "id": "X.out",
+          "name": "X.out",
+          "direction": "out",
+          "contract": {
+            "id": "T",
+            "version": 1
+          }
+        }
+      }
+    ],
+    "preservedChild": null
+  }
+}

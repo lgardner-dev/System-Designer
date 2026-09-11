@@ -1,0 +1,435 @@
+{
+  "status": "PASS",
+  "scope": "Source packaging, lexical delimiter balance, data syntax, and link checks only. NOT Rust grammar/type/borrow checking or native execution.",
+  "counts": {
+    "checks": 104,
+    "rust_source_files": 26,
+    "authored_rust_test_functions": 94,
+    "executed_rust_test_functions": 0
+  },
+  "test_function_inventory": {
+    "tests/storage.rs": 9,
+    "tests/exchange.rs": 24,
+    "tests/self_design.rs": 4,
+    "tests/core.rs": 51,
+    "src/ui/canvas.rs": 6
+  },
+  "checks": [
+    {
+      "name": "TOML parses: Cargo.toml",
+      "status": "PASS"
+    },
+    {
+      "name": "TOML parses: rust-toolchain.toml",
+      "status": "PASS"
+    },
+    {
+      "name": "CI YAML parses (not a GitHub Actions run)",
+      "status": "PASS"
+    },
+    {
+      "name": "Shell syntax: packaging/linux/install.sh",
+      "status": "PASS"
+    },
+    {
+      "name": "Shell syntax: packaging/linux/build.sh",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: tests/storage.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: tests/exchange.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Compile-time resource exists: tests/exchange.rs \u2192 fixtures/project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: tests/self_design.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: tests/core.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Compile-time resource exists: tests/core.rs \u2192 fixtures/project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Compile-time resource exists: tests/core.rs \u2192 fixtures/project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/storage.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/check.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/main.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/lib.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Compile-time resource exists: src/lib.rs \u2192 ../assets/initialization.txt",
+      "status": "PASS"
+    },
+    {
+      "name": "Compile-time resource exists: src/lib.rs \u2192 ../design/system-designer.project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/lib.rs \u2192 model",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/lib.rs \u2192 edit",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/lib.rs \u2192 exchange",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/lib.rs \u2192 storage",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/lib.rs \u2192 ui",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/edit/history.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/edit/mod.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/edit/mod.rs \u2192 history",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/edit/mod.rs \u2192 operations",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/edit/mod.rs \u2192 connection",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/edit/operations.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/edit/connection.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/model/types.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/model/query.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/model/mod.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/model/mod.rs \u2192 types",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/model/mod.rs \u2192 validation",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/model/mod.rs \u2192 query",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/model/validation.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/ui/inspector.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/ui/workspace.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/ui/handoff.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/ui/mod.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/ui/mod.rs \u2192 workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/ui/mod.rs \u2192 canvas",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/ui/mod.rs \u2192 inspector",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/ui/mod.rs \u2192 contracts",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/ui/mod.rs \u2192 handoff",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/ui/contracts.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/ui/canvas.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Compile-time resource exists: src/ui/canvas.rs \u2192 ../../tests/fixtures/project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/exchange/canonical.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/exchange/packet.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/exchange/mod.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/exchange/mod.rs \u2192 canonical",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/exchange/mod.rs \u2192 packet",
+      "status": "PASS"
+    },
+    {
+      "name": "Module file exists: src/exchange/mod.rs \u2192 replace",
+      "status": "PASS"
+    },
+    {
+      "name": "Lexical delimiter balance ONLY: src/exchange/replace.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: docs/reference-checks.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: design/system-designer.project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/connection-result.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/A-component.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/root-level.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/root-subtree.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/W-component.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/unicode-scope.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/a-level.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/exports.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/unicode-project.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/x-level.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/a-subtree.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/replacement.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/x-subtree.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/replacement-result.json",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON parses: tests/fixtures/X-component.json",
+      "status": "PASS"
+    },
+    {
+      "name": "No HTML, JavaScript, CSS, webview or bundled legacy frontend artifacts",
+      "status": "PASS"
+    },
+    {
+      "name": "Native UI pinned to expected eframe source API",
+      "status": "PASS"
+    },
+    {
+      "name": "No webview dependencies declared directly",
+      "status": "PASS"
+    },
+    {
+      "name": "Embedded initialization includes three-scope protocol and eight-node guidance",
+      "status": "PASS"
+    },
+    {
+      "name": "Initialization has no Foundry defaults",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: assets/initialization.txt",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/edit/",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/edit/connection.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/edit/history.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/edit/operations.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/exchange/",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/exchange/canonical.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/exchange/packet.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/exchange/replace.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/lib.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/main.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/model/",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/model/query.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/model/types.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/model/validation.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/storage.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/ui/canvas.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/ui/contracts.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/ui/handoff.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/ui/inspector.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/ui/mod.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Self-design implementation path exists: src/ui/workspace.rs",
+      "status": "PASS"
+    },
+    {
+      "name": "Documentation link exists: README.md \u2192 docs/VERIFICATION.md",
+      "status": "PASS"
+    },
+    {
+      "name": "Documentation link exists: README.md \u2192 docs/ARCHITECTURE.md",
+      "status": "PASS"
+    },
+    {
+      "name": "Documentation link exists: README.md \u2192 docs/RELEASE-CHECKLIST.md",
+      "status": "PASS"
+    }
+  ]
+}

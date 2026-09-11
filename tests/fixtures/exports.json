@@ -1,0 +1,56 @@
+[
+  {
+    "file": "root-level.json",
+    "system": "root",
+    "scope": "level",
+    "node": null
+  },
+  {
+    "file": "root-subtree.json",
+    "system": "root",
+    "scope": "subtree",
+    "node": null
+  },
+  {
+    "file": "a-level.json",
+    "system": "a",
+    "scope": "level",
+    "node": null
+  },
+  {
+    "file": "a-subtree.json",
+    "system": "a",
+    "scope": "subtree",
+    "node": null
+  },
+  {
+    "file": "x-level.json",
+    "system": "x",
+    "scope": "level",
+    "node": null
+  },
+  {
+    "file": "x-subtree.json",
+    "system": "x",
+    "scope": "subtree",
+    "node": null
+  },
+  {
+    "file": "A-component.json",
+    "system": "root",
+    "scope": "component",
+    "node": "A"
+  },
+  {
+    "file": "X-component.json",
+    "system": "a",
+    "scope": "component",
+    "node": "X"
+  },
+  {
+    "file": "W-component.json",
+    "system": "x",
+    "scope": "component",
+    "node": "W"
+  }
+]

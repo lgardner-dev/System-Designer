@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=System Designer
+Comment=Recursive systems design with typed interfaces
+Type=Application
+Exec=system-designer %f
+Terminal=false
+Categories=Development;Engineering;
+StartupNotify=true

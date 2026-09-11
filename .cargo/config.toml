@@ -1,0 +1,10 @@
+# Ship a self-contained executable.
+#
+# The MSVC target links the C runtime dynamically by default, which makes the
+# binary depend on VCRUNTIME140.dll. That DLL is not present on a clean Windows
+# install -- it arrives with the Visual C++ Redistributable -- so a machine
+# without Visual Studio fails at launch with a missing-DLL error. Linking the
+# CRT statically costs about 0.15 MB and removes the dependency entirely; the
+# remaining imports are all core OS libraries.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
