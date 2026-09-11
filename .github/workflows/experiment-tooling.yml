@@ -1,0 +1,34 @@
+# Temporary read-only build tooling; removed from the final experiment diff.
+name: Prepare experiment verification tools
+on:
+  push:
+    branches: [experiment/focus-trace]
+    paths: [.github/workflows/experiment-tooling.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Fetch locked public dependencies
+        run: cargo fetch --locked
+      - name: Package source and offline verification tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          git archive --format=zip 267db9364311327ca0b7e663f854b6569ef6b18f -o out/baseline.zip
+          toolchain=$(dirname "$(dirname "$(rustup which rustc)")")
+          tar -cf - -C "$toolchain" bin lib | zstd -T0 -3 -o out/compiler.tar.zst
+          tar -cf - -C "$HOME/.cargo" registry | zstd -T0 -3 -o out/registry.tar.zst
+          rustc -vV > out/toolchain.txt
+          sha256sum out/*.zip out/*.zst > out/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-offline-tools
+          path: out/
+          retention-days: 1
