@@ -4,7 +4,13 @@ use egui::{
     Align2, Color32, FontId, PointerButton, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2, pos2, vec2,
 };
 use std::collections::BTreeMap;
-const WIDTH: f32 = 300.0;
+
+mod geometry;
+mod motion;
+#[cfg(test)]
+mod tests;
+use geometry::{Anchor, Path, Scene, Side};
+
 const ACCENT: Color32 = Color32::from_rgb(91, 183, 217);
 const MUTED: Color32 = Color32::from_rgb(142, 153, 172);
 #[derive(Clone)]
@@ -31,6 +37,8 @@ pub(super) struct CanvasState {
     pub fit_requested: bool,
     gesture: Option<Gesture>,
     pending: Option<Endpoint>,
+    #[cfg(test)]
+    port_positions: BTreeMap<String, Pos2>,
 }
 impl Default for CanvasState {
     fn default() -> Self {
@@ -40,6 +48,8 @@ impl Default for CanvasState {
             fit_requested: true,
             gesture: None,
             pending: None,
+            #[cfg(test)]
+            port_positions: BTreeMap::new(),
         }
     }
 }
@@ -48,60 +58,6 @@ impl CanvasState {
         self.gesture = None;
         self.pending = None;
     }
-}
-#[derive(Clone)]
-struct PortHit {
-    endpoint: Endpoint,
-    point: Pos2,
-    direction: Direction,
-    name: String,
-    contract: String,
-    boundary: bool,
-    external: String,
-}
-struct NodeHit {
-    id: String,
-    rect: Rect,
-    position: Position,
-}
-fn point(rect: Rect, pan: Vec2, zoom: f32, x: f32, y: f32) -> Pos2 {
-    rect.min + pan + vec2(x, y) * zoom
-}
-fn controls(a: Pos2, b: Pos2) -> [Pos2; 4] {
-    let d = ((b.x - a.x).abs() * 0.45).clamp(45.0, 220.0);
-    [a, a + vec2(d, 0.0), b - vec2(d, 0.0), b]
-}
-fn sample(c: [Pos2; 4], t: f32) -> Pos2 {
-    let u = 1.0 - t;
-    pos2(
-        u * u * u * c[0].x
-            + 3.0 * u * u * t * c[1].x
-            + 3.0 * u * t * t * c[2].x
-            + t * t * t * c[3].x,
-        u * u * u * c[0].y
-            + 3.0 * u * u * t * c[1].y
-            + 3.0 * u * t * t * c[2].y
-            + t * t * t * c[3].y,
-    )
-}
-fn distance_segment(p: Pos2, a: Pos2, b: Pos2) -> f32 {
-    let ab = b - a;
-    let t = if ab.length_sq() > 0.0 {
-        ((p - a).dot(ab) / ab.length_sq()).clamp(0.0, 1.0)
-    } else {
-        0.0
-    };
-    p.distance(a + ab * t)
-}
-fn curve_distance(p: Pos2, c: [Pos2; 4]) -> f32 {
-    let mut d = f32::INFINITY;
-    let mut a = c[0];
-    for i in 1..=32 {
-        let b = sample(c, i as f32 / 32.0);
-        d = d.min(distance_segment(p, a, b));
-        a = b;
-    }
-    d
 }
 fn short(s: &str, count: usize) -> String {
     if s.chars().count() > count {
@@ -120,11 +76,50 @@ fn pair(p: &Project, sid: &str, a: &Endpoint, b: &Endpoint) -> Option<(Endpoint,
         _ => None,
     }
 }
+fn port_labels(painter: &egui::Painter, port: &Anchor, rect: Rect, zoom: f32) {
+    let clipped = painter.with_clip_rect(rect.intersect(painter.clip_rect()));
+    let align = match port.side {
+        Side::Left => Align2::LEFT_TOP,
+        Side::Right => Align2::RIGHT_TOP,
+        _ => Align2::CENTER_TOP,
+    };
+    let x = match port.side {
+        Side::Left => rect.left(),
+        Side::Right => rect.right(),
+        _ => rect.center().x,
+    };
+    let font_size = (11.0 * zoom).max(8.0);
+    let capacity = (rect.width() / (font_size * 0.58)).max(2.0) as usize;
+    clipped.text(
+        pos2(x, rect.top()),
+        align,
+        short(&port.name, capacity),
+        FontId::proportional(font_size),
+        Color32::from_rgb(217, 224, 234),
+    );
+    clipped.text(
+        pos2(x, rect.top() + 14.0 * zoom),
+        align,
+        short(&port.contract, capacity),
+        FontId::monospace((9.0 * zoom).max(7.0)),
+        MUTED,
+    );
+    if port.boundary {
+        clipped.text(
+            pos2(x, rect.top() + 30.0 * zoom),
+            align,
+            short(&port.external, capacity),
+            FontId::proportional((10.0 * zoom).max(7.0)),
+            ACCENT,
+        );
+    }
+}
 impl Designer {
     pub(super) fn canvas_view(&mut self, ui: &mut egui::Ui) {
+        let motion = motion::Motion::controls(ui);
         let p = self.store.snapshot();
         let sid = self.current.clone();
-        let Some(s) = p.system(&sid) else {
+        let Some(system) = p.system(&sid) else {
             return;
         };
         let (area, response) = ui.allocate_exact_size(
@@ -140,41 +135,27 @@ impl Designer {
         if let Some(Gesture::Move { id, current, .. }) = &self.canvas.gesture {
             positions.insert(id.clone(), *current);
         }
-        let mut extent = Rect::from_min_max(pos2(40.0, 40.0), pos2(900.0, 500.0));
-        for n in &s.nodes {
-            if let Some(pos) = positions.get(&n.id) {
-                extent = extent.union(Rect::from_min_size(
-                    pos2(pos.x as f32, pos.y as f32),
-                    vec2(WIDTH, node_height(n) as f32),
-                ));
+        // Geometry is derived from actual endpoints, not inferred process order.
+        // Wire previews do not move ports or mutate the project.
+        let scene = Scene::new(&p, &sid, &positions);
+        let mut bounds = scene.bounds;
+        let mut local_paths = Vec::with_capacity(system.edges.len());
+        let mut loop_lanes: BTreeMap<String, usize> = BTreeMap::new();
+        for edge in &system.edges {
+            let lane = if edge.from.node.is_some() && edge.from.node == edge.to.node {
+                let next = loop_lanes
+                    .entry(edge.from.node.clone().unwrap_or_default())
+                    .or_default();
+                let lane = *next;
+                *next += 1;
+                lane
+            } else {
+                0
+            };
+            if let Some(path) = scene.route(&edge.from, &edge.to, lane) {
+                bounds = bounds.union(path.bounds.expand(20.0));
+                local_paths.push((edge, path));
             }
-        }
-        let boundary = p.owner(&sid);
-        let boundary_rows = p
-            .boundary(&sid)
-            .iter()
-            .filter(|r| r.direction == Direction::In)
-            .count()
-            .max(
-                p.boundary(&sid)
-                    .iter()
-                    .filter(|r| r.direction == Direction::Out)
-                    .count(),
-            );
-        let frame = Rect::from_min_max(
-            pos2(40.0, 40.0),
-            pos2(
-                extent.max.x + 240.0,
-                (extent.max.y + 100.0).max(180.0 + boundary_rows as f32 * 70.0),
-            ),
-        );
-        let mut bounds = if boundary.is_some() {
-            frame.expand2(vec2(80.0, 30.0))
-        } else {
-            extent.expand(50.0)
-        };
-        if s.nodes.is_empty() && boundary.is_none() {
-            bounds = Rect::from_min_max(Pos2::ZERO, pos2(900.0, 550.0));
         }
         if self.canvas.fit_requested {
             self.canvas.zoom = ((area.width() - 32.0) / bounds.width())
@@ -196,7 +177,8 @@ impl Designer {
         }
         let z = self.canvas.zoom;
         let pan = self.canvas.pan;
-        let world = |x: f32, y: f32| point(area, pan, z, x, y);
+        let screen = |point: Pos2| area.min + pan + point.to_vec2() * z;
+        let screen_rect = |rect: Rect| Rect::from_min_max(screen(rect.min), screen(rect.max));
         let grid = 40.0 * z;
         if grid >= 10.0 {
             let origin = area.min + pan;
@@ -210,125 +192,37 @@ impl Designer {
                 x += grid;
             }
         }
-        let mut ports = vec![];
-        let mut nodes = vec![];
-        if let Some((_, owner)) = boundary {
-            let screen = Rect::from_min_max(
-                world(frame.min.x, frame.min.y),
-                world(frame.max.x, frame.max.y),
-            );
-            painter.rect_filled(screen, 8, Color32::from_rgba_unmultiplied(24, 31, 40, 210));
+        if let Some(frame) = scene.frame {
+            let rect = screen_rect(frame);
+            painter.rect_filled(rect, 8, Color32::from_rgba_unmultiplied(24, 31, 40, 210));
             painter.rect_stroke(
-                screen,
+                rect,
                 8,
-                Stroke::new(1.5, Color32::from_rgb(70, 93, 111)),
+                Stroke::new(1.5_f32, Color32::from_rgb(70, 93, 111)),
                 StrokeKind::Inside,
             );
-            painter.text(
-                screen.min + vec2(22.0, 22.0) * z,
-                Align2::LEFT_TOP,
-                format!("{} — internal system", owner.name),
-                FontId::proportional(18.0 * z),
-                Color32::WHITE,
-            );
-            let external = p.external_connections(&sid);
-            for dir in [Direction::In, Direction::Out] {
-                let list: Vec<_> = owner.ports.iter().filter(|r| r.direction == dir).collect();
-                for (i, r) in list.iter().enumerate() {
-                    let x = if dir == Direction::In {
-                        frame.min.x
-                    } else {
-                        frame.max.x
-                    };
-                    let y = frame.min.y + 100.0 + i as f32 * 70.0;
-                    let names = external
-                        .iter()
-                        .find(|v| v["port"].as_str() == Some(&r.id))
-                        .and_then(|v| v["links"].as_array())
-                        .map(|a| {
-                            a.iter()
-                                .filter_map(|v| v["name"].as_str())
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        })
-                        .unwrap_or_default();
-                    ports.push(PortHit {
-                        endpoint: Endpoint {
-                            node: None,
-                            port: r.id.clone(),
-                        },
-                        point: world(x, y),
-                        direction: dir.opposite(),
-                        name: r.name.clone(),
-                        contract: r
-                            .contract
-                            .as_ref()
-                            .map(ToString::to_string)
-                            .unwrap_or_else(|| "Unassigned".into()),
-                        boundary: true,
-                        external: if names.is_empty() {
-                            "No external connection".into()
-                        } else {
-                            format!(
-                                "{} {names}",
-                                if dir == Direction::In { "from" } else { "to" }
-                            )
-                        },
-                    });
-                }
+            if let Some((_, owner)) = p.owner(&sid) {
+                painter.text(
+                    rect.min + vec2(22.0, 64.0) * z,
+                    Align2::LEFT_TOP,
+                    format!("{} — internal system", owner.name),
+                    FontId::proportional(18.0 * z),
+                    Color32::WHITE,
+                );
             }
         }
-        for n in &s.nodes {
-            let pos = positions.get(&n.id).copied().unwrap_or_default();
-            let rect = Rect::from_min_size(
-                world(pos.x as f32, pos.y as f32),
-                vec2(WIDTH, node_height(n) as f32) * z,
-            );
-            nodes.push(NodeHit {
-                id: n.id.clone(),
-                rect,
-                position: pos,
-            });
-            for dir in [Direction::In, Direction::Out] {
-                for (i, r) in n.ports.iter().filter(|r| r.direction == dir).enumerate() {
-                    ports.push(PortHit {
-                        endpoint: Endpoint {
-                            node: Some(n.id.clone()),
-                            port: r.id.clone(),
-                        },
-                        point: pos2(
-                            if dir == Direction::In {
-                                rect.left()
-                            } else {
-                                rect.right()
-                            },
-                            rect.top() + (88.0 + i as f32 * 38.0) * z,
-                        ),
-                        direction: dir,
-                        name: r.name.clone(),
-                        contract: r
-                            .contract
-                            .as_ref()
-                            .map(ToString::to_string)
-                            .unwrap_or_else(|| "Unassigned".into()),
-                        boundary: false,
-                        external: String::new(),
-                    });
-                }
-            }
-        }
-        let find_port = |ep: &Endpoint| ports.iter().find(|r| r.endpoint == *ep).map(|r| r.point);
-        let mut curves = vec![];
-        for e in &s.edges {
-            if let (Some(a), Some(b)) = (find_port(&e.from), find_port(&e.to)) {
-                let c = controls(a, b);
-                let selected = self.selected == Selection::Edge(e.id.clone());
-                painter.add(egui::epaint::CubicBezierShape::from_points_stroke(
-                    c,
-                    false,
-                    Color32::TRANSPARENT,
+        let mut paths = Vec::with_capacity(local_paths.len());
+        let time = ui.input(|i| i.time);
+        let animate = ui.is_enabled() && ui.input(|i| i.focused);
+        let mut repaint = false;
+        for (edge, path) in local_paths {
+            let path = path.screen(area.min, pan, z);
+            let selected = self.selected == Selection::Edge(edge.id.clone());
+            if path.bounds.expand(15.0).intersects(area) {
+                painter.add(egui::Shape::line(
+                    path.points.clone(),
                     Stroke::new(
-                        if selected { 3.0 } else { 1.8 },
+                        if selected { 3.0_f32 } else { 1.8_f32 },
                         if selected {
                             ACCENT
                         } else {
@@ -336,46 +230,58 @@ impl Designer {
                         },
                     ),
                 ));
-                painter.arrow(
-                    b - vec2(11.0, 0.0),
-                    vec2(11.0, 0.0),
-                    Stroke::new(1.5, if selected { ACCENT } else { MUTED }),
-                );
-                let label = e
+                // Destination tangent supports inputs on every side.
+                if path.length > 8.0 {
+                    let (head, tangent) = path.at((path.length - 7.0).max(0.0));
+                    painter.arrow(
+                        head - tangent * 13.0,
+                        tangent * 13.0,
+                        Stroke::new(1.5_f32, if selected { ACCENT } else { MUTED }),
+                    );
+                }
+                if animate && path.length > 0.01 && motion.includes(edge, &self.selected) {
+                    motion::paint(&painter, &path, time, &edge.id);
+                    repaint = true;
+                }
+                let label = edge
                     .label
                     .as_deref()
                     .filter(|s| !s.is_empty())
                     .map(ToOwned::to_owned)
                     .unwrap_or_else(|| {
-                        p.port(&sid, &e.from)
+                        p.port(&sid, &edge.from)
                             .and_then(|r| r.contract.as_ref())
                             .map(ToString::to_string)
                             .unwrap_or_default()
                     });
-                let mid = sample(c, 0.5);
+                let mid = path.at(path.length * 0.5).0;
                 let galley = painter.layout_no_wrap(
                     short(&label, 32),
                     FontId::proportional((11.0 * z).max(9.0)),
                     MUTED,
                 );
                 let rect =
-                    Rect::from_center_size(mid - vec2(0.0, 9.0), galley.size() + vec2(10.0, 4.0));
+                    Rect::from_center_size(mid - vec2(0.0, 11.0), galley.size() + vec2(10.0, 4.0));
                 painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
                 painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
-                curves.push((e.id.clone(), c));
             }
+            paths.push((edge.id.clone(), path));
         }
-        for h in &nodes {
-            let Some((_, n)) = p.node(&h.id) else {
+        if repaint {
+            ui.ctx().request_repaint_after(Duration::from_millis(16));
+        }
+        for card in &scene.cards {
+            let Some((_, node)) = p.node(&card.id) else {
                 continue;
             };
-            let selected = self.selected == Selection::Node(n.id.clone());
-            painter.rect_filled(h.rect, 7, Color32::from_rgb(30, 37, 47));
+            let rect = screen_rect(card.rect);
+            let selected = self.selected == Selection::Node(node.id.clone());
+            painter.rect_filled(rect, 7, Color32::from_rgb(30, 37, 47));
             painter.rect_stroke(
-                h.rect,
+                rect,
                 7,
                 Stroke::new(
-                    if selected { 2.0 } else { 1.0 },
+                    if selected { 2.0_f32 } else { 1.0_f32 },
                     if selected {
                         ACCENT
                     } else {
@@ -384,21 +290,22 @@ impl Designer {
                 ),
                 StrokeKind::Inside,
             );
-            let clipped = painter.with_clip_rect(h.rect.shrink(8.0 * z));
+            let clipped = painter.with_clip_rect(rect.shrink(8.0 * z).intersect(area));
+            let header = screen(pos2(card.rect.left(), card.header_y));
             clipped.text(
-                h.rect.min + vec2(15.0, 15.0) * z,
+                header + vec2(15.0, 15.0) * z,
                 Align2::LEFT_TOP,
-                short(&n.name, 30),
+                short(&node.name, 30),
                 FontId::proportional(16.0 * z),
                 Color32::WHITE,
             );
             clipped.text(
-                h.rect.min + vec2(15.0, 39.0) * z,
+                header + vec2(15.0, 39.0) * z,
                 Align2::LEFT_TOP,
                 format!(
                     "{}{}",
-                    n.kind.label(),
-                    if n.child.is_some() {
+                    node.kind.label(),
+                    if node.child.is_some() {
                         "  ·  Enter >"
                     } else {
                         ""
@@ -408,9 +315,9 @@ impl Designer {
                 ACCENT,
             );
             clipped.text(
-                h.rect.min + vec2(15.0, 57.0) * z,
+                header + vec2(15.0, 57.0) * z,
                 Align2::LEFT_TOP,
-                short(&n.purpose.replace('\n', " "), 42),
+                short(&node.purpose.replace('\n', " "), 42),
                 FontId::proportional(11.0 * z),
                 MUTED,
             );
@@ -419,87 +326,78 @@ impl Designer {
             Some(Gesture::Wire { port, .. }) => Some(port.clone()),
             _ => self.canvas.pending.clone(),
         };
-        let hovered_port = pointer
-            .filter(|pos| area.contains(*pos))
-            .and_then(|pos| {
-                ports
-                    .iter()
-                    .filter(|r| r.point.distance(pos) < (11.0 * z).max(9.0))
-                    .min_by(|a, b| a.point.distance(pos).total_cmp(&b.point.distance(pos)))
-            })
-            .cloned();
-        for r in &ports {
+        let hovered_port = pointer.filter(|pos| area.contains(*pos)).and_then(|pos| {
+            scene
+                .ports
+                .iter()
+                .filter(|r| screen(r.point).distance(pos) < (11.0 * z).max(9.0))
+                .min_by(|a, b| {
+                    screen(a.point)
+                        .distance(pos)
+                        .total_cmp(&screen(b.point).distance(pos))
+                })
+        });
+        #[cfg(test)]
+        {
+            self.canvas.port_positions = scene
+                .ports
+                .iter()
+                .map(|a| (a.endpoint.port.clone(), screen(a.point)))
+                .collect();
+        }
+        for anchor in &scene.ports {
+            let point = screen(anchor.point);
             let compatible = dragging
                 .as_ref()
-                .is_some_and(|from| pair(&p, &sid, from, &r.endpoint).is_some());
-            let hover = hovered_port
-                .as_ref()
-                .is_some_and(|q| q.endpoint == r.endpoint);
+                .is_some_and(|from| pair(&p, &sid, from, &anchor.endpoint).is_some());
+            let hover = hovered_port.is_some_and(|q| q.endpoint == anchor.endpoint);
             let color = if hover || compatible { ACCENT } else { MUTED };
-            painter.circle_filled(r.point, (5.0 * z).max(4.0), color);
+            let radius = (5.0 * z).max(4.0);
+            if anchor.direction == Direction::Out {
+                painter.circle_filled(point, radius, color);
+            } else {
+                painter.circle_filled(point, radius, Color32::from_rgb(14, 18, 24));
+                painter.circle_stroke(point, radius, Stroke::new(1.5_f32, color));
+            }
             if hover || compatible {
-                painter.circle_stroke(r.point, (9.0 * z).max(8.0), Stroke::new(1.0, color));
+                painter.circle_stroke(point, (9.0 * z).max(8.0), Stroke::new(1.0_f32, color));
             }
-            let inward = if r.boundary {
-                r.direction == Direction::Out
-            } else {
-                r.direction == Direction::In
-            };
-            let align = if inward {
-                Align2::LEFT_CENTER
-            } else {
-                Align2::RIGHT_CENTER
-            };
-            let offset = vec2(if inward { 14.0 * z } else { -14.0 * z }, 0.0);
-            painter.text(
-                r.point + offset,
-                align,
-                short(&r.name, if r.boundary { 26 } else { 16 }),
-                FontId::proportional(11.0 * z),
-                Color32::from_rgb(217, 224, 234),
-            );
-            painter.text(
-                r.point + offset + vec2(0.0, 14.0 * z),
-                align,
-                short(&r.contract, if r.boundary { 28 } else { 20 }),
-                FontId::monospace(9.0 * z),
-                MUTED,
-            );
-            if r.boundary {
-                painter.text(
-                    r.point + offset + vec2(0.0, 30.0 * z),
-                    align,
-                    short(&r.external, 28),
-                    FontId::proportional(10.0 * z),
-                    ACCENT,
-                );
-            }
-        }
-        if let (Some(from), Some(cursor)) = (dragging.as_ref(), pointer) {
-            if let Some(start) = find_port(from) {
-                let (a, b) = if p.effective_direction(&sid, from) == Some(Direction::Out) {
-                    (start, cursor)
-                } else {
-                    (cursor, start)
-                };
-                painter.add(egui::epaint::CubicBezierShape::from_points_stroke(
-                    controls(a, b),
-                    false,
-                    Color32::TRANSPARENT,
-                    Stroke::new(2.5, ACCENT),
+            port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
+            if hover {
+                response.clone().on_hover_text(format!(
+                    "{} · {}\n{}{}",
+                    anchor.direction.label(),
+                    anchor.name,
+                    anchor.contract,
+                    if anchor.boundary {
+                        format!("\n{}", anchor.external)
+                    } else {
+                        String::new()
+                    }
                 ));
             }
         }
-        if s.nodes.is_empty() {
-            let msg = if boundary.is_some() {
-                "This component has no internal components yet."
-            } else {
-                "Start with a purpose, then add only the components you need."
-            };
+        if let (Some(from), Some(cursor)) = (dragging.as_ref(), pointer) {
+            if let Some(start) = scene.port(from) {
+                let end_normal = hovered_port.map(|p| p.normal).unwrap_or(-start.normal);
+                let end = hovered_port.map(|p| screen(p.point)).unwrap_or(cursor);
+                let path = if start.direction == Direction::Out {
+                    Path::between(screen(start.point), start.normal, end, end_normal)
+                } else {
+                    Path::between(end, end_normal, screen(start.point), start.normal)
+                };
+                painter.add(egui::Shape::line(path.points, Stroke::new(2.5_f32, ACCENT)));
+            }
+        }
+        if system.nodes.is_empty() {
             painter.text(
                 area.center(),
                 Align2::CENTER_CENTER,
-                msg,
+                if scene.frame.is_some() {
+                    "This component has no internal components yet."
+                } else {
+                    "Start with a purpose, then add only the components you need."
+                },
                 FontId::proportional(16.0),
                 MUTED,
             );
@@ -513,8 +411,6 @@ impl Designer {
             }
             return;
         };
-        // A platform may drop the release event when the pointer leaves the window.
-        // Do not leave an uncommitted gesture stuck active when no button is down.
         if ui.input(|i| !i.pointer.any_down() && !i.pointer.any_released()) {
             self.canvas.gesture = None;
         }
@@ -526,28 +422,31 @@ impl Designer {
                     start: cursor,
                     initial: self.canvas.pan,
                 });
-            } else if let Some(r) = &hovered_port {
-                if r.boundary {
-                    self.selected = Selection::Boundary(r.endpoint.port.clone());
+            } else if let Some(port) = hovered_port {
+                if port.boundary {
+                    self.selected = Selection::Boundary(port.endpoint.port.clone());
                 }
                 self.canvas.gesture = Some(Gesture::Wire {
-                    port: r.endpoint.clone(),
+                    port: port.endpoint.clone(),
                     start: cursor,
                 });
-            } else if let Some(n) = nodes.iter().rev().find(|n| n.rect.contains(cursor)) {
-                self.selected = Selection::Node(n.id.clone());
-                self.canvas.gesture = Some(Gesture::Move {
-                    id: n.id.clone(),
-                    start: cursor,
-                    initial: n.position,
-                    current: n.position,
-                });
-            } else if let Some((id, _)) = curves
+            } else if let Some(card) = scene
+                .cards
                 .iter()
-                .filter(|(_, c)| curve_distance(cursor, *c) < 7.0)
-                .min_by(|(_, a), (_, b)| {
-                    curve_distance(cursor, *a).total_cmp(&curve_distance(cursor, *b))
-                })
+                .rev()
+                .find(|c| screen_rect(c.rect).contains(cursor))
+            {
+                self.selected = Selection::Node(card.id.clone());
+                self.canvas.gesture = Some(Gesture::Move {
+                    id: card.id.clone(),
+                    start: cursor,
+                    initial: card.position,
+                    current: card.position,
+                });
+            } else if let Some((id, _)) = paths
+                .iter()
+                .filter(|(_, p)| p.distance(cursor) < 7.0)
+                .min_by(|(_, a), (_, b)| a.distance(cursor).total_cmp(&b.distance(cursor)))
             {
                 self.selected = Selection::Edge(id.clone());
                 self.canvas.gesture = Some(Gesture::Edge(id.clone()));
@@ -596,18 +495,18 @@ impl Designer {
                     {
                         if let Some(child) = p.node(&id).and_then(|(_, n)| n.child.clone()) {
                             self.navigate(child);
-                        } else if let Some((_, n)) = p.node(&id) {
-                            self.dialog = Some(Dialog::Node(n.clone()));
+                        } else if let Some((_, node)) = p.node(&id) {
+                            self.dialog = Some(Dialog::Node(node.clone()));
                         }
                     } else if initial != current {
-                        let q = edit::candidate(&p, |q| {
+                        let candidate = edit::candidate(&p, |q| {
                             q.layout
                                 .entry(sid.clone())
                                 .or_insert_with(BTreeMap::new)
                                 .insert(id, current);
                             Ok(())
                         });
-                        self.publish("Move component", q);
+                        self.publish("Move component", candidate);
                     }
                 }
                 Some(Gesture::Wire { port, start }) => {
@@ -626,7 +525,7 @@ impl Designer {
                                 None,
                             )));
                         } else if start.distance(cursor) < 5.0 {
-                            self.canvas.pending = Some(target.endpoint);
+                            self.canvas.pending = Some(target.endpoint.clone());
                         } else {
                             self.canvas.pending = None;
                         }
@@ -647,127 +546,5 @@ impl Designer {
                 _ => {}
             }
         }
-    }
-}
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn bezier_hit_testing() {
-        let c = controls(pos2(0.0, 0.0), pos2(300.0, 100.0));
-        assert!(curve_distance(sample(c, 0.5), c) < 0.01);
-        assert!(curve_distance(pos2(100.0, 500.0), c) > 100.0);
-    }
-    #[test]
-    fn text_truncation_is_unicode_safe() {
-        assert_eq!(short("αβγδε", 3), "αβ…");
-    }
-}
-#[cfg(test)]
-mod interaction_tests {
-    use super::*;
-    fn app() -> Designer {
-        let mut a = Designer::blank();
-        let p = parse(include_str!("../../tests/fixtures/project.json")).expect("fixture");
-        a.current = p.root.clone();
-        a.store = crate::edit::Store::new(p).expect("store");
-        a
-    }
-    fn frame(ctx: &egui::Context, a: &mut Designer, events: Vec<egui::Event>) -> Rect {
-        let mut rect = Rect::NOTHING;
-        let input = egui::RawInput {
-            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(1100.0, 800.0))),
-            events,
-            ..Default::default()
-        };
-        let _ = ctx.run(input, |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                rect = ui.available_rect_before_wrap();
-                a.canvas_view(ui);
-            });
-        });
-        rect
-    }
-    fn event(pos: Pos2, pressed: bool) -> egui::Event {
-        egui::Event::PointerButton {
-            pos,
-            button: PointerButton::Primary,
-            pressed,
-            modifiers: egui::Modifiers::NONE,
-        }
-    }
-    #[test]
-    fn real_pointer_drag_opens_explicit_contract_dialog() {
-        let ctx = egui::Context::default();
-        let mut a = app();
-        let rect = frame(&ctx, &mut a, vec![]);
-        let from = point(rect, a.canvas.pan, a.canvas.zoom, 820.0, 218.0);
-        let to = point(rect, a.canvas.pan, a.canvas.zoom, 100.0, 218.0);
-        frame(
-            &ctx,
-            &mut a,
-            vec![egui::Event::PointerMoved(from), event(from, true)],
-        );
-        frame(&ctx, &mut a, vec![egui::Event::PointerMoved(to)]);
-        frame(&ctx, &mut a, vec![event(to, false)]);
-        match a.dialog.as_ref() {
-            Some(Dialog::Connection(d)) => {
-                assert!(d.selected.is_none());
-                assert_eq!(d.from.as_ref().expect("from").port, "B.out");
-                assert_eq!(d.to.as_ref().expect("to").port, "A.in");
-            }
-            _ => panic!("drag did not open contract dialog"),
-        }
-        assert_eq!(
-            a.store.project().system("root").expect("root").edges.len(),
-            2
-        );
-    }
-    #[test]
-    fn reverse_drag_is_supported() {
-        let ctx = egui::Context::default();
-        let mut a = app();
-        let rect = frame(&ctx, &mut a, vec![]);
-        let from = point(rect, a.canvas.pan, a.canvas.zoom, 100.0, 218.0);
-        let to = point(rect, a.canvas.pan, a.canvas.zoom, 820.0, 218.0);
-        frame(
-            &ctx,
-            &mut a,
-            vec![egui::Event::PointerMoved(from), event(from, true)],
-        );
-        frame(&ctx, &mut a, vec![egui::Event::PointerMoved(to)]);
-        frame(&ctx, &mut a, vec![event(to, false)]);
-        match a.dialog.as_ref() {
-            Some(Dialog::Connection(d)) => {
-                assert!(d.selected.is_none());
-                assert_eq!(d.from.as_ref().expect("from").port, "B.out");
-            }
-            _ => panic!("no reverse-drag dialog"),
-        }
-    }
-    #[test]
-    fn release_on_empty_canvas_cancels_without_mutation() {
-        let ctx = egui::Context::default();
-        let mut a = app();
-        let before = a.store.project().clone();
-        let rect = frame(&ctx, &mut a, vec![]);
-        let from = point(rect, a.canvas.pan, a.canvas.zoom, 820.0, 218.0);
-        let to = rect.right_bottom() - vec2(25.0, 25.0);
-        frame(
-            &ctx,
-            &mut a,
-            vec![egui::Event::PointerMoved(from), event(from, true)],
-        );
-        frame(&ctx, &mut a, vec![egui::Event::PointerMoved(to)]);
-        frame(&ctx, &mut a, vec![event(to, false)]);
-        assert!(a.dialog.is_none());
-        assert_eq!(a.store.project(), &before);
-    }
-    #[test]
-    fn editing_existing_wire_preserves_current_selection() {
-        let a = app();
-        let d = ConnectionDialog::new(a.store.project(), "root", None, Some("incoming"));
-        assert_eq!(d.id.as_deref(), Some("incoming"));
-        assert_eq!(d.selected.as_ref().expect("type").version, 1);
     }
 }
