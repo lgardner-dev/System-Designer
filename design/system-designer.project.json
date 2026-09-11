@@ -1415,7 +1415,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.",
+          "purpose": "Source: src/ui/canvas/geometry.rs. Derive a card and exactly one anchor per physical port from the selected level. Inputs and outputs may occupy any of four sides, chosen against actual local neighbours. Shared ports remain single anchors. Owner-boundary normals point inward without changing owner port identity. Geometry, label slots and port side are presentation only; they never change Project or scoped exchange hashes.\n\nExperiment A · Focus and trace: Selected components show only their direct incident wires at full emphasis. A port trace follows exact endpoints and projected child boundaries, never inferred internal causality. Focus is session presentation and cannot filter AI replacement packets. Source: src/ui/canvas/focus.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1675,7 +1675,7 @@
         {
           "id": "inspectors.details",
           "name": "Context inspector",
-          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector",
+          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector\nExact connection trace controls: src/ui/canvas/focus.rs (called by src/ui/inspector.rs).",
           "kind": "component",
           "ports": [
             {

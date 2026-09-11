@@ -2,6 +2,7 @@ use super::*;
 use crate::edit;
 impl Designer {
     pub(super) fn inspector(&mut self, ui: &mut egui::Ui) {
+        super::canvas::focus::details(self, ui);
         let p = self.store.snapshot();
         match self.selected.clone() {
             Selection::Node(id) => {

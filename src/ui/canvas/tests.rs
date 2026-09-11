@@ -458,3 +458,63 @@ fn reciprocal_ports_align_without_an_avoidable_crossing() {
         }
     }
 }
+
+#[test]
+fn right_click_port_focuses_without_wiring_or_mutating() {
+    for (b, _) in cases() {
+        let ctx = egui::Context::default();
+        let mut a = app(b);
+        frame(&ctx, &mut a, vec![], 0.0);
+        let before = a.store.project().clone();
+        let pos = a.canvas.port_positions["A.in"];
+        let right = |pressed| egui::Event::PointerButton {
+            pos,
+            button: PointerButton::Secondary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        frame(
+            &ctx,
+            &mut a,
+            vec![egui::Event::PointerMoved(pos), right(true)],
+            0.1,
+        );
+        frame(&ctx, &mut a, vec![right(false)], 0.2);
+        assert_eq!(a.selected, Selection::Node("A".into()));
+        assert!(a.dialog.is_none());
+        assert_eq!(a.store.project(), &before);
+        assert_eq!(a.store.generation, 0);
+    }
+}
+#[test]
+fn focused_frames_keep_the_full_scope_export() {
+    let ctx = egui::Context::default();
+    let mut a = app(cases()[0].0);
+    let before = serde_json::to_value(
+        exchange::export(a.store.project(), "root", Scope::Level, None).expect("export"),
+    )
+    .expect("json");
+    a.selected = Selection::Edge("incoming".into());
+    for i in 0..5 {
+        frame(&ctx, &mut a, vec![], i as f64 * 0.1);
+    }
+    assert_eq!(
+        before,
+        serde_json::to_value(
+            exchange::export(a.store.project(), "root", Scope::Level, None).expect("export")
+        )
+        .expect("json")
+    );
+}
+#[test]
+fn focused_port_still_allows_reverse_connection_gesture() {
+    let ctx = egui::Context::default();
+    let mut a = app(cases()[2].0);
+    focus::select_port(&mut a, &ctx, &endpoint(Some("A"), "A.in"));
+    frame(&ctx, &mut a, vec![], 0.0);
+    let from = a.canvas.port_positions["A.in"];
+    let to = a.canvas.port_positions["B.out"];
+    drag(&ctx, &mut a, from, to);
+    assert!(matches!(a.dialog, Some(Dialog::Connection(_))));
+    assert_eq!(a.store.generation, 0);
+}

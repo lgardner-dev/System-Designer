@@ -48,6 +48,7 @@ jobs:
           $version4 = ($parts[0..3]) -join '.'
           & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" "/DAPP_VERSION=$version" "/DAPP_VERSION_4=$version4" "/DAPP_BINARY=$bin" "/DOUT_FILE=$out" packaging/windows/setup.nsi
           if ($LASTEXITCODE -ne 0) { throw 'Installer failed' }
+          Copy-Item $bin dist/system-designer-preview.exe
           Copy-Item Cargo.lock dist/
       - name: Package Linux installer
         if: runner.os == 'Linux'
