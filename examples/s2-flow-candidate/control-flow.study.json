@@ -1,0 +1,672 @@
+{
+  "format": "system-designer-control-flow-study",
+  "version": 1,
+  "status": "proposal-only",
+  "baseline_commit": "26c6e999cfc303dfc4828d6682ef79a0941f2fa3",
+  "provenance": {
+    "atlas_file": "foundry-method-model.json",
+    "atlas_sha256": "19f35b033ab09e1c4f62b95418d702d804118ab6792f62b7dce116ada6f383ed",
+    "atlas_model_version": "0.1.0-proposal.1",
+    "source_S2_sha256": "2081deecdf5b7e17eaebdb9d2e93da87d4da65474012a29c9c4d0636c00ae337",
+    "catalog_file": "foundry-method-editor-project.json",
+    "catalog_file_sha256": "f072f418d3b596ad3e41f2ec6190b12cb91da42631a872328894b66b984469be",
+    "retained_catalog_sha256": "4ac9facae050f2485173e4b4720c783310a84faf0f98620543de516c28ca0443"
+  },
+  "source": {
+    "id": "S2",
+    "name": "Investigate uncertainty",
+    "purpose": "Resolve a material question with the least discriminating evidence, prior art first.",
+    "parent": null,
+    "rules": [
+      "R2",
+      "R4"
+    ],
+    "inputs": [
+      "C02",
+      "C03",
+      "C04",
+      "C05",
+      "C06",
+      "C07",
+      "C08",
+      "C09",
+      "C10",
+      "C11"
+    ],
+    "outputs": [
+      "C02",
+      "C03",
+      "C05",
+      "C06",
+      "C07",
+      "C08",
+      "C09",
+      "C10",
+      "C11"
+    ],
+    "entry": "A recorded material factual question and bounded inquiry grant.",
+    "eligibility": "Current question, applicable grant and prerequisites; an experiment plan must predate execution.",
+    "authority": "Worker researches and interprets; accountable authority disposes the bounded conclusion.",
+    "semantic_judgments": [
+      "Prior evidence sufficiency and transfer",
+      "Serious alternatives and discriminating design",
+      "Meaning of observations and limitations"
+    ],
+    "deterministic_checks": [
+      "Chronology and sealed plan revision",
+      "Budget and subject bindings",
+      "No conclusion silently changes accepted semantics"
+    ],
+    "success_outcomes": [
+      "Discriminated or bounded question",
+      "Prior-art-supported early exit",
+      "Authorized defer/reject"
+    ],
+    "failure_outcomes": [
+      "Inconclusive result loops within a bound",
+      "Budget exhaustion blocks or ends inquiry"
+    ],
+    "downstream": [
+      "S1",
+      "S3",
+      "S4",
+      "S6"
+    ],
+    "steps": [
+      {
+        "id": "S2.frame",
+        "name": "Frame question",
+        "kind": "work",
+        "purpose": "Material question, decision target and finite bound.",
+        "transition_ids": [
+          "T05"
+        ]
+      },
+      {
+        "id": "S2.prior",
+        "name": "Inspect prior art",
+        "kind": "work",
+        "purpose": "Sources, conditions and bounded negative search.",
+        "transition_ids": [
+          "T06"
+        ]
+      },
+      {
+        "id": "S2.enough",
+        "name": "Evidence enough?",
+        "kind": "decision",
+        "purpose": "Sufficiency is a semantic assessment, not a controller guess.",
+        "transition_ids": [
+          "T06",
+          "T07"
+        ]
+      },
+      {
+        "id": "S2.hyp",
+        "name": "Compete hypotheses",
+        "kind": "work",
+        "purpose": "Serious alternatives, predictions and falsifiers.",
+        "transition_ids": [
+          "T08"
+        ]
+      },
+      {
+        "id": "S2.plan",
+        "name": "Seal experiment",
+        "kind": "work",
+        "purpose": "Smallest discrimination, registered before its execution.",
+        "transition_ids": [
+          "T09"
+        ]
+      },
+      {
+        "id": "S2.run",
+        "name": "Execute & observe",
+        "kind": "work",
+        "purpose": "Actual target, observations, failures and deviations.",
+        "transition_ids": [
+          "T10"
+        ]
+      },
+      {
+        "id": "S2.interpret",
+        "name": "Bound interpretation",
+        "kind": "work",
+        "purpose": "Evidence and analysis remain distinct.",
+        "transition_ids": [
+          "T07",
+          "T11"
+        ]
+      },
+      {
+        "id": "S2.decide",
+        "name": "Dispose conclusion",
+        "kind": "authority",
+        "purpose": "Accept/bound, revise, defer or reject within authority.",
+        "transition_ids": [
+          "T12"
+        ]
+      },
+      {
+        "id": "S2.exit",
+        "name": "Return bounded answer",
+        "kind": "success",
+        "purpose": "Only named gap/decision scope is resolved.",
+        "transition_ids": [
+          "T12"
+        ]
+      },
+      {
+        "id": "S2.stop",
+        "name": "Stop honestly",
+        "kind": "failure",
+        "purpose": "Exhaustion or unresolved question is not proof.",
+        "transition_ids": [
+          "T30",
+          "T31"
+        ]
+      }
+    ],
+    "flows": [
+      {
+        "id": "S2.e1",
+        "source": "S2.frame",
+        "target": "S2.prior",
+        "contracts": [
+          "C06"
+        ],
+        "label": "InquirySpec",
+        "condition": ""
+      },
+      {
+        "id": "S2.e2",
+        "source": "S2.prior",
+        "target": "S2.enough",
+        "contracts": [
+          "C07"
+        ],
+        "label": "PriorArtAssessment",
+        "condition": ""
+      },
+      {
+        "id": "S2.e3",
+        "source": "S2.enough",
+        "target": "S2.interpret",
+        "contracts": [
+          "C07",
+          "C11"
+        ],
+        "label": "Existing evidence",
+        "condition": "sufficient"
+      },
+      {
+        "id": "S2.e4",
+        "source": "S2.enough",
+        "target": "S2.hyp",
+        "contracts": [
+          "C07"
+        ],
+        "label": "Unresolved question",
+        "condition": "insufficient"
+      },
+      {
+        "id": "S2.e5",
+        "source": "S2.hyp",
+        "target": "S2.plan",
+        "contracts": [
+          "C08"
+        ],
+        "label": "HypothesisSet",
+        "condition": ""
+      },
+      {
+        "id": "S2.e6",
+        "source": "S2.plan",
+        "target": "S2.run",
+        "contracts": [
+          "C09"
+        ],
+        "label": "ExperimentPlan",
+        "condition": ""
+      },
+      {
+        "id": "S2.e7",
+        "source": "S2.run",
+        "target": "S2.interpret",
+        "contracts": [
+          "C10"
+        ],
+        "label": "ObservationSet",
+        "condition": ""
+      },
+      {
+        "id": "S2.e8",
+        "source": "S2.interpret",
+        "target": "S2.decide",
+        "contracts": [
+          "C02"
+        ],
+        "label": "Conclusion proposal",
+        "condition": ""
+      },
+      {
+        "id": "S2.e9",
+        "source": "S2.decide",
+        "target": "S2.exit",
+        "contracts": [
+          "C03"
+        ],
+        "label": "Decision",
+        "condition": "resolved / bounded"
+      },
+      {
+        "id": "S2.e10",
+        "source": "S2.decide",
+        "target": "S2.frame",
+        "contracts": [
+          "C03",
+          "C04"
+        ],
+        "label": "Revised question + grant",
+        "condition": "inconclusive; renewed bound"
+      },
+      {
+        "id": "S2.e11",
+        "source": "S2.decide",
+        "target": "S2.stop",
+        "contracts": [
+          "C03"
+        ],
+        "label": "Decision",
+        "condition": "defer / reject / exhausted"
+      }
+    ],
+    "implementation": {
+      "module": null,
+      "rust_type": null,
+      "source": null,
+      "tests": [],
+      "handler": null
+    }
+  },
+  "flows": [
+    {
+      "id": "behavior.S2",
+      "owner": null,
+      "system": "study.S2",
+      "name": "S2 · Investigate uncertainty",
+      "entry": "step.S2.frame",
+      "steps": [
+        {
+          "id": "step.S2.frame",
+          "component": "S2.frame",
+          "kind": "action",
+          "name": "Frame question",
+          "purpose": "Material question, decision target and finite bound.",
+          "source_steps": [
+            "S2.frame"
+          ],
+          "position": [
+            55,
+            110
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.prior",
+          "component": "S2.prior",
+          "kind": "action",
+          "name": "Inspect prior art",
+          "purpose": "Sources, conditions and bounded negative search.",
+          "source_steps": [
+            "S2.prior"
+          ],
+          "position": [
+            350,
+            110
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.enough",
+          "component": "S2.enough",
+          "kind": "choice",
+          "name": "Evidence enough?",
+          "purpose": "Sufficiency is a semantic assessment, not a controller guess.",
+          "source_steps": [
+            "S2.enough"
+          ],
+          "position": [
+            645,
+            110
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.experiment",
+          "component": "S2.experiment",
+          "kind": "call",
+          "name": "Produce discriminating evidence",
+          "purpose": "PROPOSED decomposition of S2.hyp, S2.plan and S2.run. Competing hypotheses, a sealed plan before execution, and actual observations remain separately inspectable. This is not a new Method rule or automatic authority.",
+          "source_steps": [
+            "S2.hyp",
+            "S2.plan",
+            "S2.run"
+          ],
+          "position": [
+            970,
+            290
+          ],
+          "call": "behavior.experiment"
+        },
+        {
+          "id": "step.S2.interpret",
+          "component": "S2.interpret",
+          "kind": "action",
+          "name": "Bound interpretation",
+          "purpose": "Evidence and analysis remain distinct.",
+          "source_steps": [
+            "S2.interpret"
+          ],
+          "position": [
+            645,
+            475
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.decide",
+          "component": "S2.decide",
+          "kind": "choice",
+          "name": "Dispose conclusion",
+          "purpose": "Accept/bound, revise, defer or reject within authority.",
+          "source_steps": [
+            "S2.decide"
+          ],
+          "position": [
+            350,
+            475
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.exit",
+          "component": "S2.exit",
+          "kind": "outcome",
+          "name": "Return bounded answer",
+          "purpose": "Only named gap/decision scope is resolved.",
+          "source_steps": [
+            "S2.exit"
+          ],
+          "position": [
+            55,
+            705
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.stop",
+          "component": "S2.stop",
+          "kind": "outcome",
+          "name": "Stop honestly",
+          "purpose": "Exhaustion or unresolved question is not proof.",
+          "source_steps": [
+            "S2.stop"
+          ],
+          "position": [
+            645,
+            705
+          ],
+          "call": null
+        }
+      ],
+      "transitions": [
+        {
+          "id": "S2.e1",
+          "from": "step.S2.frame",
+          "to": "step.S2.prior",
+          "condition": "",
+          "label": "InquirySpec",
+          "source_flow": "S2.e1",
+          "exchanges": [
+            "exchange.S2.e1.C06"
+          ]
+        },
+        {
+          "id": "S2.e2",
+          "from": "step.S2.prior",
+          "to": "step.S2.enough",
+          "condition": "",
+          "label": "PriorArtAssessment",
+          "source_flow": "S2.e2",
+          "exchanges": [
+            "exchange.S2.e2.C07"
+          ]
+        },
+        {
+          "id": "S2.e3",
+          "from": "step.S2.enough",
+          "to": "step.S2.interpret",
+          "condition": "sufficient",
+          "label": "Existing evidence",
+          "source_flow": "S2.e3",
+          "exchanges": [
+            "exchange.S2.e3.C07",
+            "exchange.S2.e3.C11"
+          ]
+        },
+        {
+          "id": "S2.e4",
+          "from": "step.S2.enough",
+          "to": "step.S2.experiment",
+          "condition": "insufficient",
+          "label": "Unresolved question",
+          "source_flow": "S2.e4",
+          "exchanges": [
+            "exchange.S2.e4.C07"
+          ]
+        },
+        {
+          "id": "S2.e7",
+          "from": "step.S2.experiment",
+          "to": "step.S2.interpret",
+          "condition": "",
+          "label": "ObservationSet",
+          "source_flow": "S2.e7",
+          "exchanges": [
+            "exchange.S2.e7.C10"
+          ]
+        },
+        {
+          "id": "S2.e8",
+          "from": "step.S2.interpret",
+          "to": "step.S2.decide",
+          "condition": "",
+          "label": "Conclusion proposal",
+          "source_flow": "S2.e8",
+          "exchanges": [
+            "exchange.S2.e8.C02"
+          ]
+        },
+        {
+          "id": "S2.e9",
+          "from": "step.S2.decide",
+          "to": "step.S2.exit",
+          "condition": "resolved / bounded",
+          "label": "Decision",
+          "source_flow": "S2.e9",
+          "exchanges": [
+            "exchange.S2.e9.C03"
+          ]
+        },
+        {
+          "id": "S2.e10",
+          "from": "step.S2.decide",
+          "to": "step.S2.frame",
+          "condition": "inconclusive; renewed bound",
+          "label": "Revised question + grant",
+          "source_flow": "S2.e10",
+          "exchanges": [
+            "exchange.S2.e10.C03",
+            "exchange.S2.e10.C04"
+          ]
+        },
+        {
+          "id": "S2.e11",
+          "from": "step.S2.decide",
+          "to": "step.S2.stop",
+          "condition": "defer / reject / exhausted",
+          "label": "Decision",
+          "source_flow": "S2.e11",
+          "exchanges": [
+            "exchange.S2.e11.C03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "behavior.experiment",
+      "owner": "S2.experiment",
+      "system": "study.S2.experiment",
+      "name": "Produce discriminating evidence",
+      "entry": "experiment.entry",
+      "steps": [
+        {
+          "id": "experiment.entry",
+          "component": null,
+          "kind": "entry",
+          "name": "Unresolved question",
+          "purpose": "Derived owner input boundary. Continue at S2.hyp; no new work is introduced.",
+          "source_steps": [],
+          "position": [
+            40,
+            225
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.hyp",
+          "component": "S2.hyp",
+          "kind": "action",
+          "name": "Compete hypotheses",
+          "purpose": "Serious alternatives, predictions and falsifiers.",
+          "source_steps": [
+            "S2.hyp"
+          ],
+          "position": [
+            160,
+            225
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.plan",
+          "component": "S2.plan",
+          "kind": "action",
+          "name": "Seal experiment",
+          "purpose": "Smallest discrimination, registered before its execution.",
+          "source_steps": [
+            "S2.plan"
+          ],
+          "position": [
+            480,
+            225
+          ],
+          "call": null
+        },
+        {
+          "id": "step.S2.run",
+          "component": "S2.run",
+          "kind": "action",
+          "name": "Execute & observe",
+          "purpose": "Actual target, observations, failures and deviations.",
+          "source_steps": [
+            "S2.run"
+          ],
+          "position": [
+            800,
+            225
+          ],
+          "call": null
+        },
+        {
+          "id": "experiment.return",
+          "component": null,
+          "kind": "outcome",
+          "name": "Observations ready",
+          "purpose": "Derived return boundary: observations may include failure or deviation. This is not a claim that an experiment succeeded.",
+          "source_steps": [],
+          "position": [
+            1120,
+            225
+          ],
+          "call": null
+        }
+      ],
+      "transitions": [
+        {
+          "id": "S2.e4.inside",
+          "from": "experiment.entry",
+          "to": "step.S2.hyp",
+          "condition": "",
+          "label": "Unresolved question",
+          "source_flow": "S2.e4",
+          "exchanges": [
+            "exchange.S2.e4.C07.inside"
+          ]
+        },
+        {
+          "id": "S2.e5",
+          "from": "step.S2.hyp",
+          "to": "step.S2.plan",
+          "condition": "",
+          "label": "HypothesisSet",
+          "source_flow": "S2.e5",
+          "exchanges": [
+            "exchange.S2.e5.C08"
+          ]
+        },
+        {
+          "id": "S2.e6",
+          "from": "step.S2.plan",
+          "to": "step.S2.run",
+          "condition": "",
+          "label": "ExperimentPlan",
+          "source_flow": "S2.e6",
+          "exchanges": [
+            "exchange.S2.e6.C09"
+          ]
+        },
+        {
+          "id": "S2.e7.inside",
+          "from": "step.S2.run",
+          "to": "experiment.return",
+          "condition": "",
+          "label": "ObservationSet",
+          "source_flow": "S2.e7",
+          "exchanges": [
+            "exchange.S2.e7.C10.inside"
+          ]
+        }
+      ]
+    }
+  ],
+  "call_binding": {
+    "step": "step.S2.experiment",
+    "child_flow": "behavior.experiment",
+    "entry": "experiment.entry",
+    "return": "experiment.return",
+    "incoming_source": "S2.e4",
+    "outgoing_source": "S2.e7"
+  },
+  "limits": [
+    "The original Atlas S2 is the reference, not an adopted current Method baseline.",
+    "The three-step experiment subprocess is a proposed responsibility boundary. Original flat S2 remains available for comparison.",
+    "Existing contract entries are copied exactly from the migrated editor catalog; their schemas remain draft, not frozen wire protocols.",
+    "A transition represents permitted sequential continuation, not actual execution or a grant.",
+    "Conditions are preserved text, not evaluated code. Semantic sufficiency and accountable disposition remain explicit judgments.",
+    "Detailed grant/budget/error handling is referenced by source prose, not fully represented on every work node in the original graph.",
+    "This candidate does not infer an external caller attachment or a parent-wide scheduler from the S2 procedure.",
+    "No arbitrary hierarchy links, automatic decomposition or claims of termination, deadlock freedom, or runtime qualification."
+  ]
+}

@@ -1,0 +1,1695 @@
+{
+  "format": "system-designer-project",
+  "version": 1,
+  "id": "project.S2.control-flow-study",
+  "name": "S2 inquiry — control-flow-first worked candidate",
+  "purpose": "WORKED CANDIDATE, not adopted Method. Original Atlas S2 with one proposed decomposition. This version-1 file contains ONLY interfaces; the accompanying experimental control-flow file must not be treated as importable version-1 project data. Outer S1/S3/S4/S6 callers are contextual only; their unresolved port attachments are not invented.",
+  "root": "study.S2",
+  "contracts": [
+    {
+      "id": "C02",
+      "version": 1,
+      "name": "Proposal",
+      "purpose": "Carry an idea or proposed requirement without treating it as approved.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose. Proposal.proposition groups kind-specific fields under optional kind-named objects. The kind-to-payload relation is not enforced by the editor.\n\nSubject: Contract, structure, inquiry conclusion, diagnosis, applicability, simplicity or change scope.\n\nRevision Binding: Exact proposed revision and current premises; optional expected decision being replaced.\n\nAuthority: Worker or human may propose within a grant; production creates zero implicit acceptance rights.\n\nPrerequisites: [\"Applicable semantic-work grant\", \"Explicit basis and proposed effect scope\"]\n\nPermitted Effects: [\"Request scoped decision\", \"Expose gaps and alternatives\"]\n\nForbidden Effects: [\"Unlock dependent implementation\", \"Replace a current head\", \"Close an obligation by suggestion alone\"]\n\nRequired Inputs Rule: Inputs depend on typed proposition; every material proposal has a producing bounded-work receipt. Initial contract binds Intent; later change binds current Decision.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"kind\": \"structure\", \"proposition\": {\"mode\": \"leaf\", \"leaf_test\": \"bounded implementation; no independent responsibility\"}, \"support\": [\"review-leaf\"]}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "type": "enum",
+              "values": [
+                "contract",
+                "structure",
+                "conclusion",
+                "diagnosis",
+                "applicability",
+                "simplicity",
+                "change"
+              ]
+            },
+            "description": "contract | structure | conclusion | diagnosis | applicability | simplicity | change [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "proposition",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "contract",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "outcome",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "constraints",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "non_goals",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "obligations",
+                        "required": true,
+                        "schema": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "fields": [
+                              {
+                                "name": "id",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "owner-local stable identity"
+                              },
+                              {
+                                "name": "revision",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "exact obligation semantics"
+                              },
+                              {
+                                "name": "kind",
+                                "required": false,
+                                "schema": {
+                                  "type": "enum",
+                                  "values": [
+                                    "evidence",
+                                    "qualification",
+                                    "acceptance",
+                                    "assurance",
+                                    "prerequisite",
+                                    "integration",
+                                    "simplicity",
+                                    "cleanup",
+                                    "delivery"
+                                  ]
+                                },
+                                "description": "evidence | qualification | acceptance | assurance | prerequisite | integration | simplicity | cleanup | delivery"
+                              },
+                              {
+                                "name": "claim",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "what must be demonstrated"
+                              },
+                              {
+                                "name": "subject",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "semantic claim + candidate/artifact/environment requirements"
+                              },
+                              {
+                                "name": "evidence_rule",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "adequate support for actual claim"
+                              },
+                              {
+                                "name": "discharger",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "designated right/actor"
+                              },
+                              {
+                                "name": "applicability",
+                                "required": false,
+                                "schema": {
+                                  "type": "string"
+                                },
+                                "description": "unconditional or exact accepted policy/decision condition"
+                              }
+                            ]
+                          }
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "authority_policy",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "assurance_policy",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for contract. Every applicable obligation has one accountable owner and a resolvable discharger. No self-prerequisite or completion obligation requiring its own completion. Conditional applicability is accepted, never worker-invented at close time. An obligation may be removed only by accepted claim change."
+                },
+                {
+                  "name": "structure",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "contract",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "mode",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "leaf_test",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "same_contract_comparison",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for structure. Root and descendants use the identical leaf test. Children are proposed until the atomic composition decision accepts/binds their contracts. Each local edge names producer export, consumer import and precise readiness predicate. Implementation/source tree need not equal responsibility tree."
+                },
+                {
+                  "name": "conclusion",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "inquiry",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "support",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "interpretation",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "limitations",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "disposition_recommendation",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for conclusion. Observations are separate from interpretation. Supports only tested or explicitly transferable conditions. Inconclusive is not proof."
+                },
+                {
+                  "name": "diagnosis",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "failure_refs",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "classification",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "narrowest_known_scope",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "next_action",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "limits",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for diagnosis. Unknown cause cannot authorize speculative semantic supersession. Suspect support stays blocked until an accountable diagnosis/bound is recorded."
+                },
+                {
+                  "name": "applicability",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "source_evidence",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "source_subject",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "target_subject",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "obligations",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "differences",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "equivalence_argument",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "limits",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for applicability. No authority can declare two different artifacts byte-identical by fiat. Transfer accepts a bounded support argument, not a fabricated acquisition fact. Accepted evidence requirements constrain which transfer is admissible."
+                },
+                {
+                  "name": "simplicity",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "same_contract",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "candidate",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "credible_simpler_alternative_or_reason_none",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "displaced_complexity",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "result",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for simplicity. Include consumer, operational, migration, authority and requalification complexity. No permanent alternative inventory or numeric simplicity score."
+                },
+                {
+                  "name": "change",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "replaced_decisions_or_facets",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "replacement_propositions",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "affected_obligations",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "impact_basis",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      },
+                      {
+                        "name": "change_rule_check",
+                        "required": true,
+                        "schema": {
+                          "type": "string"
+                        },
+                        "description": "Atlas-required within this proposal kind; unspecified wire structure retained as text."
+                      }
+                    ]
+                  },
+                  "description": "Draft grouping for change. Accepted impact assertions are accountable and can be challenged. Explicit basis propagation gives mechanical impact; missing dependencies remain a semantic-review risk. Re-use of unaffected support uses identical facet binding or explicit transfer."
+                }
+              ]
+            },
+            "description": "typed payload for the selected kind [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "support",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "evidence + rationale + limits [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "replacement",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "optional old decision/facet and exact effects [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C03",
+      "version": 1,
+      "name": "Decision",
+      "purpose": "Record whether an exact proposal was approved, rejected, deferred, or replaced, and what that decision allows.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: Exact proposal revision, authority scope and affected semantic facets.\n\nRevision Binding: References immutable proposal + current authorizing policy; expected prior heads checked atomically.\n\nAuthority: Accepting grants only the named effects. Rejection/defer never closes unchanged obligations. Self-approval is denied unless the principal independently has the explicit right; human-reserved decisions stay human.\n\nPrerequisites: [\"Current authority\", \"Exact current proposition\", \"Supporting work already performed\"]\n\nPermitted Effects: [\"Accept bounded fact/contract/structure/transfer\", \"Reject/defer proposition\", \"Atomically supersede named responsible decisions\"]\n\nForbidden Effects: [\"Infer acceptance from authorship, test success or review\", \"Grant undelegated rights\", \"Rewrite history\"]\n\nRequired Inputs Rule: Exact Proposal and current authority; no generic supporting-work grant repeated at append.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"proposal\": \"proposal-contract-r1\", \"disposition\": \"accept\", \"actor\": \"owner\", \"authority_basis\": \"human-request-001\", \"effects\": [{\"accept_facet\": \"bundle/contract@1\"}], \"rationale\": \"Outcome and obligations are explicit.\"}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "proposal",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "exact proposal ref [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "disposition",
+            "required": false,
+            "schema": {
+              "type": "enum",
+              "values": [
+                "accept",
+                "reject",
+                "defer"
+              ]
+            },
+            "description": "accept | reject | defer [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "authenticated accountable principal [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "authority_basis",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "current scoped mandate/policy [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "effects",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "accept_facet",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Illustrative example shape; optionality is provisional."
+                  }
+                ]
+              }
+            },
+            "description": "exact accepted/replaced facets or bounded gap disposition [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "rationale",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "decision and evidence where required [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C04",
+      "version": 1,
+      "name": "Work Grant",
+      "purpose": "Limit one piece of substantive work: its inputs, scope, allowed outputs/effects, authority, prerequisites, and finite bounds.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: One task or reusable bounded class of tasks under a current subject.\n\nRevision Binding: Binds current contract/mandate and required decision facets; run admission captures exact current inputs.\n\nAuthority: Grant issuer has scoped work-authorization rights; a grant does not itself accept a material proposal.\n\nPrerequisites: [\"Current authorizing policy/mandate\", \"Scope and outputs bounded\"]\n\nPermitted Effects: [\"Permit eligible work\", \"Permit independent concurrent work\"]\n\nForbidden Effects: [\"Override missing prerequisite\", \"Authorize product implementation under only bootstrap mandate\", \"Create perpetual diagnosis or retry permission\"]\n\nRequired Inputs Rule: Current Decision/authority policy OR authenticated Intent mandate for bootstrap only.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"basis\": [\"decision-contract-r1\"], \"actor_scope\": [\"worker-a\"], \"activities\": [\"implement\"], \"outputs\": [\"bundle-candidate\"], \"prerequisites\": [], \"limits\": {\"attempts\": 1}, \"non_goals\": [\"change accepted byte ordering\"]}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "basis",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "current live premises or bootstrap mandate [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "actor_scope",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "named actor/delegation [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "activities",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "allowed material activities [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "outputs",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "allowed products and effect surfaces [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "prerequisites",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "required exports and gap dispositions [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "limits",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "attempts",
+                  "required": false,
+                  "schema": {
+                    "type": "integer"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                }
+              ]
+            },
+            "description": "bounded work/attempt/effect budget [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "non_goals",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "explicit excluded semantics [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C06",
+      "version": 1,
+      "name": "Question & Scope",
+      "purpose": "State the important question, what decision it affects, and the limit of the inquiry.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: A scoped uncertainty tied to a dependent decision/claim.\n\nRevision Binding: Question revision bound to the decision premises; revised question is a new revision.\n\nAuthority: Framing is bounded semantic work. Final materiality/gap disposition requires appropriate decision authority.\n\nPrerequisites: [\"Material uncertainty or bounded diagnosis\", \"Applicable grant\"]\n\nPermitted Effects: [\"Start relevant prior-art investigation\"]\n\nForbidden Effects: [\"Force science for known work\", \"Smuggle a preferred solution into accepted constraints\"]\n\nRequired Inputs Rule: Accepted claim/question Decision OR bootstrap Intent mandate, plus applicable WorkGrant.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"question\": \"Does implementation B preserve canonical bytes across input permutations?\", \"decision_target\": \"bundle/ordering@1\", \"bounds\": {\"max_experiments\": 2, \"stop\": \"discriminate or declare inconclusive\"}}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "question",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "decision-relevant factual question [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "materiality",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "accountable scoped classification or proposal under investigation [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "decision_target",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "which accepted/proposed claim may change [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "bounds",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "max_experiments",
+                  "required": false,
+                  "schema": {
+                    "type": "integer"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                },
+                {
+                  "name": "stop",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                }
+              ]
+            },
+            "description": "search/experiment budget and stop conditions [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "knowns",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "constraints and existing evidence [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C07",
+      "version": 1,
+      "name": "Prior Art Result",
+      "purpose": "Record what existing work/evidence was found, its limits, and whether it may already be enough.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: Question-specific source set and applicability.\n\nRevision Binding: Binds question revision and identifiable source versions/retrieval details.\n\nAuthority: Researcher assesses, not accepts. An early exit still requires bounded interpretation and accountable disposition.\n\nPrerequisites: [\"InquirySpec\", \"Research grant\"]\n\nPermitted Effects: [\"Supply existing evidence for conclusion\", \"Justify further discrimination\"]\n\nForbidden Effects: [\"Treat absence of discovered precedent as proof\", \"Skip applicability assessment\"]\n\nRequired Inputs Rule: Resolve listed typed references and stated prerequisites for the exact subject.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"inquiry\": \"inquiry-01\", \"sources\": [\"controlled-fixture-spec@1\"], \"assessment\": \"sufficient\", \"limitations\": [\"applies only to this byte-format contract\"]}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "sources",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "relevant sources and exact claims/conditions [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "bounded scope, stopping basis, including negative search [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "assessment",
+            "required": false,
+            "schema": {
+              "type": "enum",
+              "values": [
+                "sufficient",
+                "insufficient",
+                "no_useful_precedent"
+              ]
+            },
+            "description": "sufficient | insufficient | no_useful_precedent [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "limitations",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "contradictions, quality and transfer limits [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C08",
+      "version": 1,
+      "name": "Hypotheses",
+      "purpose": "Record serious competing explanations and the differences that can be tested.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: Competing explanations/options for one scoped question.\n\nRevision Binding: Binds current inquiry and prior-art assessment; revisions do not overwrite earlier alternatives.\n\nAuthority: Generated under a grant; no hypothesis is accepted as truth by publication.\n\nPrerequisites: [\"Prior art insufficient or useful precedent unavailable\"]\n\nPermitted Effects: [\"Constrain experiment design\"]\n\nForbidden Effects: [\"Create straw-man alternatives to guarantee preferred answer\", \"Backdate hypotheses after results\"]\n\nRequired Inputs Rule: Resolve listed typed references and stated prerequisites for the exact subject.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"alternatives\": [{\"id\": \"sort\", \"prediction\": \"permutations produce identical bytes\", \"falsifier\": \"one different output\"}, {\"id\": \"arrival\", \"prediction\": \"some permutations change bytes\", \"falsifier\": \"all discriminating cases stable\"}]}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "alternatives",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Illustrative example shape; optionality is provisional."
+                  },
+                  {
+                    "name": "prediction",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Illustrative example shape; optionality is provisional."
+                  },
+                  {
+                    "name": "falsifier",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Illustrative example shape; optionality is provisional."
+                  }
+                ]
+              }
+            },
+            "description": "credible hypotheses, including null/failure alternatives as relevant [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "predictions",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "observable expected differences [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "falsifiers",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "outcomes that refute or discriminate each [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "limits",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "conditions not being tested [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C09",
+      "version": 1,
+      "name": "Experiment Plan",
+      "purpose": "Record the smallest useful test before it runs.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: Experiment, target subject and acquisition apparatus.\n\nRevision Binding: Exact immutable plan revision is recorded before its run admission; later modifications are new plans.\n\nAuthority: Plan design needs a grant; routine plan sealing does not require a new human approval unless policy says so.\n\nPrerequisites: [\"Serious alternatives and predictions\", \"Applicable execution authority and safety/effect scope\"]\n\nPermitted Effects: [\"Admit precisely scoped experiment\"]\n\nForbidden Effects: [\"Treat post-hoc criteria as preregistered\", \"Require experimentation after sufficient transferable prior evidence\"]\n\nRequired Inputs Rule: Resolve listed typed references and stated prerequisites for the exact subject.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"hypotheses\": \"hypotheses-02\", \"procedure\": \"Run both implementations against 24 input permutations\", \"subject\": {\"artifact\": \"fixture-candidate-b\", \"environment\": \"fixture-env-1\"}, \"analysis_rule\": \"Any byte mismatch falsifies permutation invariance\", \"limits\": {\"runs\": 24}}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "hypotheses",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "exact set ref [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "procedure",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "smallest discrimination and controls [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "subject",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "artifact",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                },
+                {
+                  "name": "environment",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                }
+              ]
+            },
+            "description": "actual target artifact/data/environment identifiers [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "observables",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "measurements and thresholds [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "analysis_rule",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "predeclared outcome interpretation [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "falsifiers",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "refs to alternatives [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "limits",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "runs",
+                  "required": false,
+                  "schema": {
+                    "type": "integer"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                }
+              ]
+            },
+            "description": "budget and stopping rule [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C10",
+      "version": 1,
+      "name": "Observations",
+      "purpose": "Record what was observed—including failures and deviations—without mixing in interpretation.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: Actual experiment execution, artifacts, inputs, environment and apparatus.\n\nRevision Binding: References exact sealed plan and run receipt; actual target is recorded independently of intended target.\n\nAuthority: Observer reports acquired facts. Observation alone does not accept a hypothesis.\n\nPrerequisites: [\"Admitted plan execution\", \"Acquisition identity\"]\n\nPermitted Effects: [\"Support interpretation and qualification\", \"Expose nonconformance to plan\"]\n\nForbidden Effects: [\"Suppress negative results\", \"Infer evidence applicability from intended commit alone\"]\n\nRequired Inputs Rule: Exact ExperimentPlan and WorkRecord.Started; actual acquisition details remain explicit.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"run\": \"experiment-02-start\", \"actual_subject\": {\"artifact\": \"fixture-candidate-b\", \"environment\": \"fixture-env-1\"}, \"observations\": [\"24 matching outputs\"], \"failures\": [], \"limitations\": [\"finite permutation fixture\"], \"deviations\": []}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "run",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "admitted execution receipt [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "actual_subject",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "artifact",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                },
+                {
+                  "name": "environment",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                }
+              ]
+            },
+            "description": "what really ran or was inspected [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "observations",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "raw observations/artifact refs [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "failures",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "including apparatus/environment failures [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "limitations",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "coverage and acquisition limits [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "deviations",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "differences from the sealed plan [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "C11",
+      "version": 1,
+      "name": "Evidence",
+      "purpose": "Tie evidence to the thing that was actually run or inspected and state which claims it can support.\n\nMIGRATED DRAFT ENCODING — payload type only; not a normative Method/runtime schema. @1 is the editor encoding version (Atlas semantic version: 0.1-proposed). Fields are optional unless the source explicitly lists them as required. Shape inferred from examples where available; otherwise documented text. Exact semantic constraints remain prose.\n\nSubject: Actually exercised/inspected artifact or semantic subject and relevant environment.\n\nRevision Binding: Separates target/claim revision from evidence acquisition; reusable observations stay immutable.\n\nAuthority: Evidence producer reports. Qualifier judges support; transfer requires explicit accountable applicability.\n\nPrerequisites: [\"Authentic bounded acquisition or admissible external source\", \"Subject and revision present\"]\n\nPermitted Effects: [\"Support qualification with applicable relation\"]\n\nForbidden Effects: [\"Close a claim by existence of an attachment\", \"Treat unrelated commit hash as exercised subject\"]\n\nRequired Inputs Rule: Admitted acquisition WorkRecord OR admissible versioned external source with exact acquisition/provenance and subject relationship.\n\nOriginal illustrative example (not a normative instance; may differ from the prose payload grouping): {\"actual_subject\": {\"node\": \"bundle/format\", \"claim_revision\": \"1\", \"artifact\": \"digest:fixture-format-1\", \"environment\": \"env:fixture-1\"}, \"acquisition\": \"run-format-1\", \"content\": [\"fixture-log-1\"], \"claims\": [\"canonical ordering\"], \"limitations\": [\"no platform portability claim\"]}\n\nRecord envelope (where applicable, not duplicated in this payload definition): {\"id\": \"immutable record identity\", \"schema\": \"family schema major/minor\", \"subject\": \"owner + claim revision, plus inspected/built artifact and environment identities when relevant\", \"basis\": \"explicit validity-dependent record/facet refs\", \"history\": \"causal/provenance refs that do not themselves require currentness\", \"producer\": \"authenticated actor and admission/mandate reference\", \"payload\": \"typed family data\"}\n\nCommon source rules: {\"semantic_version\": \"0.1-proposed\", \"schema_versioning\": \"Reject unknown major versions; minor additions must preserve meaning. No default may turn missing evidence/authority into success. Migration creates an explicit new representation without rewriting historical facts.\", \"staleness\": \"A live basis change invalidates dependent support; history-only refs remain inspectable. Immutable observations survive. Reuse for a new target requires direct identity or scoped accountable transfer, never silent rebinding.\", \"supersession\": \"Append a replacement/withdrawal and recompute only the closure of validity dependencies. Historical records are never erased.\", \"provenance\": \"Authenticated producer + applicable mandate/start receipt; input record/facet references; acquisition/inspection details for evidence. Timestamps alone are not ordering proof.\", \"failure_behavior\": \"Malformed or unauthorized input is denied; stale publication is denied but authentic results may be retained historically; unresolved material inputs block dependent work; deferral/rejection is explicit and does not satisfy an unchanged obligation.\"}",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "actual_subject",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "fields": [
+                {
+                  "name": "node",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                },
+                {
+                  "name": "claim_revision",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                },
+                {
+                  "name": "artifact",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                },
+                {
+                  "name": "environment",
+                  "required": false,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "Illustrative example shape; optionality is provisional."
+                }
+              ]
+            },
+            "description": "artifact/data/semantic revision actually inspected [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "acquisition",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "run/inspection receipt and apparatus identity [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "content",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "observations/log/proof/review/source refs [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "claims",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "bounded claims investigated [Atlas description; representation is provisional.]"
+          },
+          {
+            "name": "limitations",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "negative results, exclusions, uncertainty [Atlas description; representation is provisional.]"
+          }
+        ]
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "study.S2",
+      "nodes": [
+        {
+          "id": "S2.frame",
+          "name": "Frame question",
+          "purpose": "Material question, decision target and finite bound.",
+          "kind": "work",
+          "ports": [
+            {
+              "id": "port.S2.e1.S2.frame.out.C06",
+              "name": "InquirySpec",
+              "direction": "out",
+              "contract": {
+                "id": "C06",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e10.S2.frame.in.C03",
+              "name": "Revised question + grant",
+              "direction": "in",
+              "contract": {
+                "id": "C03",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e10.S2.frame.in.C04",
+              "name": "Revised question + grant",
+              "direction": "in",
+              "contract": {
+                "id": "C04",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.prior",
+          "name": "Inspect prior art",
+          "purpose": "Sources, conditions and bounded negative search.",
+          "kind": "work",
+          "ports": [
+            {
+              "id": "port.S2.e1.S2.prior.in.C06",
+              "name": "InquirySpec",
+              "direction": "in",
+              "contract": {
+                "id": "C06",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e2.S2.prior.out.C07",
+              "name": "PriorArtAssessment",
+              "direction": "out",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.enough",
+          "name": "Evidence enough?",
+          "purpose": "Sufficiency is a semantic assessment, not a controller guess.",
+          "kind": "decision",
+          "ports": [
+            {
+              "id": "port.S2.e2.S2.enough.in.C07",
+              "name": "PriorArtAssessment",
+              "direction": "in",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e3.S2.enough.out.C07",
+              "name": "Existing evidence",
+              "direction": "out",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e3.S2.enough.out.C11",
+              "name": "Existing evidence",
+              "direction": "out",
+              "contract": {
+                "id": "C11",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e4.S2.enough.out.C07",
+              "name": "Unresolved question",
+              "direction": "out",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.experiment",
+          "name": "Produce discriminating evidence",
+          "purpose": "PROPOSED decomposition of S2.hyp, S2.plan and S2.run. Competing hypotheses, a sealed plan before execution, and actual observations remain separately inspectable. This is not a new Method rule or automatic authority.",
+          "kind": "component",
+          "ports": [
+            {
+              "id": "port.S2.e4.S2.experiment.in.C07",
+              "name": "Unresolved question",
+              "direction": "in",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e7.S2.experiment.out.C10",
+              "name": "ObservationSet",
+              "direction": "out",
+              "contract": {
+                "id": "C10",
+                "version": 1
+              }
+            }
+          ],
+          "child": "study.S2.experiment"
+        },
+        {
+          "id": "S2.interpret",
+          "name": "Bound interpretation",
+          "purpose": "Evidence and analysis remain distinct.",
+          "kind": "work",
+          "ports": [
+            {
+              "id": "port.S2.e3.S2.interpret.in.C07",
+              "name": "Existing evidence",
+              "direction": "in",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e3.S2.interpret.in.C11",
+              "name": "Existing evidence",
+              "direction": "in",
+              "contract": {
+                "id": "C11",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e7.S2.interpret.in.C10",
+              "name": "ObservationSet",
+              "direction": "in",
+              "contract": {
+                "id": "C10",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e8.S2.interpret.out.C02",
+              "name": "Conclusion proposal",
+              "direction": "out",
+              "contract": {
+                "id": "C02",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.decide",
+          "name": "Dispose conclusion",
+          "purpose": "Accept/bound, revise, defer or reject within authority.",
+          "kind": "authority",
+          "ports": [
+            {
+              "id": "port.S2.e8.S2.decide.in.C02",
+              "name": "Conclusion proposal",
+              "direction": "in",
+              "contract": {
+                "id": "C02",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e9.S2.decide.out.C03",
+              "name": "Decision",
+              "direction": "out",
+              "contract": {
+                "id": "C03",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e10.S2.decide.out.C03",
+              "name": "Revised question + grant",
+              "direction": "out",
+              "contract": {
+                "id": "C03",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e10.S2.decide.out.C04",
+              "name": "Revised question + grant",
+              "direction": "out",
+              "contract": {
+                "id": "C04",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e11.S2.decide.out.C03",
+              "name": "Decision",
+              "direction": "out",
+              "contract": {
+                "id": "C03",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.exit",
+          "name": "Return bounded answer",
+          "purpose": "Only named gap/decision scope is resolved.",
+          "kind": "success",
+          "ports": [
+            {
+              "id": "port.S2.e9.S2.exit.in.C03",
+              "name": "Decision",
+              "direction": "in",
+              "contract": {
+                "id": "C03",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.stop",
+          "name": "Stop honestly",
+          "purpose": "Exhaustion or unresolved question is not proof.",
+          "kind": "failure",
+          "ports": [
+            {
+              "id": "port.S2.e11.S2.stop.in.C03",
+              "name": "Decision",
+              "direction": "in",
+              "contract": {
+                "id": "C03",
+                "version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "exchange.S2.e1.C06",
+          "from": {
+            "node": "S2.frame",
+            "port": "port.S2.e1.S2.frame.out.C06"
+          },
+          "to": {
+            "node": "S2.prior",
+            "port": "port.S2.e1.S2.prior.in.C06"
+          },
+          "label": "InquirySpec"
+        },
+        {
+          "id": "exchange.S2.e2.C07",
+          "from": {
+            "node": "S2.prior",
+            "port": "port.S2.e2.S2.prior.out.C07"
+          },
+          "to": {
+            "node": "S2.enough",
+            "port": "port.S2.e2.S2.enough.in.C07"
+          },
+          "label": "PriorArtAssessment"
+        },
+        {
+          "id": "exchange.S2.e3.C07",
+          "from": {
+            "node": "S2.enough",
+            "port": "port.S2.e3.S2.enough.out.C07"
+          },
+          "to": {
+            "node": "S2.interpret",
+            "port": "port.S2.e3.S2.interpret.in.C07"
+          },
+          "label": "Existing evidence [sufficient]"
+        },
+        {
+          "id": "exchange.S2.e3.C11",
+          "from": {
+            "node": "S2.enough",
+            "port": "port.S2.e3.S2.enough.out.C11"
+          },
+          "to": {
+            "node": "S2.interpret",
+            "port": "port.S2.e3.S2.interpret.in.C11"
+          },
+          "label": "Existing evidence [sufficient]"
+        },
+        {
+          "id": "exchange.S2.e4.C07",
+          "from": {
+            "node": "S2.enough",
+            "port": "port.S2.e4.S2.enough.out.C07"
+          },
+          "to": {
+            "node": "S2.experiment",
+            "port": "port.S2.e4.S2.experiment.in.C07"
+          },
+          "label": "Unresolved question [insufficient]"
+        },
+        {
+          "id": "exchange.S2.e7.C10",
+          "from": {
+            "node": "S2.experiment",
+            "port": "port.S2.e7.S2.experiment.out.C10"
+          },
+          "to": {
+            "node": "S2.interpret",
+            "port": "port.S2.e7.S2.interpret.in.C10"
+          },
+          "label": "ObservationSet"
+        },
+        {
+          "id": "exchange.S2.e8.C02",
+          "from": {
+            "node": "S2.interpret",
+            "port": "port.S2.e8.S2.interpret.out.C02"
+          },
+          "to": {
+            "node": "S2.decide",
+            "port": "port.S2.e8.S2.decide.in.C02"
+          },
+          "label": "Conclusion proposal"
+        },
+        {
+          "id": "exchange.S2.e9.C03",
+          "from": {
+            "node": "S2.decide",
+            "port": "port.S2.e9.S2.decide.out.C03"
+          },
+          "to": {
+            "node": "S2.exit",
+            "port": "port.S2.e9.S2.exit.in.C03"
+          },
+          "label": "Decision [resolved / bounded]"
+        },
+        {
+          "id": "exchange.S2.e10.C03",
+          "from": {
+            "node": "S2.decide",
+            "port": "port.S2.e10.S2.decide.out.C03"
+          },
+          "to": {
+            "node": "S2.frame",
+            "port": "port.S2.e10.S2.frame.in.C03"
+          },
+          "label": "Revised question + grant [inconclusive; renewed bound]"
+        },
+        {
+          "id": "exchange.S2.e10.C04",
+          "from": {
+            "node": "S2.decide",
+            "port": "port.S2.e10.S2.decide.out.C04"
+          },
+          "to": {
+            "node": "S2.frame",
+            "port": "port.S2.e10.S2.frame.in.C04"
+          },
+          "label": "Revised question + grant [inconclusive; renewed bound]"
+        },
+        {
+          "id": "exchange.S2.e11.C03",
+          "from": {
+            "node": "S2.decide",
+            "port": "port.S2.e11.S2.decide.out.C03"
+          },
+          "to": {
+            "node": "S2.stop",
+            "port": "port.S2.e11.S2.stop.in.C03"
+          },
+          "label": "Decision [defer / reject / exhausted]"
+        }
+      ]
+    },
+    {
+      "id": "study.S2.experiment",
+      "nodes": [
+        {
+          "id": "S2.hyp",
+          "name": "Compete hypotheses",
+          "purpose": "Serious alternatives, predictions and falsifiers.",
+          "kind": "work",
+          "ports": [
+            {
+              "id": "port.S2.e4.inside.S2.hyp.in.C07",
+              "name": "Unresolved question",
+              "direction": "in",
+              "contract": {
+                "id": "C07",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e5.S2.hyp.out.C08",
+              "name": "HypothesisSet",
+              "direction": "out",
+              "contract": {
+                "id": "C08",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.plan",
+          "name": "Seal experiment",
+          "purpose": "Smallest discrimination, registered before its execution.",
+          "kind": "work",
+          "ports": [
+            {
+              "id": "port.S2.e5.S2.plan.in.C08",
+              "name": "HypothesisSet",
+              "direction": "in",
+              "contract": {
+                "id": "C08",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e6.S2.plan.out.C09",
+              "name": "ExperimentPlan",
+              "direction": "out",
+              "contract": {
+                "id": "C09",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2.run",
+          "name": "Execute & observe",
+          "purpose": "Actual target, observations, failures and deviations.",
+          "kind": "work",
+          "ports": [
+            {
+              "id": "port.S2.e6.S2.run.in.C09",
+              "name": "ExperimentPlan",
+              "direction": "in",
+              "contract": {
+                "id": "C09",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.S2.e7.inside.S2.run.out.C10",
+              "name": "ObservationSet",
+              "direction": "out",
+              "contract": {
+                "id": "C10",
+                "version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "exchange.S2.e4.C07.inside",
+          "from": {
+            "node": null,
+            "port": "port.S2.e4.S2.experiment.in.C07"
+          },
+          "to": {
+            "node": "S2.hyp",
+            "port": "port.S2.e4.inside.S2.hyp.in.C07"
+          },
+          "label": "Unresolved question [insufficient]"
+        },
+        {
+          "id": "exchange.S2.e5.C08",
+          "from": {
+            "node": "S2.hyp",
+            "port": "port.S2.e5.S2.hyp.out.C08"
+          },
+          "to": {
+            "node": "S2.plan",
+            "port": "port.S2.e5.S2.plan.in.C08"
+          },
+          "label": "HypothesisSet"
+        },
+        {
+          "id": "exchange.S2.e6.C09",
+          "from": {
+            "node": "S2.plan",
+            "port": "port.S2.e6.S2.plan.out.C09"
+          },
+          "to": {
+            "node": "S2.run",
+            "port": "port.S2.e6.S2.run.in.C09"
+          },
+          "label": "ExperimentPlan"
+        },
+        {
+          "id": "exchange.S2.e7.C10.inside",
+          "from": {
+            "node": "S2.run",
+            "port": "port.S2.e7.inside.S2.run.out.C10"
+          },
+          "to": {
+            "node": null,
+            "port": "port.S2.e7.S2.experiment.out.C10"
+          },
+          "label": "ObservationSet"
+        }
+      ]
+    }
+  ]
+}

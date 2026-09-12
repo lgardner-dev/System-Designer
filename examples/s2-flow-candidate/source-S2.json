@@ -1,0 +1,277 @@
+{
+  "id": "S2",
+  "name": "Investigate uncertainty",
+  "purpose": "Resolve a material question with the least discriminating evidence, prior art first.",
+  "parent": null,
+  "rules": [
+    "R2",
+    "R4"
+  ],
+  "inputs": [
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C10",
+    "C11"
+  ],
+  "outputs": [
+    "C02",
+    "C03",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C10",
+    "C11"
+  ],
+  "entry": "A recorded material factual question and bounded inquiry grant.",
+  "eligibility": "Current question, applicable grant and prerequisites; an experiment plan must predate execution.",
+  "authority": "Worker researches and interprets; accountable authority disposes the bounded conclusion.",
+  "semantic_judgments": [
+    "Prior evidence sufficiency and transfer",
+    "Serious alternatives and discriminating design",
+    "Meaning of observations and limitations"
+  ],
+  "deterministic_checks": [
+    "Chronology and sealed plan revision",
+    "Budget and subject bindings",
+    "No conclusion silently changes accepted semantics"
+  ],
+  "success_outcomes": [
+    "Discriminated or bounded question",
+    "Prior-art-supported early exit",
+    "Authorized defer/reject"
+  ],
+  "failure_outcomes": [
+    "Inconclusive result loops within a bound",
+    "Budget exhaustion blocks or ends inquiry"
+  ],
+  "downstream": [
+    "S1",
+    "S3",
+    "S4",
+    "S6"
+  ],
+  "steps": [
+    {
+      "id": "S2.frame",
+      "name": "Frame question",
+      "kind": "work",
+      "purpose": "Material question, decision target and finite bound.",
+      "transition_ids": [
+        "T05"
+      ]
+    },
+    {
+      "id": "S2.prior",
+      "name": "Inspect prior art",
+      "kind": "work",
+      "purpose": "Sources, conditions and bounded negative search.",
+      "transition_ids": [
+        "T06"
+      ]
+    },
+    {
+      "id": "S2.enough",
+      "name": "Evidence enough?",
+      "kind": "decision",
+      "purpose": "Sufficiency is a semantic assessment, not a controller guess.",
+      "transition_ids": [
+        "T06",
+        "T07"
+      ]
+    },
+    {
+      "id": "S2.hyp",
+      "name": "Compete hypotheses",
+      "kind": "work",
+      "purpose": "Serious alternatives, predictions and falsifiers.",
+      "transition_ids": [
+        "T08"
+      ]
+    },
+    {
+      "id": "S2.plan",
+      "name": "Seal experiment",
+      "kind": "work",
+      "purpose": "Smallest discrimination, registered before its execution.",
+      "transition_ids": [
+        "T09"
+      ]
+    },
+    {
+      "id": "S2.run",
+      "name": "Execute & observe",
+      "kind": "work",
+      "purpose": "Actual target, observations, failures and deviations.",
+      "transition_ids": [
+        "T10"
+      ]
+    },
+    {
+      "id": "S2.interpret",
+      "name": "Bound interpretation",
+      "kind": "work",
+      "purpose": "Evidence and analysis remain distinct.",
+      "transition_ids": [
+        "T07",
+        "T11"
+      ]
+    },
+    {
+      "id": "S2.decide",
+      "name": "Dispose conclusion",
+      "kind": "authority",
+      "purpose": "Accept/bound, revise, defer or reject within authority.",
+      "transition_ids": [
+        "T12"
+      ]
+    },
+    {
+      "id": "S2.exit",
+      "name": "Return bounded answer",
+      "kind": "success",
+      "purpose": "Only named gap/decision scope is resolved.",
+      "transition_ids": [
+        "T12"
+      ]
+    },
+    {
+      "id": "S2.stop",
+      "name": "Stop honestly",
+      "kind": "failure",
+      "purpose": "Exhaustion or unresolved question is not proof.",
+      "transition_ids": [
+        "T30",
+        "T31"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "S2.e1",
+      "source": "S2.frame",
+      "target": "S2.prior",
+      "contracts": [
+        "C06"
+      ],
+      "label": "InquirySpec",
+      "condition": ""
+    },
+    {
+      "id": "S2.e2",
+      "source": "S2.prior",
+      "target": "S2.enough",
+      "contracts": [
+        "C07"
+      ],
+      "label": "PriorArtAssessment",
+      "condition": ""
+    },
+    {
+      "id": "S2.e3",
+      "source": "S2.enough",
+      "target": "S2.interpret",
+      "contracts": [
+        "C07",
+        "C11"
+      ],
+      "label": "Existing evidence",
+      "condition": "sufficient"
+    },
+    {
+      "id": "S2.e4",
+      "source": "S2.enough",
+      "target": "S2.hyp",
+      "contracts": [
+        "C07"
+      ],
+      "label": "Unresolved question",
+      "condition": "insufficient"
+    },
+    {
+      "id": "S2.e5",
+      "source": "S2.hyp",
+      "target": "S2.plan",
+      "contracts": [
+        "C08"
+      ],
+      "label": "HypothesisSet",
+      "condition": ""
+    },
+    {
+      "id": "S2.e6",
+      "source": "S2.plan",
+      "target": "S2.run",
+      "contracts": [
+        "C09"
+      ],
+      "label": "ExperimentPlan",
+      "condition": ""
+    },
+    {
+      "id": "S2.e7",
+      "source": "S2.run",
+      "target": "S2.interpret",
+      "contracts": [
+        "C10"
+      ],
+      "label": "ObservationSet",
+      "condition": ""
+    },
+    {
+      "id": "S2.e8",
+      "source": "S2.interpret",
+      "target": "S2.decide",
+      "contracts": [
+        "C02"
+      ],
+      "label": "Conclusion proposal",
+      "condition": ""
+    },
+    {
+      "id": "S2.e9",
+      "source": "S2.decide",
+      "target": "S2.exit",
+      "contracts": [
+        "C03"
+      ],
+      "label": "Decision",
+      "condition": "resolved / bounded"
+    },
+    {
+      "id": "S2.e10",
+      "source": "S2.decide",
+      "target": "S2.frame",
+      "contracts": [
+        "C03",
+        "C04"
+      ],
+      "label": "Revised question + grant",
+      "condition": "inconclusive; renewed bound"
+    },
+    {
+      "id": "S2.e11",
+      "source": "S2.decide",
+      "target": "S2.stop",
+      "contracts": [
+        "C03"
+      ],
+      "label": "Decision",
+      "condition": "defer / reject / exhausted"
+    }
+  ],
+  "implementation": {
+    "module": null,
+    "rust_type": null,
+    "source": null,
+    "tests": [],
+    "handler": null
+  }
+}
