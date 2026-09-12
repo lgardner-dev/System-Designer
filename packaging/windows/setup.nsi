@@ -16,6 +16,12 @@ Unicode true
   !define OUT_FILE "${__FILEDIR__}\..\..\dist\system-designer-setup.exe"
 !endif
 
+!ifndef APP_ICON
+  !define APP_ICON "${__FILEDIR__}\..\..\assets\branding\windows\system-designer.ico"
+!endif
+!define MUI_ICON "${APP_ICON}"
+!define MUI_UNICON "${APP_ICON}"
+
 !define ARP "Software\Microsoft\Windows\CurrentVersion\Uninstall\SystemDesigner"
 
 Name "System Designer"
@@ -59,7 +65,7 @@ Section "System Designer" SEC_APP
 
   WriteRegStr HKCU "${ARP}" "DisplayName" "System Designer"
   WriteRegStr HKCU "${ARP}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKCU "${ARP}" "DisplayIcon" '"$INSTDIR\SystemDesigner.exe"'
+  WriteRegStr HKCU "${ARP}" "DisplayIcon" '"$INSTDIR\SystemDesigner.exe",0'
   WriteRegStr HKCU "${ARP}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${ARP}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegStr HKCU "${ARP}" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'

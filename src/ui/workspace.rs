@@ -47,6 +47,7 @@ impl Designer {
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.add_enabled_ui(enabled, |ui| {
                 ui.horizontal_wrapped(|ui| {
+                    super::branding::show(ui, 24.0);
                     ui.heading("System Designer");
                     ui.separator();
                     ui.menu_button("File", |ui| {

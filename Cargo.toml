@@ -21,7 +21,7 @@ path = "src/check.rs"
 
 [features]
 default = ["desktop"]
-desktop = ["dep:eframe", "dep:rfd"]
+desktop = ["dep:eframe", "dep:rfd", "dep:embed-resource"]
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
@@ -32,6 +32,10 @@ tempfile = "3.23.0"
 directories = "6.0.0"
 eframe = { version = "=0.33.3", optional = true, default-features = false, features = ["accesskit", "default_fonts", "glow", "x11", "wayland"] }
 rfd = { version = "=0.15.4", optional = true }
+
+[build-dependencies]
+# Build-time only: link the Windows icon into the GUI executable, not the validator.
+embed-resource = { version = "=3.0.11", optional = true }
 
 [profile.release]
 lto = "thin"
