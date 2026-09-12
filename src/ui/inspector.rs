@@ -441,7 +441,13 @@ impl Designer {
                         }
                     }
                     Dialog::Help=>{
-                        ui.heading("System Designer — native Rust");
+                        ui.horizontal(|ui| {
+                            super::branding::show(ui, 64.0);
+                            ui.vertical(|ui| {
+                                ui.heading("System Designer");
+                                ui.label(format!("Native Rust · {}", env!("CARGO_PKG_VERSION")));
+                            });
+                        });
                         ui.label("A local editor for recursive components, typed ports, and parent-owned connections. It does not execute workflows or call AI services.");
                         ui.separator();
                         ui.strong("Design");
