@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 const PNG: &[u8] = include_bytes!("../../assets/branding/linux/png/system-designer-256.png");
 static ICON: OnceLock<IconData> = OnceLock::new();
 
-/// The supplied PNG is compiled in; no file, service or image loader is required.
+/// The PNG derived from the selected color-mark SVG is compiled in; no sidecar is required.
 pub fn window_icon() -> IconData {
     ICON.get_or_init(|| {
         eframe::icon_data::from_png_bytes(PNG)
@@ -46,6 +46,16 @@ mod tests {
         assert_eq!(icon.rgba.len(), 256 * 256 * 4);
         assert!(icon.rgba.chunks_exact(4).any(|p| p[3] > 0));
         assert_eq!(window_icon().rgba, icon.rgba);
+    }
+
+    #[test]
+    fn embedded_icon_is_owner_selected_color_mark() {
+        use sha2::{Digest, Sha256};
+        let digest = format!("{:x}", Sha256::digest(window_icon().rgba));
+        assert_eq!(
+            digest,
+            "af97d4bdef6c9207dfbcc8fe7a598071dc825dd05c0c9a124f6650be0708e7a8"
+        );
     }
 
     #[test]

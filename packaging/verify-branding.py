@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dependency-free checks of original icon bytes and optional Windows PE resources."""
+"""Dependency-free checks of current branding assets and optional Windows PE resources."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -77,6 +77,10 @@ def check_pe(path, require_all=True):
 def check_sources():
     manifest = json.loads((BRAND / "manifest.json").read_text(encoding="utf-8"))
     files = manifest["files"]
+    selected = manifest["selected_master"]
+    assert selected["path"] == "svg/system-designer-atom-mark-color.svg"
+    assert files[selected["path"]] == selected["sha256"], "selected-source binding changed"
+    assert set(manifest["derived_files"]) <= set(files), "missing derived assets"
     actual = {str(p.relative_to(BRAND)).replace("\\", "/") for p in BRAND.rglob("*")
               if p.is_file() and p.name != "manifest.json"}
     assert actual == set(files), "brand file inventory changed"
@@ -96,7 +100,7 @@ def check_sources():
         assert size >= 8 and offset + size <= len(data)
         offset += size
     assert offset == len(data)
-    print(f"Verified {len(files)} original files, PNG sizes, ICO frames and ICNS structure")
+    print(f"Verified {len(files)} branding files, selected-source binding, PNG sizes, ICO frames and ICNS structure")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

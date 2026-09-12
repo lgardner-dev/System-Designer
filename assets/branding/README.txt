@@ -1,21 +1,20 @@
-System Designer icon package
+System Designer — selected color mark
 
-Contents
-- svg/: SVG versions of the selected icon family.
-- sources/: original generated PNG source files.
-- branding/: convenient standalone PNG logo files.
-- linux/: scalable SVG plus common PNG sizes.
-- windows/: .ico plus common PNG sizes.
-- macos/: .icns plus a standard .iconset folder.
-- web/: favicon assets and website-ready logo files.
+Authoritative artwork: svg/system-designer-atom-mark-color.svg
+SHA-256: 52c1a21a91c8769b0f67c9c97c02e0af77fa75f07b20064aa295feb44772a3ad
 
-Recommended usage
-- Desktop app icon: use svg/system-designer-atom-icon.svg as the master brand reference.
-- Linux desktop: linux/scalable/system-designer.svg or the PNG fallbacks.
-- Windows: windows/system-designer.ico.
-- macOS: macos/system-designer.icns.
-- Website header / docs: svg/system-designer-atom-mark-color.svg or web/logo-mark.svg.
-- Monochrome usage: svg/system-designer-atom-mark-mono.svg.
+Use this cyan-and-silver interwoven mark for all product display surfaces.
+The original package's platform exports depicted another design. The current
+Linux, Windows, macOS and web exports are regenerated from this selected SVG.
+The SVG contains an embedded PNG; it is not a newly traced vector drawing.
 
-Note
-The SVG files in this package wrap the approved artwork for convenient distribution and scaling. If you want a fully hand-authored native vector redraw later, that can be created as a follow-up.
+Do not pick platform icons independently. From the repository root, use:
+  python -m pip install Pillow==12.3.0
+  python packaging/generate-branding.py
+  python packaging/verify-branding.py
+  python packaging/generate-branding.py --check
+
+See docs/BRANDING.md for source selection, generation and verification details.
+The manifest lists current checksums and derived files separately from the
+original archive provenance. Other original art retained in the repository is
+historical reference only, not another approved production source.
