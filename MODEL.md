@@ -178,3 +178,7 @@ Canonical scope hashes use one fixed convention: UTF-16-sorted object keys, unch
 Component containment is normalized and traversed iteratively without an arbitrary tree depth limit. Deeply nested contract shapes remain subject to serde_json's defensive parsing recursion limit, so unlimited nesting of every possible JSON structure is not claimed.
 
 A structurally valid design is not proof of useful decomposition, complete requirements, correct contracts, implementation safety, or human acceptance. The approximate eight-component guideline is advisory and does not reject larger valid systems.
+
+### Application self-design companion
+
+`design/system-designer.atlas.json` is a separate review-only envelope whose `project` member is the source of the embedded version-1 self-design projection. It also records source-mapped control-flow scopes for the same component identities. The strict production parser does not accept the atlas as a project or scope packet. See `docs/self-design/MODEL.md`; the production serialization and scoped exchange formats above are unchanged.
