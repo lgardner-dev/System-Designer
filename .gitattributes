@@ -1,0 +1,3 @@
+# These are the owner's original icon-package files. Preserve their exact bytes,
+# including SVG wrappers and README line endings, regardless of core.autocrlf.
+assets/branding/** -text
