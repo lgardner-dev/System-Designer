@@ -1,0 +1,100 @@
+name: Self-design atlas
+on:
+  pull_request:
+    paths:
+      - 'design/**'
+      - 'examples/self-design-atlas/**'
+      - 'docs/self-design/**'
+      - '.github/workflows/self-design-atlas.yml'
+      - 'Cargo.toml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  atlas:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Linux native libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libegl1-mesa-dev libgl1-mesa-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev xvfb openbox xdotool
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Regression and self-design tests
+        shell: bash
+        run: |
+          mkdir -p atlas-dist/logs
+          cargo test --locked --all-targets 2>&1 | tee atlas-dist/logs/tests.txt
+      - name: Headless compatibility
+        shell: bash
+        run: cargo test --locked --no-default-features 2>&1 | tee atlas-dist/logs/headless.txt
+      - name: Clippy report
+        shell: bash
+        run: cargo clippy --locked --example self-design-atlas 2>&1 | tee atlas-dist/logs/clippy.txt
+      - name: Build native self-design viewer
+        run: cargo build --locked --release --example self-design-atlas
+      - name: Stage executable and exact authored design
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp target/release/examples/self-design-atlas.exe atlas-dist/
+            atlas-dist/self-design-atlas.exe --check | tee atlas-dist/logs/check.txt
+          else
+            cp target/release/examples/self-design-atlas atlas-dist/
+            atlas-dist/self-design-atlas --check | tee atlas-dist/logs/check.txt
+          fi
+          cp design/system-designer.{atlas,project}.json atlas-dist/
+          cp docs/self-design/{README,MODEL}.md atlas-dist/
+          cp examples/self-design-atlas/initialization.txt atlas-dist/
+          git rev-parse HEAD > atlas-dist/COMMIT.txt
+          git archive --format=zip HEAD -o atlas-dist/source.zip
+      - name: Capture both layers at every component scope
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 WINIT_UNIX_BACKEND=x11
+          Xvfb :99 -screen 0 2048x1280x24 >atlas-dist/xvfb.log 2>&1 &
+          XVFB=$!
+          sleep 2
+          openbox >atlas-dist/openbox.log 2>&1 &
+          WM=$!
+          atlas-dist/self-design-atlas --capture atlas-dist/screenshots >atlas-dist/native.log 2>&1 &
+          APP=$!
+          trap 'kill $APP $WM $XVFB 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do
+            W=$(xdotool search --pid "$APP" --name 'System Designer' 2>/dev/null | head -1 || true)
+            if [ -n "$W" ]; then xdotool windowmap "$W"; xdotool windowactivate --sync "$W" || true; break; fi
+            sleep 1
+          done
+          for i in $(seq 1 180); do
+            if ! kill -0 "$APP" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if kill -0 "$APP" 2>/dev/null; then echo 'Capture timed out'; exit 1; fi
+          wait "$APP"
+          python - <<'PY'
+          import json, pathlib
+          d=pathlib.Path('atlas-dist/screenshots')
+          records=json.loads((d/'manifest.json').read_text())
+          atlas=json.loads(pathlib.Path('design/system-designer.atlas.json').read_text())
+          expected={(s['owner'],layer) for s in atlas['scopes'] for layer in ('control','interfaces')}
+          assert {(r['owner'],r['layer']) for r in records}==expected
+          assert len(records)==len(expected)==104
+          assert all((d/r['file']).stat().st_size>10000 for r in records)
+          print('104 native frames; every one of 52 scopes has both layers')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: System-Designer-Self-Design-${{ matrix.os }}
+          path: atlas-dist/
+          if-no-files-found: warn

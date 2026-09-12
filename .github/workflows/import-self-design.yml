@@ -1,0 +1,42 @@
+name: Import self-design source
+on:
+  push:
+    branches: [work/self-design-prep]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode allowlisted source and generate authored design
+        shell: python
+        run: |
+          import base64, hashlib, json, lzma, pathlib, subprocess
+          text = ''.join(pathlib.Path(f'.self-design-stage/part{i}').read_text() for i in range(9))
+          raw = base64.b64decode(text, validate=True)
+          assert hashlib.sha256(raw).hexdigest() == '4375503553709709b8545ea55f32f75b29f98d6fb5e8b0ffb677ffac2815599e'
+          files = json.loads(lzma.decompress(raw))
+          allowed = {'Cargo.toml','MODEL.md','docs/ARCHITECTURE.md','tests/self_design.rs','.github/workflows/self-design-atlas.yml','examples/self-design-atlas/tests.rs','examples/self-design-atlas/model.rs','examples/self-design-atlas/initialization.txt','examples/self-design-atlas/view.rs','examples/self-design-atlas/main.rs','docs/self-design/README.md','docs/self-design/MODEL.md','.self-design-generate.py'}
+          assert set(files) == allowed
+          for name, content in files.items():
+            assert isinstance(content, str)
+            path = pathlib.Path(name)
+            assert not path.is_absolute() and '..' not in path.parts
+            if name.startswith('.github/'):
+              assert path.read_text() == content
+              continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding='utf-8', newline='\n')
+          subprocess.run(['python', '.self-design-generate.py'], check=True)
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and publish workbench
+        run: |
+          cargo fmt --all
+          git config user.name 'System Designer source import'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.toml MODEL.md docs/ARCHITECTURE.md tests/self_design.rs design examples/self-design-atlas docs/self-design
+          git commit -m 'Generate and format recursive application self-design atlas'
+          git push origin HEAD:refs/heads/work/self-design-imported
