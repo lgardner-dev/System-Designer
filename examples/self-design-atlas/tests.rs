@@ -159,8 +159,11 @@ fn source_hashes_match_inspected_files() {
     let a = atlas();
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (path, hash) in &a.source_hashes {
-        let bytes = std::fs::read(base.join(path)).unwrap();
-        assert_eq!(format!("{:x}", Sha256::digest(&bytes)), *hash, "{path}");
+        // Git source uses LF; Windows checkout may materialize CRLF.
+        // Normalize only that representation difference, not other content.
+        let text = std::fs::read_to_string(base.join(path)).unwrap();
+        let bytes = text.replace("\r\n", "\n");
+        assert_eq!(format!("{:x}", Sha256::digest(bytes.as_bytes())), *hash, "{path}");
     }
 }
 #[test]
