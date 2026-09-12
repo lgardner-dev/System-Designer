@@ -2,8 +2,8 @@
   "format": "system-designer-project",
   "version": 1,
   "id": "project.system-designer-native",
-  "name": "System Designer — native Rust",
-  "purpose": "Native desktop System Designer. No webview, HTML, JavaScript, CSS, backend, or AI connection. Preserve recursive typed design, explicit contract dialogs, scoped AI exchange, and local project files. Start blank; expose this self-design as an optional built-in example. The initialization prompt and this JSON are compiled into the executable.\n\nThis model includes the unified View / Focus / Arrange canvas integration. Verification and limitations are recorded in docs/CANVAS-INTEGRATION.md. The self-design is not a claim of full native runtime or platform qualification.\n\nDesign convention: roughly eight or fewer immediate components per level, justified by independent responsibilities, not a hard validator limit. This tree has seven top-level components and at most eight beneath each. Parent systems own all local edges; public ports are projected into child boundaries.\n\nIMPORTANT: Edges below describe responsibility-level interfaces and return paths, NOT a deployed message bus. Some schemas use JSON projections of typed in-process values because the editor's shape language cannot express Rust references or recursive type definitions. These are explanatory contracts, not generated runtime ABI declarations. Source paths in node purposes map the design to the implementation. The application itself keeps direct Rust calls and one Store.",
+  "name": "System Designer — interface and behavior self-design",
+  "purpose": "Native desktop System Designer. No webview, HTML, JavaScript, CSS, backend, or AI connection. Preserve recursive typed design, explicit contract dialogs, scoped AI exchange, and local project files. Start blank; expose this self-design as an optional built-in example. The initialization prompt and this JSON are compiled into the executable.\n\nThis model includes the unified View / Focus / Arrange canvas integration. Verification and limitations are recorded in docs/CANVAS-INTEGRATION.md. The self-design is not a claim of full native runtime or platform qualification.\n\nDesign convention: roughly eight or fewer immediate components per level, justified by independent responsibilities, not a hard validator limit. This tree has seven top-level components and at most eight beneath each. Parent systems own all local edges; public ports are projected into child boundaries.\n\nIMPORTANT: Edges below describe responsibility-level interfaces and return paths, NOT a deployed message bus. Some schemas use JSON projections of typed in-process values because the editor's shape language cannot express Rust references or recursive type definitions. These are explanatory contracts, not generated runtime ABI declarations. Source paths in node purposes map the design to the implementation. The application itself keeps direct Rust calls and one Store.\n\nSELF-DESIGN ATLAS: design/system-designer.atlas.json is the authored two-layer design. This file is its generated, version-1-compatible interface projection. The companion behavior graph references this same component tree; it does not redefine components. Deeper validation/publication nodes are design explanations mapped onto existing functions, not new runtime modules. Read the atlas in the self-design-atlas native example for behavior on every scope, including leaves. Generic CFG editing and production version-2 migration remain proposed and are explicitly listed, not claimed implemented.",
   "root": "root",
   "contracts": [
     {
@@ -620,6 +620,141 @@
           }
         ]
       }
+    },
+    {
+      "id": "ValidationWork",
+      "version": 1,
+      "name": "ValidationWork",
+      "purpose": "Explanatory projection of the borrowed candidate and accumulating Vec<Problem> passed through validation phases. Not a runtime message or copying requirement.",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "project_json",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "problem_list_json",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ResolvedEndpoints",
+      "version": 1,
+      "name": "ResolvedEndpoints",
+      "purpose": "Projection of two resolved port contract references. Versions are examined only when the corresponding assigned flag is true. The implementation uses Option<ContractRef>.",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "source_assigned",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source_version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "destination_assigned",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "destination_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destination_version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "RuleResult",
+      "version": 1,
+      "name": "RuleResult",
+      "purpose": "A local predicate/result explanation. Local failure is appended to the caller-owned problem list, not permission to publish. Empty message when ok.",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "ok",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "message",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PublicationWork",
+      "version": 1,
+      "name": "PublicationWork",
+      "purpose": "Projection of candidate, current Arc<Project> and edit label used within Store::publish. Validation precedes all current/history mutation.",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "candidate_json",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "previous_json",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "label",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
     }
   ],
   "systems": [
@@ -629,7 +764,7 @@
         {
           "id": "workspace",
           "name": "Workspace",
-          "purpose": "Own the native window and document lifecycle; compose tree, canvas, inspector and dialogs. Keep unsaved-change guards and view state here, not in the project schema.\n\nSource: src/main.rs; src/ui/mod.rs; src/ui/workspace.rs",
+          "purpose": "Own the native window and document lifecycle; compose tree, canvas, inspector and dialogs. Keep unsaved-change guards and view state here, not in the project schema.\n\nSource: src/main.rs; src/ui/mod.rs; src/ui/workspace.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -701,7 +836,7 @@
         {
           "id": "canvas",
           "name": "Canvas",
-          "purpose": "Render only the selected parent-local graph. Project owner ports onto child frames; derive external labels. Convert drag/click gestures to requests, never direct semantic mutations.\n\nSource: src/ui/canvas.rs",
+          "purpose": "Render only the selected parent-local graph. Project owner ports onto child frames; derive external labels. Convert drag/click gestures to requests, never direct semantic mutations.\n\nSource: src/ui/canvas.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Project Control Flow shapes and transition identities as a separate linked layer. Keep the same curved connectors and direction lights; visual layers must not narrow AI exports.",
           "kind": "component",
           "ports": [
             {
@@ -737,7 +872,7 @@
         {
           "id": "inspectors",
           "name": "Authoring forms",
-          "purpose": "Inspect and edit components, ports and structured contract definitions. Require an explicit contract choice and consent for changes to shared connected ports.\n\nSource: src/ui/inspector.rs; src/ui/contracts.rs",
+          "purpose": "Inspect and edit components, ports and structured contract definitions. Require an explicit contract choice and consent for changes to shared connected ports.\n\nSource: src/ui/inspector.rs; src/ui/contracts.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Add control action/decision/transition forms. These must not force payload contracts on control arrows.",
           "kind": "component",
           "ports": [
             {
@@ -773,7 +908,7 @@
         {
           "id": "transactions",
           "name": "Edits and history",
-          "purpose": "Construct complete candidates, apply consistent connection typing, validate before publication, and own current Project plus bounded undo/redo snapshots.\n\nSource: src/edit/",
+          "purpose": "Construct complete candidates, apply consistent connection typing, validate before publication, and own current Project plus bounded undo/redo snapshots.\n\nSource: src/edit/\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Add typed behavior-edit operations without splitting publication ownership.",
           "kind": "component",
           "ports": [
             {
@@ -845,7 +980,7 @@
         {
           "id": "model",
           "name": "Design model",
-          "purpose": "Define typed normalized Project, System, Node, Port, Edge and Contract values; validate structural invariants and provide derived hierarchy/interface queries. No renderer or file I/O.\n\nSource: src/model/",
+          "purpose": "Define typed normalized Project, System, Node, Port, Edge and Contract values; validate structural invariants and provide derived hierarchy/interface queries. No renderer or file I/O.\n\nSource: src/model/\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Versioned root/leaf behavior definitions and call/result bindings require explicit format migration. Unknown behavior must not be inferred from interface wires.",
           "kind": "component",
           "ports": [
             {
@@ -890,7 +1025,7 @@
         {
           "id": "collaboration",
           "name": "AI handoff",
-          "purpose": "Embed initialization instructions; export only the requested component, level, or subtree. Validate complete returned scope packets, preserve outside context, and reject stale/shared-definition changes. No API or model connection.\n\nSource: src/ui/handoff.rs; src/exchange/; assets/initialization.txt",
+          "purpose": "Embed initialization instructions; export only the requested component, level, or subtree. Validate complete returned scope packets, preserve outside context, and reject stale/shared-definition changes. No API or model connection.\n\nSource: src/ui/handoff.rs; src/exchange/; assets/initialization.txt\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Behavior-only and interface-only packets must preserve the other layer and carry exact read-only cross-layer context.",
           "kind": "component",
           "ports": [
             {
@@ -917,7 +1052,7 @@
         {
           "id": "files",
           "name": "Local files",
-          "purpose": "Read and validate project files, detect normal external-file changes, save with previous-version backup and same-directory replacement, and manage isolated recovery copies.\n\nSource: src/storage.rs",
+          "purpose": "Read and validate project files, detect normal external-file changes, save with previous-version backup and same-directory replacement, and manage isolated recovery copies.\n\nSource: src/storage.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Persist both design layers only after an explicit versioned production format exists; never discard unrecognized behavior fields.",
           "kind": "component",
           "ports": [
             {
@@ -1149,7 +1284,7 @@
         {
           "id": "workspace.host",
           "name": "Native host",
-          "purpose": "Create the eframe window and renderer; accept an optional project path. No web runtime.\n\nSource: src/main.rs\n\nBranding: src/main.rs and src/ui/branding.rs embed the approved icon and match the Linux desktop ID. build.rs links the Windows executable icon; packaging supplies native launcher/bundle resources. No project-data effect.",
+          "purpose": "Create the eframe window and renderer; accept an optional project path. No web runtime.\n\nSource: src/main.rs\n\nBranding: src/main.rs and src/ui/branding.rs embed the approved icon and match the Linux desktop ID. build.rs links the Windows executable icon; packaging supplies native launcher/bundle resources. No project-data effect.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1166,7 +1301,7 @@
         {
           "id": "workspace.document",
           "name": "Document lifecycle",
-          "purpose": "Own Store integration, current path, saved fingerprint, dirty comparison, load/save guards, and recovery scheduling.\n\nSource: src/ui/mod.rs::Designer",
+          "purpose": "Own Store integration, current path, saved fingerprint, dirty comparison, load/save guards, and recovery scheduling.\n\nSource: src/ui/mod.rs::Designer\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Retain independent per-layer viewports while keeping a single document.",
           "kind": "component",
           "ports": [
             {
@@ -1255,7 +1390,7 @@
         {
           "id": "workspace.navigation",
           "name": "Tree and breadcrumbs",
-          "purpose": "Navigate arbitrary normalized containment iteratively; expose inherited context while keeping local canvas scope.\n\nSource: src/ui/workspace.rs::tree; src/ui/mod.rs::navigate",
+          "purpose": "Navigate arbitrary normalized containment iteratively; expose inherited context while keeping local canvas scope.\n\nSource: src/ui/workspace.rs::tree; src/ui/mod.rs::navigate\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1290,7 +1425,7 @@
         {
           "id": "workspace.controls",
           "name": "Application controls",
-          "purpose": "Expose file/edit commands, keyboard shortcuts, undo/redo and local complexity guidance.\n\nSource: src/ui/workspace.rs\n\nBranding: src/ui/branding.rs displays the embedded atom icon in the toolbar and Help; cached UI resources do not alter the design model or scoped exchange.",
+          "purpose": "Expose file/edit commands, keyboard shortcuts, undo/redo and local complexity guidance.\n\nSource: src/ui/workspace.rs\n\nBranding: src/ui/branding.rs displays the embedded atom icon in the toolbar and Help; cached UI resources do not alter the design model or scoped exchange.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Expose Control Flow and Interfaces tabs without replacing Detail/Overview inside Interfaces.",
           "kind": "component",
           "ports": [
             {
@@ -1307,7 +1442,7 @@
         {
           "id": "workspace.dialogs",
           "name": "Dialog shell",
-          "purpose": "Block underlying editing while a modal draft is open. Support Save/Discard/Cancel and preserve failed candidate errors.\n\nSource: src/ui/inspector.rs::show_dialog",
+          "purpose": "Block underlying editing while a modal draft is open. Support Save/Discard/Cancel and preserve failed candidate errors.\n\nSource: src/ui/inspector.rs::show_dialog\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1463,7 +1598,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Measure Detail cards and one anchor per physical port on any side. Derive owner boundaries, external labels and direction-correct paths. Freeze side/order choices during gestures. Source: src/ui/canvas/geometry.rs; Scene, Path.",
+          "purpose": "Measure Detail cards and one anchor per physical port on any side. Derive owner boundaries, external labels and direction-correct paths. Freeze side/order choices during gestures. Source: src/ui/canvas/geometry.rs; Scene, Path.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Apply the same numerical connector to control shapes with shape-perimeter attachment.",
           "kind": "component",
           "ports": [
             {
@@ -1507,7 +1642,7 @@
         {
           "id": "canvas.camera",
           "name": "Viewport and navigation",
-          "purpose": "Keep pan, zoom, fit and remembered level viewports separate from project positions. View switches preserve origins and camera. Source: src/ui/canvas.rs; src/ui/canvas/focus.rs::Viewport.",
+          "purpose": "Keep pan, zoom, fit and remembered level viewports separate from project positions. View switches preserve origins and camera. Source: src/ui/canvas.rs; src/ui/canvas/focus.rs::Viewport.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1533,7 +1668,7 @@
         {
           "id": "canvas.painting",
           "name": "Drawing and direction lights",
-          "purpose": "Paint the final exact or summarized route. Drawing, picking, arrowheads and lights share the same path; motion follows displayed arc length and is illustrative only. Focus suppresses muted lights. Source: src/ui/canvas.rs; src/ui/canvas/motion.rs.",
+          "purpose": "Paint the final exact or summarized route. Drawing, picking, arrowheads and lights share the same path; motion follows displayed arc length and is illustrative only. Focus suppresses muted lights. Source: src/ui/canvas.rs; src/ui/canvas/motion.rs.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1568,7 +1703,7 @@
         {
           "id": "canvas.hit_test",
           "name": "Exact hit testing",
-          "purpose": "Pick actual ports, cards or presented relationships from their final display geometry. A multi-edge summary identifies an ordered pair, never an arbitrary editable member. Source: src/ui/canvas.rs; geometry::Path::distance.",
+          "purpose": "Pick actual ports, cards or presented relationships from their final display geometry. A multi-edge summary identifies an ordered pair, never an arbitrary editable member. Source: src/ui/canvas.rs; geometry::Path::distance.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1603,7 +1738,7 @@
         {
           "id": "canvas.gestures",
           "name": "Gesture and control dispatch",
-          "purpose": "Preserve drag/click explicit contract selection. Freeze attachment decisions, cancel on changed projects and publish only validated completed edits. View, Focus and Lights never publish. Source: src/ui/canvas.rs.",
+          "purpose": "Preserve drag/click explicit contract selection. Freeze attachment decisions, cancel on changed projects and publish only validated completed edits. View, Focus and Lights never publish. Source: src/ui/canvas.rs.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1647,7 +1782,7 @@
         {
           "id": "canvas.overview",
           "name": "Overview projection",
-          "purpose": "Derive compact cards and counted, directed component-pair summaries. Keep exact member IDs; boundary and self-loop edges remain individual. Selected exact edges are never promoted to their groups. Source: src/ui/canvas/overview.rs.",
+          "purpose": "Derive compact cards and counted, directed component-pair summaries. Keep exact member IDs; boundary and self-loop edges remain individual. Selected exact edges are never promoted to their groups. Source: src/ui/canvas/overview.rs.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1691,7 +1826,7 @@
         {
           "id": "canvas.focus",
           "name": "Focus and exact tracing",
-          "purpose": "Compute one-hop membership over real edges before aggregation. Inspect exact members and navigate through the identical boundary port. Restore complete session trace locations; never infer input-to-output causality. Source: src/ui/canvas/focus.rs.",
+          "purpose": "Compute one-hop membership over real edges before aggregation. Inspect exact members and navigate through the identical boundary port. Restore complete session trace locations; never infer input-to-output causality. Source: src/ui/canvas/focus.rs.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1726,7 +1861,7 @@
         {
           "id": "canvas.arrangement",
           "name": "Connection-aware arrangement",
-          "purpose": "On explicit command, arrange the complete current-level graph with temporary feedback groups and bounded Detail-size measurement. Preserve all edges, scope hashes and other levels; publish positions once through the existing edit boundary. Source: src/ui/canvas/arrangement.rs.",
+          "purpose": "On explicit command, arrange the complete current-level graph with temporary feedback groups and bounded Detail-size measurement. Preserve all edges, scope hashes and other levels; publish positions once through the existing edit boundary. Source: src/ui/canvas/arrangement.rs.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -1951,7 +2086,7 @@
         {
           "id": "inspectors.details",
           "name": "Context inspector",
-          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector",
+          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Show flow-step contract references and locate the same component in Interfaces.",
           "kind": "component",
           "ports": [
             {
@@ -1995,7 +2130,7 @@
         {
           "id": "inspectors.component",
           "name": "Component form",
-          "purpose": "Edit name, purpose, visual hint and compatible public ports; connected retyping goes through the connection dialog.\n\nSource: src/ui/inspector.rs::show_dialog",
+          "purpose": "Edit name, purpose, visual hint and compatible public ports; connected retyping goes through the connection dialog.\n\nSource: src/ui/inspector.rs::show_dialog\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2030,7 +2165,7 @@
         {
           "id": "inspectors.connection",
           "name": "Connection dialog",
-          "purpose": "Require chosen/new contract; show shared port and edge impact, collect consent, construct one transaction.\n\nSource: src/ui/contracts.rs::connection_form",
+          "purpose": "Require chosen/new contract; show shared port and edge impact, collect consent, construct one transaction.\n\nSource: src/ui/contracts.rs::connection_form\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2092,7 +2227,7 @@
         {
           "id": "inspectors.catalog",
           "name": "Contract catalog",
-          "purpose": "Create, inspect, edit, version or delete catalog definitions; protect referenced identities.\n\nSource: src/ui/inspector.rs::show_dialog; src/ui/contracts.rs::contract_form",
+          "purpose": "Create, inspect, edit, version or delete catalog definitions; protect referenced identities.\n\nSource: src/ui/inspector.rs::show_dialog; src/ui/contracts.rs::contract_form\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2136,7 +2271,7 @@
         {
           "id": "inspectors.schema",
           "name": "Schema form",
-          "purpose": "Edit primitives, enums, arrays and nested object fields in native controls. No untyped runtime schema engine.\n\nSource: src/ui/contracts.rs::shape_form",
+          "purpose": "Edit primitives, enums, arrays and nested object fields in native controls. No untyped runtime schema engine.\n\nSource: src/ui/contracts.rs::shape_form\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2343,7 +2478,7 @@
         {
           "id": "model.types",
           "name": "Typed records",
-          "purpose": "Serialize the version-1 format with explicit draft null bindings and absent leaf-child fields. Reject unknown properties.\n\nSource: src/model/types.rs",
+          "purpose": "Serialize the version-1 format with explicit draft null bindings and absent leaf-child fields. Reject unknown properties.\n\nSource: src/model/types.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Define versioned behavior types and migration before production persists both layers.",
           "kind": "component",
           "ports": [
             {
@@ -2369,7 +2504,7 @@
         {
           "id": "model.validation",
           "name": "Structural validation",
-          "purpose": "Check IDs, contract definitions, ownership, reachability, direction, exact port types, locality and layout. Allow process cycles and large levels.\n\nSource: src/model/validation.rs",
+          "purpose": "Check IDs, contract definitions, ownership, reachability, direction, exact port types, locality and layout. Allow process cycles and large levels.\n\nSource: src/model/validation.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Add behavior-entry/outcome/call/binding invariants without treating absence of a flow as no behavior.",
           "kind": "component",
           "ports": [
             {
@@ -2417,12 +2552,13 @@
                 "version": 1
               }
             }
-          ]
+          ],
+          "child": "model.validation.internal"
         },
         {
           "id": "model.queries",
           "name": "Derived views",
-          "purpose": "Resolve owners, endpoints, ancestors, descendants, external boundary labels, IDs and deterministic default layout. Do not store duplicate public boundaries.\n\nSource: src/model/query.rs",
+          "purpose": "Resolve owners, endpoints, ancestors, descendants, external boundary labels, IDs and deterministic default layout. Do not store duplicate public boundaries.\n\nSource: src/model/query.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2518,7 +2654,7 @@
         {
           "id": "transactions.operations",
           "name": "Bounded edits",
-          "purpose": "Create, modify and remove components, ports, systems and catalog entries with complete candidate validation. Clean dependent edges and layout on deletion.\n\nSource: src/edit/operations.rs",
+          "purpose": "Create, modify and remove components, ports, systems and catalog entries with complete candidate validation. Clean dependent edges and layout on deletion.\n\nSource: src/edit/operations.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2562,7 +2698,7 @@
         {
           "id": "transactions.connection",
           "name": "Connection consistency",
-          "purpose": "Find the connected physical-port equality group across mirrored boundaries; require consent and atomically create/retype the complete channel.\n\nSource: src/edit/connection.rs",
+          "purpose": "Find the connected physical-port equality group across mirrored boundaries; require consent and atomically create/retype the complete channel.\n\nSource: src/edit/connection.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2588,7 +2724,7 @@
         {
           "id": "transactions.history",
           "name": "Publication and history",
-          "purpose": "Own the authoritative current Project. Reject invalid candidates without mutating current/undo/redo; publish one undoable action and retain up to 50 snapshots.\n\nSource: src/edit/history.rs",
+          "purpose": "Own the authoritative current Project. Reject invalid candidates without mutating current/undo/redo; publish one undoable action and retain up to 50 snapshots.\n\nSource: src/edit/history.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2654,7 +2790,8 @@
                 "version": 1
               }
             }
-          ]
+          ],
+          "child": "transactions.history.internal"
         }
       ],
       "edges": [
@@ -2786,7 +2923,7 @@
         {
           "id": "collaboration.panel",
           "name": "Handoff panel",
-          "purpose": "Offer embedded initialization text, scope choice, copy/save JSON, and separate Validate/Apply actions. Revalidate at Apply.\n\nSource: src/ui/handoff.rs",
+          "purpose": "Offer embedded initialization text, scope choice, copy/save JSON, and separate Validate/Apply actions. Revalidate at Apply.\n\nSource: src/ui/handoff.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Add behavior-scope operations after final production exchange protocol is accepted.",
           "kind": "component",
           "ports": [
             {
@@ -2848,7 +2985,7 @@
         {
           "id": "collaboration.prompt",
           "name": "Embedded guidance",
-          "purpose": "Carry design methodology and exact exchange instructions in the executable. No project data, credentials or remote service.\n\nSource: src/lib.rs::INITIALIZATION; assets/initialization.txt",
+          "purpose": "Carry design methodology and exact exchange instructions in the executable. No project data, credentials or remote service.\n\nSource: src/lib.rs::INITIALIZATION; assets/initialization.txt\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -2865,7 +3002,7 @@
         {
           "id": "collaboration.export",
           "name": "Scope projection",
-          "purpose": "Export compact context, referenced definitions and source hash; omit unrelated branches and visual positions.\n\nSource: src/exchange/packet.rs; src/exchange/canonical.rs",
+          "purpose": "Export compact context, referenced definitions and source hash; omit unrelated branches and visual positions.\n\nSource: src/exchange/packet.rs; src/exchange/canonical.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Behavior-only exchange carries interface context and retains the interface layer.",
           "kind": "component",
           "ports": [
             {
@@ -2891,7 +3028,7 @@
         {
           "id": "collaboration.replace",
           "name": "Scoped replacement",
-          "purpose": "Verify base/context, preserve hidden children and outside identities, merge only new contract versions, then validate the whole merged project.\n\nSource: src/exchange/replace.rs",
+          "purpose": "Verify base/context, preserve hidden children and outside identities, merge only new contract versions, then validate the whole merged project.\n\nSource: src/exchange/replace.rs\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.\nPlanned CFG extension (not implemented in the production editor): Version the protocol before permitting returned behavior; unknown fields remain rejected.",
           "kind": "component",
           "ports": [
             {
@@ -3017,7 +3154,7 @@
         {
           "id": "files.read",
           "name": "Validated reading",
-          "purpose": "Read UTF-8 project JSON and fingerprint exact source bytes; report malformed or unsupported records instead of treating them as valid.\n\nSource: src/storage.rs::read_project; stamp",
+          "purpose": "Read UTF-8 project JSON and fingerprint exact source bytes; report malformed or unsupported records instead of treating them as valid.\n\nSource: src/storage.rs::read_project; stamp\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -3061,7 +3198,7 @@
         {
           "id": "files.save",
           "name": "Safe replacement",
-          "purpose": "Check expected file fingerprint, preserve the previous valid saved file, sync a same-directory temporary file, and replace the target. Not a distributed compare-and-swap.\n\nSource: src/storage.rs::save_project; atomic_write",
+          "purpose": "Check expected file fingerprint, preserve the previous valid saved file, sync a same-directory temporary file, and replace the target. Not a distributed compare-and-swap.\n\nSource: src/storage.rs::save_project; atomic_write\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -3105,7 +3242,7 @@
         {
           "id": "files.recovery",
           "name": "Recovery snapshots",
-          "purpose": "Write isolated per-session recovery files in user data storage. Restore as an unsaved copy; preserve damaged and foreign-session bytes.\n\nSource: src/storage.rs::write_recovery; read_recovery; recovery_files",
+          "purpose": "Write isolated per-session recovery files in user data storage. Restore as an unsaved copy; preserve damaged and foreign-session bytes.\n\nSource: src/storage.rs::write_recovery; read_recovery; recovery_files\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
           "kind": "component",
           "ports": [
             {
@@ -3293,6 +3430,816 @@
           "label": "explicit operation result"
         }
       ]
+    },
+    {
+      "id": "model.validation.internal",
+      "nodes": [
+        {
+          "id": "model.validation.catalog",
+          "name": "Identity & schemas",
+          "kind": "component",
+          "purpose": "Check format/version, nonempty global identities and versioned catalog schema consistency.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.catalog.boundary_public_edit_candidate",
+              "name": "public edit candidate",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationRequest",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.catalog.boundary_public_file_candidate",
+              "name": "public file candidate",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationRequest",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.catalog.work_out",
+              "name": "Candidate + diagnostics",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "model.validation.ownership",
+          "name": "Containment integrity",
+          "kind": "component",
+          "purpose": "Index systems/owners, enforce one root and owner, and walk containment iteratively.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.ownership.work_in",
+              "name": "Candidate + diagnostics",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.ownership.work_out",
+              "name": "Candidate + diagnostics",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "model.validation.edges",
+          "name": "Local edge validity",
+          "kind": "component",
+          "purpose": "Resolve each local endpoint, derive its effective direction, and compare its assigned contract reference.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.edges.work_in",
+              "name": "Candidate + diagnostics",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.work_out",
+              "name": "Candidate + diagnostics",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            }
+          ],
+          "child": "model.validation.edges.internal"
+        },
+        {
+          "id": "model.validation.layout",
+          "name": "Layout validity",
+          "kind": "component",
+          "purpose": "Check that visual positions refer to local components and are finite and nonnegative.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.layout.work_in",
+              "name": "Candidate + diagnostics",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.layout.work_out",
+              "name": "Candidate + diagnostics",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "model.validation.result",
+          "name": "Collect diagnostics",
+          "kind": "component",
+          "purpose": "Return Ok only when the accumulated problem vector is empty; preserve all diagnostics on failure.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.result.boundary_public_edit_result",
+              "name": "public edit result",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationResult",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.result.boundary_public_file_result",
+              "name": "public file result",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationResult",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.result.boundary_flow_0",
+              "name": "flow 0",
+              "direction": "out",
+              "contract": {
+                "id": "ProjectCandidate",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.result.work_in",
+              "name": "Candidate + diagnostics",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "model.validation.internal.detail.0",
+          "from": {
+            "node": null,
+            "port": "model.validation.public_edit_candidate"
+          },
+          "to": {
+            "node": "model.validation.catalog",
+            "port": "model.validation.catalog.boundary_public_edit_candidate"
+          },
+          "label": "public edit candidate"
+        },
+        {
+          "id": "model.validation.internal.detail.1",
+          "from": {
+            "node": "model.validation.result",
+            "port": "model.validation.result.boundary_public_edit_result"
+          },
+          "to": {
+            "node": null,
+            "port": "model.validation.public_edit_result"
+          },
+          "label": "public edit result"
+        },
+        {
+          "id": "model.validation.internal.detail.2",
+          "from": {
+            "node": null,
+            "port": "model.validation.public_file_candidate"
+          },
+          "to": {
+            "node": "model.validation.catalog",
+            "port": "model.validation.catalog.boundary_public_file_candidate"
+          },
+          "label": "public file candidate"
+        },
+        {
+          "id": "model.validation.internal.detail.3",
+          "from": {
+            "node": "model.validation.result",
+            "port": "model.validation.result.boundary_public_file_result"
+          },
+          "to": {
+            "node": null,
+            "port": "model.validation.public_file_result"
+          },
+          "label": "public file result"
+        },
+        {
+          "id": "model.validation.internal.detail.4",
+          "from": {
+            "node": "model.validation.result",
+            "port": "model.validation.result.boundary_flow_0"
+          },
+          "to": {
+            "node": null,
+            "port": "model.validation.flow_0"
+          },
+          "label": "flow 0"
+        },
+        {
+          "id": "model.validation.internal.detail.5",
+          "from": {
+            "node": "model.validation.catalog",
+            "port": "model.validation.catalog.work_out"
+          },
+          "to": {
+            "node": "model.validation.ownership",
+            "port": "model.validation.ownership.work_in"
+          },
+          "label": "Accumulate, do not publish"
+        },
+        {
+          "id": "model.validation.internal.detail.6",
+          "from": {
+            "node": "model.validation.ownership",
+            "port": "model.validation.ownership.work_out"
+          },
+          "to": {
+            "node": "model.validation.edges",
+            "port": "model.validation.edges.work_in"
+          },
+          "label": "Accumulate, do not publish"
+        },
+        {
+          "id": "model.validation.internal.detail.7",
+          "from": {
+            "node": "model.validation.edges",
+            "port": "model.validation.edges.work_out"
+          },
+          "to": {
+            "node": "model.validation.layout",
+            "port": "model.validation.layout.work_in"
+          },
+          "label": "Accumulate, do not publish"
+        },
+        {
+          "id": "model.validation.internal.detail.8",
+          "from": {
+            "node": "model.validation.layout",
+            "port": "model.validation.layout.work_out"
+          },
+          "to": {
+            "node": "model.validation.result",
+            "port": "model.validation.result.work_in"
+          },
+          "label": "Accumulate, do not publish"
+        }
+      ]
+    },
+    {
+      "id": "model.validation.edges.internal",
+      "nodes": [
+        {
+          "id": "model.validation.edges.resolve",
+          "name": "Resolve endpoints",
+          "kind": "component",
+          "purpose": "Find the source and destination ports in this system or on its owning boundary; diagnose missing/nonlocal references.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.edges.resolve.boundary_work_in",
+              "name": "Candidate + diagnostics",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.resolve.work_out",
+              "name": "work out",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.resolve.contracts",
+              "name": "Resolved contract references",
+              "direction": "out",
+              "contract": {
+                "id": "ResolvedEndpoints",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "model.validation.edges.direction",
+          "name": "Check effective directions",
+          "kind": "component",
+          "purpose": "Invert direction at a projected owner boundary; require producer to consumer.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.edges.direction.work_in",
+              "name": "work in",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.direction.work_out",
+              "name": "work out",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "model.validation.edges.contracts",
+          "name": "Compare exact contracts",
+          "kind": "component",
+          "purpose": "Both endpoints must be assigned and share the same contract ID and version. No coercion or name-only comparison.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.edges.contracts.work_in",
+              "name": "work in",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.contracts.references",
+              "name": "Resolved contract references",
+              "direction": "in",
+              "contract": {
+                "id": "ResolvedEndpoints",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.contracts.result",
+              "name": "result",
+              "direction": "out",
+              "contract": {
+                "id": "RuleResult",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "model.validation.edges.report",
+          "name": "Append edge diagnostics",
+          "kind": "component",
+          "purpose": "Attach edge ID and reason to each diagnosed invariant failure; retain candidate unchanged.\n\nSource: src/model/validation.rs::validate\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "model.validation.edges.report.boundary_work_out",
+              "name": "Candidate + diagnostics",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "model.validation.edges.report.result",
+              "name": "result",
+              "direction": "in",
+              "contract": {
+                "id": "RuleResult",
+                "version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "model.validation.edges.internal.detail.0",
+          "from": {
+            "node": null,
+            "port": "model.validation.edges.work_in"
+          },
+          "to": {
+            "node": "model.validation.edges.resolve",
+            "port": "model.validation.edges.resolve.boundary_work_in"
+          },
+          "label": "Candidate + diagnostics"
+        },
+        {
+          "id": "model.validation.edges.internal.detail.1",
+          "from": {
+            "node": "model.validation.edges.report",
+            "port": "model.validation.edges.report.boundary_work_out"
+          },
+          "to": {
+            "node": null,
+            "port": "model.validation.edges.work_out"
+          },
+          "label": "Candidate + diagnostics"
+        },
+        {
+          "id": "model.validation.edges.internal.detail.2",
+          "from": {
+            "node": "model.validation.edges.resolve",
+            "port": "model.validation.edges.resolve.work_out"
+          },
+          "to": {
+            "node": "model.validation.edges.direction",
+            "port": "model.validation.edges.direction.work_in"
+          },
+          "label": "Read-only validation context"
+        },
+        {
+          "id": "model.validation.edges.internal.detail.3",
+          "from": {
+            "node": "model.validation.edges.direction",
+            "port": "model.validation.edges.direction.work_out"
+          },
+          "to": {
+            "node": "model.validation.edges.contracts",
+            "port": "model.validation.edges.contracts.work_in"
+          },
+          "label": "Read-only validation context"
+        },
+        {
+          "id": "model.validation.edges.internal.detail.4",
+          "from": {
+            "node": "model.validation.edges.resolve",
+            "port": "model.validation.edges.resolve.contracts"
+          },
+          "to": {
+            "node": "model.validation.edges.contracts",
+            "port": "model.validation.edges.contracts.references"
+          },
+          "label": "Assigned references, if resolved"
+        },
+        {
+          "id": "model.validation.edges.internal.detail.5",
+          "from": {
+            "node": "model.validation.edges.contracts",
+            "port": "model.validation.edges.contracts.result"
+          },
+          "to": {
+            "node": "model.validation.edges.report",
+            "port": "model.validation.edges.report.result"
+          },
+          "label": "Predicate result"
+        }
+      ]
+    },
+    {
+      "id": "transactions.history.internal",
+      "nodes": [
+        {
+          "id": "transactions.history.admission",
+          "name": "Validate candidate",
+          "kind": "component",
+          "purpose": "Run the complete model validator before changing current, undo, redo or generation.\n\nSource: src/edit/history.rs::Store::publish\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "transactions.history.admission.boundary_public_scope",
+              "name": "public scope",
+              "direction": "in",
+              "contract": {
+                "id": "ProjectCandidate",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.admission.boundary_public_validate",
+              "name": "public validate",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationRequest",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.admission.boundary_public_validation",
+              "name": "public validation",
+              "direction": "in",
+              "contract": {
+                "id": "ValidationResult",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.admission.boundary_flow_1",
+              "name": "flow 1",
+              "direction": "in",
+              "contract": {
+                "id": "ProjectCandidate",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.admission.boundary_flow_2",
+              "name": "flow 2",
+              "direction": "in",
+              "contract": {
+                "id": "ProjectCandidate",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.admission.work_out",
+              "name": "work out",
+              "direction": "out",
+              "contract": {
+                "id": "PublicationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "transactions.history.unchanged",
+          "name": "Detect unchanged candidate",
+          "kind": "component",
+          "purpose": "Compare the validated candidate with current Project. Equal values return Ok without a new undo entry.\n\nSource: src/edit/history.rs::Store::publish\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "transactions.history.unchanged.work_in",
+              "name": "work in",
+              "direction": "in",
+              "contract": {
+                "id": "PublicationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.unchanged.work_out",
+              "name": "work out",
+              "direction": "out",
+              "contract": {
+                "id": "PublicationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "transactions.history.remember",
+          "name": "Remember previous state",
+          "kind": "component",
+          "purpose": "Append labeled current snapshot to undo and remove the oldest when length exceeds fifty.\n\nSource: src/edit/history.rs::Store::publish\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "transactions.history.remember.work_in",
+              "name": "work in",
+              "direction": "in",
+              "contract": {
+                "id": "PublicationWork",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.remember.work_out",
+              "name": "work out",
+              "direction": "out",
+              "contract": {
+                "id": "PublicationWork",
+                "version": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "transactions.history.commit",
+          "name": "Install new snapshot",
+          "kind": "component",
+          "purpose": "Assign the new Arc<Project>, clear redo, and increment wrapping generation after admission.\n\nSource: src/edit/history.rs::Store::publish\nDesign decomposition of existing responsibilities; not a claim that a new Rust module was introduced.\n\nBehavior: see this component's Control Flow in design/system-designer.atlas.json.",
+          "ports": [
+            {
+              "id": "transactions.history.commit.boundary_public_current",
+              "name": "public current",
+              "direction": "out",
+              "contract": {
+                "id": "ProjectSnapshot",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.commit.boundary_public_status",
+              "name": "public status",
+              "direction": "out",
+              "contract": {
+                "id": "ValidationResult",
+                "version": 1
+              }
+            },
+            {
+              "id": "transactions.history.commit.work_in",
+              "name": "work in",
+              "direction": "in",
+              "contract": {
+                "id": "PublicationWork",
+                "version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "transactions.history.internal.detail.0",
+          "from": {
+            "node": null,
+            "port": "transactions.history.public_scope"
+          },
+          "to": {
+            "node": "transactions.history.admission",
+            "port": "transactions.history.admission.boundary_public_scope"
+          },
+          "label": "public scope"
+        },
+        {
+          "id": "transactions.history.internal.detail.1",
+          "from": {
+            "node": "transactions.history.commit",
+            "port": "transactions.history.commit.boundary_public_current"
+          },
+          "to": {
+            "node": null,
+            "port": "transactions.history.public_current"
+          },
+          "label": "public current"
+        },
+        {
+          "id": "transactions.history.internal.detail.2",
+          "from": {
+            "node": "transactions.history.commit",
+            "port": "transactions.history.commit.boundary_public_status"
+          },
+          "to": {
+            "node": null,
+            "port": "transactions.history.public_status"
+          },
+          "label": "public status"
+        },
+        {
+          "id": "transactions.history.internal.detail.3",
+          "from": {
+            "node": "transactions.history.admission",
+            "port": "transactions.history.admission.boundary_public_validate"
+          },
+          "to": {
+            "node": null,
+            "port": "transactions.history.public_validate"
+          },
+          "label": "public validate"
+        },
+        {
+          "id": "transactions.history.internal.detail.4",
+          "from": {
+            "node": null,
+            "port": "transactions.history.public_validation"
+          },
+          "to": {
+            "node": "transactions.history.admission",
+            "port": "transactions.history.admission.boundary_public_validation"
+          },
+          "label": "public validation"
+        },
+        {
+          "id": "transactions.history.internal.detail.5",
+          "from": {
+            "node": null,
+            "port": "transactions.history.flow_1"
+          },
+          "to": {
+            "node": "transactions.history.admission",
+            "port": "transactions.history.admission.boundary_flow_1"
+          },
+          "label": "flow 1"
+        },
+        {
+          "id": "transactions.history.internal.detail.6",
+          "from": {
+            "node": null,
+            "port": "transactions.history.flow_2"
+          },
+          "to": {
+            "node": "transactions.history.admission",
+            "port": "transactions.history.admission.boundary_flow_2"
+          },
+          "label": "flow 2"
+        },
+        {
+          "id": "transactions.history.internal.detail.7",
+          "from": {
+            "node": "transactions.history.admission",
+            "port": "transactions.history.admission.work_out"
+          },
+          "to": {
+            "node": "transactions.history.unchanged",
+            "port": "transactions.history.unchanged.work_in"
+          },
+          "label": "Admitted local publication state"
+        },
+        {
+          "id": "transactions.history.internal.detail.8",
+          "from": {
+            "node": "transactions.history.unchanged",
+            "port": "transactions.history.unchanged.work_out"
+          },
+          "to": {
+            "node": "transactions.history.remember",
+            "port": "transactions.history.remember.work_in"
+          },
+          "label": "Admitted local publication state"
+        },
+        {
+          "id": "transactions.history.internal.detail.9",
+          "from": {
+            "node": "transactions.history.remember",
+            "port": "transactions.history.remember.work_out"
+          },
+          "to": {
+            "node": "transactions.history.commit",
+            "port": "transactions.history.commit.work_in"
+          },
+          "label": "Admitted local publication state"
+        }
+      ]
     }
-  ]
+  ],
+  "layout": {
+    "model.validation.internal": {
+      "model.validation.catalog": {
+        "x": 180,
+        "y": 160
+      },
+      "model.validation.ownership": {
+        "x": 650,
+        "y": 160
+      },
+      "model.validation.edges": {
+        "x": 180,
+        "y": 470
+      },
+      "model.validation.layout": {
+        "x": 650,
+        "y": 470
+      },
+      "model.validation.result": {
+        "x": 180,
+        "y": 780
+      }
+    },
+    "model.validation.edges.internal": {
+      "model.validation.edges.resolve": {
+        "x": 180,
+        "y": 160
+      },
+      "model.validation.edges.direction": {
+        "x": 650,
+        "y": 160
+      },
+      "model.validation.edges.contracts": {
+        "x": 180,
+        "y": 470
+      },
+      "model.validation.edges.report": {
+        "x": 650,
+        "y": 470
+      }
+    },
+    "transactions.history.internal": {
+      "transactions.history.admission": {
+        "x": 180,
+        "y": 160
+      },
+      "transactions.history.unchanged": {
+        "x": 650,
+        "y": 160
+      },
+      "transactions.history.remember": {
+        "x": 180,
+        "y": 470
+      },
+      "transactions.history.commit": {
+        "x": 650,
+        "y": 470
+      }
+    }
+  }
 }

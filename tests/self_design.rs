@@ -7,7 +7,7 @@ use system_designer::{
 fn embedded_design_is_a_real_project() {
     let p = parse(APPLICATION_DESIGN).expect("self design");
     assert_eq!(p.system(&p.root).expect("root").nodes.len(), 7);
-    assert_eq!(p.systems.len(), 8);
+    assert_eq!(p.systems.len(), 11);
     assert!(p.systems.iter().all(|s| s.nodes.len() <= 8));
 }
 #[test]

@@ -19,6 +19,11 @@ required-features = ["desktop"]
 name = "designer-check"
 path = "src/check.rs"
 
+[[example]]
+name = "self-design-atlas"
+path = "examples/self-design-atlas/main.rs"
+required-features = ["desktop"]
+
 [features]
 default = ["desktop"]
 desktop = ["dep:eframe", "dep:rfd", "dep:embed-resource"]

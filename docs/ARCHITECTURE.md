@@ -62,3 +62,9 @@ Recovery uses isolated per-session files and restores an unsaved copy. It covers
 ## Evidence and limits
 
 See [CANVAS-INTEGRATION.md](CANVAS-INTEGRATION.md) for executed checks and runtime limitations. Structural tests do not prove good design, full native accessibility or a measured readability improvement. Arrangement is a heuristic, not a complete obstacle router. There is no approval engine, multi-user merge system, universal workflow execution, live activity feed, semantic edge taxonomy or persistent custom-view format.
+
+## Source-mapped self-design atlas
+
+The authored paired design is now `design/system-designer.atlas.json`; the existing embedded `design/system-designer.project.json` is its checked compatibility projection. The seven root responsibilities and their existing public identities remain. Structural validation is refined into catalog/identity, containment, local-edge, layout and result responsibilities. Local-edge checking is refined into endpoint resolution, direction, exact contract comparison and diagnostic accumulation. Publication/history is refined into admission, unchanged detection, prior-state retention and installation. These are design responsibility boundaries mapped to current function bodies, not additional deployed modules.
+
+Run `cargo run --locked --release --example self-design-atlas` to inspect both facets at every component, including leaves. The native atlas explicitly records primitive stopping rules and pending CFG-authoring/migration work. The generic production application remains the existing interface editor; this change updates the self-design and adds a read-only review surface, not an implicit version-2 release. See `docs/self-design/README.md` and `MODEL.md`.
