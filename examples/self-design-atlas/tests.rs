@@ -163,7 +163,11 @@ fn source_hashes_match_inspected_files() {
         // Normalize only that representation difference, not other content.
         let text = std::fs::read_to_string(base.join(path)).unwrap();
         let bytes = text.replace("\r\n", "\n");
-        assert_eq!(format!("{:x}", Sha256::digest(bytes.as_bytes())), *hash, "{path}");
+        assert_eq!(
+            format!("{:x}", Sha256::digest(bytes.as_bytes())),
+            *hash,
+            "{path}"
+        );
     }
 }
 #[test]
