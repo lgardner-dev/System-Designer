@@ -25,24 +25,29 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxkbcommon-dev libwayland-dev libegl1-mesa-dev libgl1-mesa-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev xvfb openbox xdotool
+          sudo apt-get install -y libgtk-3-dev libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev libegl1-mesa-dev libgl1-mesa-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev xvfb openbox xdotool
       - name: Formatting
         run: cargo fmt --all -- --check
       - name: Production and study regression tests
-        run: cargo test --locked --all-targets
+        shell: bash
+        run: |
+          mkdir -p study-dist/logs
+          cargo test --locked --all-targets 2>&1 | tee study-dist/logs/all-targets.txt
       - name: Headless production compatibility
-        run: cargo test --locked --no-default-features
+        shell: bash
+        run: cargo test --locked --no-default-features 2>&1 | tee study-dist/logs/headless.txt
       - name: Clippy findings
-        run: cargo clippy --locked --example s2-flow-candidate
+        shell: bash
+        run: cargo clippy --locked --example s2-flow-candidate 2>&1 | tee study-dist/logs/clippy.txt
       - name: Compile native worked candidate
         run: cargo build --locked --release --example s2-flow-candidate
       - name: Verify fixture with the compiled candidate
         shell: bash
         run: |
           if [ "$RUNNER_OS" = Windows ]; then
-            target/release/examples/s2-flow-candidate.exe --check
+            target/release/examples/s2-flow-candidate.exe --check | tee study-dist/logs/fixture-check.txt
           else
-            target/release/examples/s2-flow-candidate --check
+            target/release/examples/s2-flow-candidate --check | tee study-dist/logs/fixture-check.txt
           fi
       - name: Stage portable candidate and reference files
         shell: bash
