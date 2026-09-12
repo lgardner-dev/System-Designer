@@ -1,0 +1,40 @@
+name: Prepare owner-supplied icon integration
+on:
+  push:
+    branches: [work/iconography-prep]
+permissions:
+  contents: write
+concurrency:
+  group: owner-iconography-import
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.repository == 'lgardner-dev/System-Designer' && github.ref == 'refs/heads/work/iconography-prep'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/iconography-prep
+      - name: Extract exact approved bytes and apply bounded integration
+        run: python .github/import-icons.py
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Resolve only newly needed lockfile entries and check headless build
+        run: cargo check --no-default-features
+      - name: Format Rust changes and verify asset integrity
+        run: |
+          cargo fmt --all
+          python packaging/verify-branding.py
+          bash -n packaging/linux/installer-header.sh packaging/linux/make-installer.sh packaging/linux/install.sh
+      - name: Publish prepared source only to the temporary work branch
+        run: |
+          set -euo pipefail
+          git rm .github/import-icons.py .github/workflows/import-icons.yml
+          git add -A
+          git diff --cached --stat
+          git -c user.name='System Designer automation' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Integrate approved iconography and native platform resources'
+          git push origin HEAD:refs/heads/work/iconography-prep
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
