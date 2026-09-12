@@ -188,11 +188,11 @@ impl App {
         ui.label(RichText::new("8 local components").color(view::ACCENT));
         ui.small("Original: 10 actions/decisions/outcomes. Candidate: 8 at S2, 3 inside the experiment subprocess.");
         ui.add_space(10.0);
-        ui.small("Local cyclomatic complexity: 4 → 4. The boundary reduces visible size, not the number of decisions.");
+        ui.small("Local cyclomatic complexity: 4 -> 4. The boundary reduces visible size, not the number of decisions.");
         ui.add_space(15.0);
         ui.separator();
         ui.label(RichText::new("Legend").strong());
-        ui.small("Rounded card · action\nDiamond · recorded choice\nDouble border · subprocess\nPill · entry or outcome");
+        ui.small("Rounded card · action\nDiamond · recorded choice (Control Flow only)\nDouble border · subprocess\nPill · entry or outcome");
         ui.add_space(12.0);
         ui.small("Colors supplement labels. These are design declarations—not execution, completion, or approval status.");
     }
@@ -298,7 +298,7 @@ impl App {
                             &edge.condition
                         };
                         let target = flow.step(&edge.to).map(|s| s.name.as_str()).unwrap_or("?");
-                        if ui.button(format!("{condition} → {target}")).clicked() {
+                        if ui.button(format!("{condition} -> {target}")).clicked() {
                             self.at.selection = Selection::Transition(edge.id.clone());
                         }
                     }
@@ -319,7 +319,7 @@ impl App {
                 });
                 ui.monospace(&edge.id);
                 ui.label(format!(
-                    "{} → {}",
+                    "{} -> {}",
                     flow.step(&edge.from)
                         .map(|s| s.name.as_str())
                         .unwrap_or("?"),
@@ -355,7 +355,7 @@ impl App {
                         if let Some(system) = self.document.project.system(&flow.system) {
                             if let Some(wire) = system.edges.iter().find(|e| e.id == *id) {
                                 ui.collapsing(id, |ui| {
-                                    ui.monospace(format!("{}\n  → {}", wire.from.port, wire.to.port));
+                                    ui.monospace(format!("{}\n  -> {}", wire.from.port, wire.to.port));
                                     ui.small("Exact endpoint identities, not an aggregated replacement edge.");
                                 });
                             }

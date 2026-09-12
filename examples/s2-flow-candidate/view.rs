@@ -21,7 +21,6 @@ struct Route {
     transition: String,
     points: Vec<Pos2>,
     label: String,
-    contract: Option<String>,
 }
 #[derive(Clone)]
 struct Anchor {
@@ -96,6 +95,15 @@ fn direct(a: Pos2, an: Vec2, b: Pos2, bn: Vec2) -> Vec<Pos2> {
     };
     smooth(&[a, aa, corner, bb, b])
 }
+fn decision_exit(r: Rect, fraction: f32) -> Pos2 {
+    let x = r.left() + r.width() * fraction;
+    let y =
+        r.center().y + r.height() * 0.5 * (1.0 - ((x - r.center().x) / (r.width() * 0.5)).abs());
+    pos2(x, y)
+}
+fn diamond(step: &Step, tab: Tab) -> bool {
+    step.kind == Kind::Choice && tab == Tab::Control
+}
 fn control_routes(flow: &Flow) -> Vec<Route> {
     flow.transitions
         .iter()
@@ -112,8 +120,7 @@ fn control_routes(flow: &Flow) -> Vec<Route> {
                     b.left_center(),
                 ]),
                 "S2.e9" | "S2.e11" => {
-                    let x = a.left() + a.width() * if e.source_flow == "S2.e9" { 0.3 } else { 0.7 };
-                    let start = pos2(x, a.bottom());
+                    let start = decision_exit(a, if e.source_flow == "S2.e9" { 0.3 } else { 0.7 });
                     let end = b.center_top();
                     smooth(&[start, pos2(start.x, 665.0), pos2(end.x, 665.0), end])
                 }
@@ -136,7 +143,6 @@ fn control_routes(flow: &Flow) -> Vec<Route> {
                 transition: e.id.clone(),
                 points,
                 label: e.condition.clone(),
-                contract: None,
             })
         })
         .collect()
@@ -259,7 +265,6 @@ fn interface_routes(app: &App, flow: &Flow) -> (Vec<Route>, Vec<Anchor>) {
                 transition,
                 points,
                 label: a.contract.clone(),
-                contract: Some(a.contract.clone()),
             });
         }
     }
@@ -454,7 +459,9 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
     for step in &flow.steps {
         let r = rr(rect(step));
         let selected = app.at.selection == Selection::Step(step.id.clone());
-        let role = if step.id == "step.S2.decide" {
+        let role = if step.id == flow.entry {
+            "Entry - bounded work"
+        } else if step.id == "step.S2.decide" {
             "Accountable authority"
         } else {
             match step.kind {
@@ -474,7 +481,7 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
         };
         let fill = Color32::from_rgb(26, 35, 47);
         let stroke = Stroke::new(if selected { 2.4 } else { 1.3 }, border);
-        if step.kind == Kind::Choice {
+        if diamond(step, app.at.tab) {
             painter.add(egui::Shape::convex_polygon(
                 vec![
                     r.center_top(),
@@ -502,7 +509,7 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
                 );
             }
         }
-        let width = if step.kind == Kind::Choice {
+        let width = if diamond(step, app.at.tab) {
             r.width() * 0.63
         } else {
             r.width() - 24.0 * z
@@ -536,7 +543,16 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
                 },
             );
         }
-        if pointer.is_some_and(|p| r.contains(p) && area.contains(p)) {
+        if pointer.is_some_and(|p| {
+            let inside = if diamond(step, app.at.tab) {
+                ((p.x - r.center().x) / (r.width() * 0.5)).abs()
+                    + ((p.y - r.center().y) / (r.height() * 0.5)).abs()
+                    <= 1.0
+            } else {
+                r.contains(p)
+            };
+            inside && area.contains(p)
+        }) {
             hovered_node = Some(step.id.clone());
         }
     }
@@ -579,6 +595,53 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
         if let Some(id) = hovered_node {
             if flow.step(&id).is_some_and(|s| s.kind == Kind::Call) {
                 app.enter(1);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod geometry_tests {
+    use super::*;
+    use crate::model::Document;
+
+    #[test]
+    fn branch_exits_touch_the_drawn_diamond() {
+        let r = Rect::from_min_size(pos2(10.0, 20.0), vec2(240.0, 140.0));
+        for fraction in [0.3, 0.5, 0.7] {
+            let p = decision_exit(r, fraction);
+            let normalized = ((p.x - r.center().x) / (r.width() * 0.5)).abs()
+                + ((p.y - r.center().y) / (r.height() * 0.5)).abs();
+            assert!((normalized - 1.0).abs() < 0.001);
+        }
+    }
+
+    #[test]
+    fn interface_cards_do_not_inherit_control_diamonds() {
+        let doc = Document::load().unwrap();
+        let step = doc.study.flows[0].step("step.S2.enough").unwrap();
+        assert!(diamond(step, Tab::Control));
+        assert!(!diamond(step, Tab::Interfaces));
+    }
+
+    #[test]
+    fn every_choice_route_touches_its_choice_in_both_control_views() {
+        let doc = Document::load().unwrap();
+        for flow in [doc.original(), doc.study.flows[0].clone()] {
+            for route in control_routes(&flow) {
+                let transition = flow.transition(&route.transition).unwrap();
+                for (id, point) in [
+                    (&transition.from, route.points.first().unwrap()),
+                    (&transition.to, route.points.last().unwrap()),
+                ] {
+                    let step = flow.step(id).unwrap();
+                    if step.kind == Kind::Choice {
+                        let r = rect(step);
+                        let n = ((point.x - r.center().x) / (r.width() * 0.5)).abs()
+                            + ((point.y - r.center().y) / (r.height() * 0.5)).abs();
+                        assert!((n - 1.0).abs() < 0.001, "{}: {}", route.id, n);
+                    }
+                }
             }
         }
     }
