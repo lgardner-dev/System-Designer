@@ -133,9 +133,20 @@ pub fn flow_boxes(flow: &Behavior) -> Vec<BoxView> {
             let s = &flow.steps[i];
             let sh = shape(s.kind);
             let sz = size(sh);
-            let x = (max_width - row.len() as f32 * 310.0) * 0.5
-                + j as f32 * 310.0
-                + (310.0 - sz.x) * 0.5;
+            let bypass_exit = row.len() == 1
+                && s.kind == Kind::Outcome
+                && flow
+                    .transitions
+                    .iter()
+                    .any(|edge| edge.to == s.id && rank[ids[edge.from.as_str()]] + 1 < rank[i]);
+            let x = if bypass_exit {
+                // Keep a return with early exits out of the central action column.
+                0.0
+            } else {
+                (max_width - row.len() as f32 * 310.0) * 0.5
+                    + j as f32 * 310.0
+                    + (310.0 - sz.x) * 0.5
+            };
             result.push(BoxView {
                 id: s.id.clone(),
                 name: s.label.clone(),
@@ -172,6 +183,14 @@ fn anchor(b: &BoxView, toward: Pos2) -> (Pos2, Vec2) {
         return (r.center() + d * scale, normal);
     }
     if d.x.abs() / r.width() > d.y.abs() / r.height() {
+        if b.shape == Shape::Io {
+            let sign = d.x.signum();
+            let inset = r.width() * 14.0 / 250.0;
+            return (
+                r.center() + vec2(sign * (r.width() * 0.5 - inset * 0.5), 0.0),
+                vec2(sign, sign * inset / r.height()).normalized(),
+            );
+        }
         if d.x > 0.0 {
             (r.right_center(), vec2(1.0, 0.0))
         } else {
@@ -196,17 +215,130 @@ pub fn contains(b: &BoxView, p: Pos2) -> bool {
         let x = p.x.clamp(core.left(), core.right());
         return p.distance(pos2(x, r.center().y)) <= radius;
     }
+    if b.shape == Shape::Io {
+        if !r.contains(p) {
+            return false;
+        }
+        let t = (p.y - r.top()) / r.height();
+        let inset = r.width() * 14.0 / 250.0;
+        return p.x >= r.left() + inset * (1.0 - t) && p.x <= r.right() - inset * t;
+    }
     r.contains(p)
 }
+
+fn route_cost(path: &Path, boxes: &[BoxView], from: &str, to: &str, frame: Option<Rect>) -> f32 {
+    let hits: usize = boxes
+        .iter()
+        .filter(|node| node.id != from && node.id != to)
+        .map(|node| {
+            path.points
+                .iter()
+                .filter(|point| node.rect.expand(4.0).contains(**point))
+                .count()
+        })
+        .sum();
+    let outside = frame.map_or(0, |rect| {
+        path.points
+            .iter()
+            .filter(|point| !rect.expand(1.0).contains(**point))
+            .count()
+    });
+    hits as f32 * 1_000_000.0 + outside as f32 * 1_000_000_000.0 + path.length
+}
+
+/// Choose among the same cubic connectors, never orthogonal waypoint routes.
+/// This bounded drawing heuristic does not alter flow order or interface identity.
+fn control_path(from: &BoxView, to: &BoxView, boxes: &[BoxView]) -> Path {
+    let (a, an) = anchor(from, to.rect.center());
+    let (b, bn) = anchor(to, from.rect.center());
+    let mut best = Path::between(a, an, b, bn);
+    let mut cost = route_cost(&best, boxes, &from.id, &to.id, None);
+    if cost < 1_000_000.0 {
+        return best;
+    }
+    let options = |node: &BoxView, peer: Pos2| {
+        let mut anchors = vec![anchor(node, peer)];
+        for side in [
+            vec2(0.0, -1.0),
+            vec2(1.0, 0.0),
+            vec2(0.0, 1.0),
+            vec2(-1.0, 0.0),
+        ] {
+            anchors.push(anchor(node, node.rect.center() + side * 10_000.0));
+        }
+        anchors
+    };
+    for (a, an) in options(from, to.rect.center()) {
+        for (b, bn) in options(to, from.rect.center()) {
+            for tension in [1.0, 2.0, 4.0, 8.0] {
+                let candidate = Path::between(a, an * tension, b, bn * tension);
+                let score = route_cost(&candidate, boxes, &from.id, &to.id, None);
+                if score < cost {
+                    cost = score;
+                    best = candidate;
+                }
+            }
+        }
+    }
+    best
+}
+
+fn interface_path(
+    scene: &Scene,
+    edge: &system_designer::model::Edge,
+    lane: usize,
+    boxes: &[BoxView],
+) -> Option<Path> {
+    let mut best = scene.route(&edge.from, &edge.to, lane)?;
+    let from = edge.from.node.as_deref().unwrap_or("@boundary");
+    let to = edge.to.node.as_deref().unwrap_or("@boundary");
+    let mut cost = route_cost(&best, boxes, from, to, scene.frame);
+    if cost < 1_000_000.0 || from == to {
+        return Some(best);
+    }
+    let a = scene.port(&edge.from)?;
+    let b = scene.port(&edge.to)?;
+    let turn = |n: Vec2| vec2(-n.y, n.x);
+    for tension in [1.0, 2.0, 4.0] {
+        for left in [0.0, 1.0, -1.0, 2.0, -2.0] {
+            for right in [0.0, 1.0, -1.0, 2.0, -2.0] {
+                // Lean outward handles while preserving their port positions
+                // and a positive projection onto each outward normal.
+                let an = (a.normal + turn(a.normal) * left) * tension;
+                let bn = (b.normal + turn(b.normal) * right) * tension;
+                let candidate = Path::between(a.point, an, b.point, bn);
+                let score = route_cost(&candidate, boxes, from, to, scene.frame);
+                if score < cost {
+                    cost = score;
+                    best = candidate;
+                }
+            }
+        }
+    }
+    Some(best)
+}
+
+fn boundary_arrow(port: &PortView, zoom: f32, point: Pos2) -> (Pos2, Vec2) {
+    let direction = if port.source {
+        port.normal
+    } else {
+        -port.normal
+    };
+    let start = if port.source {
+        point - direction * 24.0 * zoom
+    } else {
+        point + direction * 2.0 * zoom
+    };
+    (start, direction * 22.0 * zoom)
+}
+
 fn control(a: &Atlas, b: &Behavior) -> Drawing {
     let boxes = flow_boxes(b);
     let by: BTreeMap<_, _> = boxes.iter().map(|s| (s.id.as_str(), s)).collect();
     let mut wires = vec![];
     for t in &b.transitions {
         let (from, to) = (by[t.from.as_str()], by[t.to.as_str()]);
-        let (ap, an) = anchor(from, to.rect.center());
-        let (bp, bn) = anchor(to, from.rect.center());
-        let path = Path::between(ap, an, bp, bn);
+        let path = control_path(from, to, &boxes);
         wires.push(Wire {
             id: t.id.clone(),
             path,
@@ -273,7 +405,7 @@ fn interface(a: &Atlas, b: &Behavior) -> Drawing {
             .fold(height, f32::max);
     }
     let scene = Scene::new(p, &system.id, &positions);
-    let boxes = scene
+    let boxes: Vec<BoxView> = scene
         .cards
         .iter()
         .filter_map(|c| {
@@ -305,12 +437,12 @@ fn interface(a: &Atlas, b: &Behavior) -> Drawing {
             side: x.side,
         })
         .collect();
-    let wires = system
+    let wires: Vec<Wire> = system
         .edges
         .iter()
         .enumerate()
         .filter_map(|(i, e)| {
-            scene.route(&e.from, &e.to, i).map(|path| Wire {
+            interface_path(&scene, e, i, &boxes).map(|path| Wire {
                 id: e.id.clone(),
                 path,
                 label: p
@@ -323,11 +455,14 @@ fn interface(a: &Atlas, b: &Behavior) -> Drawing {
             })
         })
         .collect();
+    let bounds = wires.iter().fold(scene.bounds, |r, wire| {
+        r.union(wire.path.bounds.expand(20.0))
+    });
     Drawing {
         boxes,
         wires,
         ports,
-        bounds: scene.bounds,
+        bounds,
         frame: scene.frame,
         frame_title: format!("{} — exact public boundary", a.name(&b.owner)),
         leaf: false,
@@ -781,11 +916,8 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, b: &Behavior) {
             MUTED,
         );
         if d.leaf {
-            p.arrow(
-                pt - q.normal * 24.0 * z,
-                q.normal * 22.0 * z,
-                Stroke::new(1.5, ACCENT),
-            );
+            let (start, direction) = boundary_arrow(q, z, pt);
+            p.arrow(start, direction, Stroke::new(1.5_f32, ACCENT));
         }
         if pointer.is_some_and(|v| area.contains(v) && pt.distance(v) < 10.0) {
             hit_port = Some(q.id.clone());
@@ -842,6 +974,73 @@ fn short(s: &str, n: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn authored_control_bypasses_do_not_run_through_other_steps() {
+        let a = Atlas::load().unwrap();
+        for b in &a.scopes {
+            let drawing = control(&a, b);
+            for wire in &drawing.wires {
+                assert!(
+                    route_cost(&wire.path, &drawing.boxes, &wire.from, &wire.to, None)
+                        < 1_000_000.0,
+                    "{}: {} crosses an unrelated step",
+                    b.owner,
+                    wire.id
+                );
+            }
+        }
+    }
+    #[test]
+    fn primitive_boundary_arrows_receive_inward_and_produce_outward() {
+        let a = Atlas::load().unwrap();
+        for b in &a.scopes {
+            if a.system(&b.owner).is_some() {
+                continue;
+            }
+            for port in primitive_interface(&a, b).ports {
+                let (_, vector) = boundary_arrow(&port, 1.0, port.point);
+                let dot = vector.dot(port.normal);
+                assert!(if port.source { dot > 0.0 } else { dot < 0.0 });
+            }
+        }
+    }
+    #[test]
+    fn input_output_shapes_attach_at_the_sloped_outline() {
+        let node = BoxView {
+            id: "io".into(),
+            name: "Read".into(),
+            subtitle: String::new(),
+            rect: Rect::from_min_size(Pos2::ZERO, vec2(250.0, 80.0)),
+            shape: Shape::Io,
+            target: None,
+        };
+        for side in [-1.0, 1.0] {
+            let (point, normal) = anchor(&node, node.rect.center() + vec2(side * 1000.0, 0.0));
+            assert!(contains(&node, point - normal * 0.1));
+            assert!(!contains(&node, point + normal * 0.1));
+        }
+    }
+    #[test]
+    fn interface_curve_clearance_keeps_every_exact_port_endpoint() {
+        let a = Atlas::load().unwrap();
+        for b in &a.scopes {
+            let Some(system) = a.system(&b.owner) else {
+                continue;
+            };
+            let drawing = interface(&a, b);
+            for edge in &system.edges {
+                let wire = drawing.wires.iter().find(|w| w.id == edge.id).unwrap();
+                let from = drawing
+                    .ports
+                    .iter()
+                    .find(|p| p.id == edge.from.port)
+                    .unwrap();
+                let to = drawing.ports.iter().find(|p| p.id == edge.to.port).unwrap();
+                assert_eq!(wire.path.points.first().copied(), Some(from.point));
+                assert_eq!(wire.path.points.last().copied(), Some(to.point));
+            }
+        }
+    }
     #[test]
     fn all_control_endpoints_exist() {
         let a = Atlas::load().unwrap();
