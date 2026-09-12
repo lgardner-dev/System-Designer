@@ -20,6 +20,8 @@ pub(super) enum Selection {
     Node(String),
     Edge(String),
     Boundary(String),
+    Port(Endpoint),
+    Summary(String, String),
 }
 #[derive(Clone)]
 pub(super) enum LoadAction {
@@ -60,6 +62,7 @@ pub struct Designer {
     pub(super) current: String,
     pub(super) selected: Selection,
     pub(super) canvas: CanvasState,
+    pub(super) canvas_session: canvas::Session,
     pub(super) dialog: Option<Dialog>,
     pub(super) collapsed: HashSet<String>,
     path: Option<PathBuf>,
@@ -106,6 +109,7 @@ impl Designer {
             current: root,
             selected: Selection::None,
             canvas: CanvasState::default(),
+            canvas_session: canvas::Session::default(),
             dialog: None,
             collapsed: HashSet::new(),
             path: None,
@@ -142,27 +146,47 @@ impl Designer {
                 self.collapsed.remove(id);
             }
         }
+        self.canvas_session.viewports.insert(
+            self.current.clone(),
+            canvas::Viewport {
+                pan: self.canvas.pan,
+                zoom: self.canvas.zoom,
+                fit: self.canvas.fit_requested,
+            },
+        );
         self.current = sid;
         self.selected = Selection::None;
         self.canvas = CanvasState::default();
+        if let Some(viewport) = self.canvas_session.viewports.get(&self.current) {
+            self.canvas.pan = viewport.pan;
+            self.canvas.zoom = viewport.zoom;
+            self.canvas.fit_requested = viewport.fit;
+        }
+        self.canvas_session.focus = canvas::Focus::Off;
     }
     fn normalize_selection(&mut self) {
-        let p = self.store.project();
-        if p.system(&self.current).is_none() {
-            self.current = p.root.clone();
+        if self
+            .canvas
+            .generation
+            .is_some_and(|g| g != self.store.generation)
+        {
+            if self.canvas.has_gesture() {
+                self.status = "Canvas gesture cancelled because the project changed.".into();
+            }
+            self.canvas.cancel();
+        }
+        self.canvas.generation = Some(self.store.generation);
+        if self.store.project().system(&self.current).is_none() {
+            self.current = self.store.project().root.clone();
             self.canvas = CanvasState::default();
+            self.status = "The previous level was removed; returned to the project root.".into();
         }
-        let valid = match &self.selected {
-            Selection::None => true,
-            Selection::Node(id) => p.node(id).is_some_and(|(s, _)| s.id == self.current),
-            Selection::Edge(id) => p
-                .system(&self.current)
-                .is_some_and(|s| s.edges.iter().any(|e| e.id == *id)),
-            Selection::Boundary(id) => p.boundary(&self.current).iter().any(|r| r.id == *id),
-        };
-        if !valid {
+        if !canvas::selection_valid(self.store.project(), &self.current, &self.selected) {
             self.selected = Selection::None;
+            self.status =
+                "The selected item was changed or removed; selection and focus cleared.".into();
         }
+        self.canvas_session.normalize(&self.selected);
     }
     fn clear_recovery(&mut self) {
         if let Some(path) = &self.recovery {
@@ -216,6 +240,7 @@ impl Designer {
                 self.store = Store::new(p).expect("load result was validated");
                 self.selected = Selection::None;
                 self.canvas = CanvasState::default();
+                self.canvas_session = canvas::Session::default();
                 self.dialog = None;
                 self.status = if unsaved {
                     "Opened as an unsaved copy; Save As to keep it."
@@ -294,7 +319,15 @@ impl Designer {
             }
         }
         self.shortcuts(ctx);
+        if matches!(self.dialog, Some(Dialog::Connection(_))) {
+            self.canvas_session.view = canvas::View::Detail;
+            self.canvas.cancel();
+        }
         self.workspace(ctx);
+        if matches!(self.dialog, Some(Dialog::Connection(_))) {
+            self.canvas_session.view = canvas::View::Detail;
+            self.canvas.cancel();
+        }
         self.show_dialog(ctx);
         self.recover_periodically(ctx);
     }

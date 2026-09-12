@@ -100,6 +100,7 @@ impl Designer {
                 );
             }
             Tab::Export => {
+                ui.label("Overview, Focus and Lights do not narrow this export. Every real object in the chosen semantic scope is included.");
                 let previous = d.scope;
                 egui::ComboBox::from_id_salt("export_scope")
                     .selected_text(d.scope.label())

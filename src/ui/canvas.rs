@@ -5,7 +5,15 @@ use egui::{
 };
 use std::collections::BTreeMap;
 
+mod arrangement;
+mod focus;
 mod geometry;
+#[cfg(test)]
+mod integration_tests;
+mod overview;
+pub(super) use focus::{Focus, Session, Viewport};
+pub(super) use focus::{details, valid as selection_valid};
+pub(super) use overview::View;
 mod motion;
 #[cfg(test)]
 mod tests;
@@ -29,7 +37,7 @@ enum Gesture {
         start: Pos2,
         initial: Vec2,
     },
-    Edge(String),
+    Edge(Selection),
 }
 pub(super) struct CanvasState {
     pub pan: Vec2,
@@ -37,6 +45,8 @@ pub(super) struct CanvasState {
     pub fit_requested: bool,
     gesture: Option<Gesture>,
     pending: Option<Endpoint>,
+    frozen_scene: Option<Scene>,
+    pub generation: Option<u64>,
     #[cfg(test)]
     port_positions: BTreeMap<String, Pos2>,
 }
@@ -48,6 +58,8 @@ impl Default for CanvasState {
             fit_requested: true,
             gesture: None,
             pending: None,
+            frozen_scene: None,
+            generation: None,
             #[cfg(test)]
             port_positions: BTreeMap::new(),
         }
@@ -57,6 +69,10 @@ impl CanvasState {
     pub fn cancel(&mut self) {
         self.gesture = None;
         self.pending = None;
+        self.frozen_scene = None;
+    }
+    pub fn has_gesture(&self) -> bool {
+        self.gesture.is_some() || self.pending.is_some()
     }
 }
 fn short(s: &str, count: usize) -> String {
@@ -116,7 +132,24 @@ fn port_labels(painter: &egui::Painter, port: &Anchor, rect: Rect, zoom: f32) {
 }
 impl Designer {
     pub(super) fn canvas_view(&mut self, ui: &mut egui::Ui) {
-        let motion = motion::Motion::controls(ui);
+        self.normalize_selection();
+        if matches!(self.dialog, Some(Dialog::Connection(_))) {
+            self.canvas_session.view = View::Detail;
+        }
+        let motion = self.canvas_controls(ui);
+        let compact = self.canvas_session.view == View::Overview;
+        let mut emphasis = focus::Emphasis::new(
+            self.store.project(),
+            &self.current,
+            &self.selected,
+            self.canvas_session.focus,
+        );
+        if matches!(self.canvas.gesture, Some(Gesture::Wire { .. }))
+            || self.canvas.pending.is_some()
+            || matches!(self.dialog, Some(Dialog::Connection(_)))
+        {
+            emphasis.active = false;
+        }
         let p = self.store.snapshot();
         let sid = self.current.clone();
         let Some(system) = p.system(&sid) else {
@@ -137,25 +170,23 @@ impl Designer {
         }
         // Geometry is derived from actual endpoints, not inferred process order.
         // Wire previews do not move ports or mutate the project.
-        let scene = Scene::new(&p, &sid, &positions);
+        let mut detail_scene = self
+            .canvas
+            .frozen_scene
+            .clone()
+            .unwrap_or_else(|| Scene::new(&p, &sid, &positions));
+        if let Some(Gesture::Move { id, current, .. }) = &self.canvas.gesture {
+            detail_scene.move_card(id, *current);
+        }
+        let scene = if compact {
+            overview::compact_scene(detail_scene.clone())
+        } else {
+            detail_scene.clone()
+        };
+        let local_paths = overview::links_for(&p, &sid, &scene, compact);
         let mut bounds = scene.bounds;
-        let mut local_paths = Vec::with_capacity(system.edges.len());
-        let mut loop_lanes: BTreeMap<String, usize> = BTreeMap::new();
-        for edge in &system.edges {
-            let lane = if edge.from.node.is_some() && edge.from.node == edge.to.node {
-                let next = loop_lanes
-                    .entry(edge.from.node.clone().unwrap_or_default())
-                    .or_default();
-                let lane = *next;
-                *next += 1;
-                lane
-            } else {
-                0
-            };
-            if let Some(path) = scene.route(&edge.from, &edge.to, lane) {
-                bounds = bounds.union(path.bounds.expand(20.0));
-                local_paths.push((edge, path));
-            }
+        for link in &local_paths {
+            bounds = bounds.union(link.path.bounds.expand(20.0));
         }
         if self.canvas.fit_requested {
             self.canvas.zoom = ((area.width() - 32.0) / bounds.width())
@@ -213,59 +244,66 @@ impl Designer {
         }
         let mut paths = Vec::with_capacity(local_paths.len());
         let time = ui.input(|i| i.time);
-        let animate = ui.is_enabled() && ui.input(|i| i.focused);
+        let animate =
+            ui.is_enabled() && ui.input(|i| i.focused && !i.viewport().minimized.unwrap_or(false));
         let mut repaint = false;
-        for (edge, path) in local_paths {
-            let path = path.screen(area.min, pan, z);
-            let selected = self.selected == Selection::Edge(edge.id.clone());
+        for link in local_paths {
+            let path = link.path.screen(area.min, pan, z);
+            let selected = link.selected(&self.selected);
+            let emphasized = link.focused_count(&emphasis) > 0;
             if path.bounds.expand(15.0).intersects(area) {
+                let color = if selected {
+                    ACCENT
+                } else if emphasized {
+                    Color32::from_rgb(111, 129, 151)
+                } else {
+                    Color32::from_rgb(46, 56, 70)
+                };
                 painter.add(egui::Shape::line(
                     path.points.clone(),
                     Stroke::new(
-                        if selected { 3.0_f32 } else { 1.8_f32 },
                         if selected {
-                            ACCENT
+                            3.0_f32
+                        } else if emphasized {
+                            1.8
                         } else {
-                            Color32::from_rgb(111, 129, 151)
+                            1.0
                         },
+                        color,
                     ),
                 ));
-                // Destination tangent supports inputs on every side.
                 if path.length > 8.0 {
                     let (head, tangent) = path.at((path.length - 7.0).max(0.0));
                     painter.arrow(
                         head - tangent * 13.0,
                         tangent * 13.0,
-                        Stroke::new(1.5_f32, if selected { ACCENT } else { MUTED }),
+                        Stroke::new(1.5_f32, color),
                     );
                 }
-                if animate && path.length > 0.01 && motion.includes(edge, &self.selected) {
-                    motion::paint(&painter, &path, time, &edge.id);
+                if animate
+                    && path.length > 0.01
+                    && link.animate(motion, &self.selected, &emphasis, &p, &sid)
+                {
+                    motion::paint(&painter, &path, time, &link.edge.id);
                     repaint = true;
                 }
-                let label = edge
-                    .label
-                    .as_deref()
-                    .filter(|s| !s.is_empty())
-                    .map(ToOwned::to_owned)
-                    .unwrap_or_else(|| {
-                        p.port(&sid, &edge.from)
-                            .and_then(|r| r.contract.as_ref())
-                            .map(ToString::to_string)
-                            .unwrap_or_default()
-                    });
-                let mid = path.at(path.length * 0.5).0;
-                let galley = painter.layout_no_wrap(
-                    short(&label, 32),
-                    FontId::proportional((11.0 * z).max(9.0)),
-                    MUTED,
-                );
-                let rect =
-                    Rect::from_center_size(mid - vec2(0.0, 11.0), galley.size() + vec2(10.0, 4.0));
-                painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
-                painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
+                if emphasized {
+                    let label = link.caption(&emphasis);
+                    let mid = path.at(path.length * 0.5).0;
+                    let galley = painter.layout_no_wrap(
+                        if compact { label } else { short(&label, 32) },
+                        FontId::proportional((11.0 * z).max(9.0)),
+                        MUTED,
+                    );
+                    let rect = Rect::from_center_size(
+                        mid - vec2(0.0, 11.0),
+                        galley.size() + vec2(10.0, 4.0),
+                    );
+                    painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
+                    painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
+                }
             }
-            paths.push((edge.id.clone(), path));
+            paths.push((link.selection, path));
         }
         if repaint {
             ui.ctx().request_repaint_after(Duration::from_millis(16));
@@ -275,8 +313,17 @@ impl Designer {
                 continue;
             };
             let rect = screen_rect(card.rect);
-            let selected = self.selected == Selection::Node(node.id.clone());
-            painter.rect_filled(rect, 7, Color32::from_rgb(30, 37, 47));
+            let selected = self.selected == Selection::Node(node.id.clone())
+                || matches!(&self.selected,Selection::Port(ep) if ep.node.as_ref()==Some(&node.id));
+            painter.rect_filled(
+                rect,
+                7,
+                if emphasis.node(&node.id) {
+                    Color32::from_rgb(30, 37, 47)
+                } else {
+                    Color32::from_rgb(23, 29, 37)
+                },
+            );
             painter.rect_stroke(
                 rect,
                 7,
@@ -317,7 +364,20 @@ impl Designer {
             clipped.text(
                 header + vec2(15.0, 57.0) * z,
                 Align2::LEFT_TOP,
-                short(&node.purpose.replace('\n', " "), 42),
+                if compact {
+                    format!(
+                        "{} ports · {} connections",
+                        node.ports.len(),
+                        system
+                            .edges
+                            .iter()
+                            .filter(|e| e.from.node.as_ref() == Some(&node.id)
+                                || e.to.node.as_ref() == Some(&node.id))
+                            .count()
+                    )
+                } else {
+                    short(&node.purpose.replace('\n', " "), 42)
+                },
                 FontId::proportional(11.0 * z),
                 MUTED,
             );
@@ -330,7 +390,9 @@ impl Designer {
             scene
                 .ports
                 .iter()
-                .filter(|r| screen(r.point).distance(pos) < (11.0 * z).max(9.0))
+                .filter(|r| {
+                    (!compact || r.boundary) && screen(r.point).distance(pos) < (11.0 * z).max(9.0)
+                })
                 .min_by(|a, b| {
                     screen(a.point)
                         .distance(pos)
@@ -346,12 +408,21 @@ impl Designer {
                 .collect();
         }
         for anchor in &scene.ports {
+            if compact && !anchor.boundary {
+                continue;
+            }
             let point = screen(anchor.point);
             let compatible = dragging
                 .as_ref()
                 .is_some_and(|from| pair(&p, &sid, from, &anchor.endpoint).is_some());
             let hover = hovered_port.is_some_and(|q| q.endpoint == anchor.endpoint);
-            let color = if hover || compatible { ACCENT } else { MUTED };
+            let color = if hover || compatible {
+                ACCENT
+            } else if emphasis.port(&anchor.endpoint.port) {
+                MUTED
+            } else {
+                Color32::from_rgb(63, 74, 88)
+            };
             let radius = (5.0 * z).max(4.0);
             if anchor.direction == Direction::Out {
                 painter.circle_filled(point, radius, color);
@@ -362,7 +433,9 @@ impl Designer {
             if hover || compatible {
                 painter.circle_stroke(point, (9.0 * z).max(8.0), Stroke::new(1.0_f32, color));
             }
-            port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
+            if hover || compatible || emphasis.port(&anchor.endpoint.port) {
+                port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
+            }
             if hover {
                 response.clone().on_hover_text(format!(
                     "{} · {}\n{}{}",
@@ -414,6 +487,18 @@ impl Designer {
         if ui.input(|i| !i.pointer.any_down() && !i.pointer.any_released()) {
             self.canvas.gesture = None;
         }
+        if ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary)) {
+            if let Some(port) = hovered_port {
+                self.trace_visit(
+                    sid.clone(),
+                    if port.boundary {
+                        Selection::Boundary(port.endpoint.port.clone())
+                    } else {
+                        Selection::Port(port.endpoint.clone())
+                    },
+                );
+            }
+        }
         let pressed = ui.input(|i| i.pointer.button_pressed(PointerButton::Primary));
         let middle = ui.input(|i| i.pointer.button_pressed(PointerButton::Middle));
         if (pressed || middle) && area.contains(cursor) {
@@ -423,19 +508,26 @@ impl Designer {
                     initial: self.canvas.pan,
                 });
             } else if let Some(port) = hovered_port {
-                if port.boundary {
-                    self.selected = Selection::Boundary(port.endpoint.port.clone());
+                self.selected = if port.boundary {
+                    Selection::Boundary(port.endpoint.port.clone())
+                } else {
+                    Selection::Port(port.endpoint.clone())
+                };
+                if !compact {
+                    self.canvas.frozen_scene = Some(detail_scene.clone());
+                    self.canvas.gesture = Some(Gesture::Wire {
+                        port: port.endpoint.clone(),
+                        start: cursor,
+                    });
                 }
-                self.canvas.gesture = Some(Gesture::Wire {
-                    port: port.endpoint.clone(),
-                    start: cursor,
-                });
             } else if let Some(card) = scene
                 .cards
                 .iter()
                 .rev()
                 .find(|c| screen_rect(c.rect).contains(cursor))
             {
+                self.canvas.pending = None;
+                self.canvas.frozen_scene = Some(detail_scene.clone());
                 self.selected = Selection::Node(card.id.clone());
                 self.canvas.gesture = Some(Gesture::Move {
                     id: card.id.clone(),
@@ -448,7 +540,8 @@ impl Designer {
                 .filter(|(_, p)| p.distance(cursor) < 7.0)
                 .min_by(|(_, a), (_, b)| a.distance(cursor).total_cmp(&b.distance(cursor)))
             {
-                self.selected = Selection::Edge(id.clone());
+                self.canvas.cancel();
+                self.selected = id.clone();
                 self.canvas.gesture = Some(Gesture::Edge(id.clone()));
             } else {
                 self.selected = Selection::None;
@@ -533,18 +626,159 @@ impl Designer {
                         self.canvas.pending = None;
                     }
                 }
-                Some(Gesture::Edge(id)) => {
+                Some(Gesture::Edge(Selection::Edge(id))) => {
                     if ui.input(|i| i.pointer.button_double_clicked(PointerButton::Primary)) {
-                        self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
-                            &p,
-                            &sid,
-                            None,
-                            Some(&id),
-                        )));
+                        self.show_exact(&id, true);
                     }
                 }
                 _ => {}
             }
         }
+        if !self.canvas.has_gesture() {
+            self.canvas.frozen_scene = None;
+        }
+        self.canvas_session.normalize(&self.selected);
+    }
+}
+
+impl Designer {
+    fn canvas_controls(&mut self, ui: &mut egui::Ui) -> motion::Motion {
+        let mut motion = motion::Motion::All;
+        let before = self.canvas_session.view;
+        let mut arrange = None;
+        let mut back = false;
+        ui.horizontal_wrapped(|ui| {
+            ui.label("View");
+            egui::ComboBox::from_id_salt("canvas-view")
+                .selected_text(if before == View::Detail {
+                    "Detail"
+                } else {
+                    "Overview"
+                })
+                .width(86.0)
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.canvas_session.view, View::Detail, "Detail");
+                    ui.selectable_value(&mut self.canvas_session.view, View::Overview, "Overview");
+                });
+            ui.label("Focus");
+            egui::ComboBox::from_id_salt("canvas-focus")
+                .selected_text(self.canvas_session.focus.label())
+                .width(90.0)
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.canvas_session.focus, Focus::Off, "Off");
+                    ui.add_enabled_ui(self.selected != Selection::None, |ui| {
+                        ui.selectable_value(
+                            &mut self.canvas_session.focus,
+                            Focus::Selection,
+                            "Selection",
+                        );
+                    });
+                    ui.add_enabled_ui(matches!(self.selected, Selection::Node(_)), |ui| {
+                        ui.selectable_value(
+                            &mut self.canvas_session.focus,
+                            Focus::Incoming,
+                            "Incoming",
+                        );
+                        ui.selectable_value(
+                            &mut self.canvas_session.focus,
+                            Focus::Outgoing,
+                            "Outgoing",
+                        );
+                    });
+                });
+            ui.menu_button("Arrange", |ui| {
+                if ui.button("By connections · Left to right").clicked() {
+                    arrange = Some(Some(arrangement::Axis::Horizontal));
+                    ui.close();
+                }
+                if ui.button("By connections · Top to bottom").clicked() {
+                    arrange = Some(Some(arrangement::Axis::Vertical));
+                    ui.close();
+                }
+                ui.separator();
+                if ui.button("Grid").clicked() {
+                    arrange = Some(None);
+                    ui.close();
+                }
+                ui.small("Current level only; one undoable layout edit. Not execution order.");
+            });
+            motion = motion::Motion::controls(ui);
+            if ui.button("Fit").clicked() {
+                self.canvas.fit_requested = true;
+            }
+            if ui.small_button("−").clicked() {
+                self.canvas.zoom = (self.canvas.zoom / 1.15).max(0.2);
+            }
+            if ui.small_button("+").clicked() {
+                self.canvas.zoom = (self.canvas.zoom * 1.15).min(2.5);
+            }
+            ui.label(format!("{:.0}%", self.canvas.zoom * 100.0));
+            if ui
+                .add_enabled(
+                    !self.canvas_session.history.is_empty(),
+                    egui::Button::new("Back trace"),
+                )
+                .clicked()
+            {
+                back = true;
+            }
+        });
+        if before != self.canvas_session.view {
+            self.canvas.cancel();
+        }
+        if back {
+            self.trace_back();
+        }
+        if let Some(axis) = arrange {
+            arrangement::apply(self, axis);
+        }
+        self.canvas_session.normalize(&self.selected);
+        let p = self.store.project();
+        let counts = p
+            .system(&self.current)
+            .map(|s| (s.nodes.len(), s.edges.len()))
+            .unwrap_or_default();
+        let focus =
+            focus::Emphasis::new(p, &self.current, &self.selected, self.canvas_session.focus);
+        let name = p
+            .owner(&self.current)
+            .map(|(_, n)| n.name.as_str())
+            .unwrap_or(&p.name);
+        let mut title = format!(
+            "{name} · {} components · {} connections",
+            counts.0, counts.1
+        );
+        if self.canvas_session.view == View::Overview {
+            let strokes = p
+                .system(&self.current)
+                .map(|s| overview::groups(s).len())
+                .unwrap_or(0);
+            title.push_str(&format!(" · {strokes} summary strokes; all edges retained"));
+        }
+        if counts.0 > 8 {
+            title.push_str(" · Consider meaningful decomposition");
+        }
+        ui.add(egui::Label::new(egui::RichText::new(&title).strong()).truncate())
+            .on_hover_text(title);
+        // Fixed status row keeps mode changes from shifting the canvas origin.
+        let status = if focus.active {
+            format!(
+                "Focus: {} · {} — {} emphasized / {} muted",
+                focus::description(p, &self.current, &self.selected),
+                self.canvas_session.focus.label(),
+                focus.edges.len(),
+                counts.1.saturating_sub(focus.edges.len())
+            )
+        } else {
+            "Focus off · Hollow receives / filled produces · Right-click a port to inspect it"
+                .into()
+        };
+        ui.add(egui::Label::new(status).truncate());
+        ui.small(if motion != motion::Motion::Off {
+            "Direction preview — not live execution. Muted focus context never animates."
+        } else {
+            "Lights off. Arrowheads show direction; layouts are not execution order."
+        });
+        motion
     }
 }
