@@ -32,7 +32,7 @@ Normal production tests remain available with `cargo test --locked --all-targets
 
 The **Control Flow** view uses conventional flowchart shapes: process rectangles for ordinary work, decision diamonds for choices/assessments, the predefined-process symbol for recursively decomposed subprocesses, and terminators for entry/outcome points. The **Interfaces** view deliberately keeps ordinary system-design cards rather than reusing flowchart semantics.
 
-Control-flow and interface connections use the same sampled cubic Bézier connector geometry as the production System Design Canvas. The study does not impose orthogonal/90-degree routing. Decision edges attach to the actual diamond perimeter before following the shared curved connector.
+Control-flow and interface connections use the same sampled cubic Bézier connector geometry as the production System Design Canvas. The study does not impose orthogonal/90-degree routing. Decision edges attach to the actual diamond perimeter before following the shared curved connector. Compact entry/outcome terminators preserve the authored spacing rather than overlapping neighboring process nodes.
 
 Fit and pan/zoom are presentation only. Lights are optional selected-direction previews, never execution. The list and inspector provide ordinary keyboard-accessible buttons; the canvas additionally supports clicking and double-clicking. This is not a completed accessibility qualification.
 
