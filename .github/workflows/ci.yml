@@ -22,8 +22,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxi-dev libxrandr-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev
-      - name: Verify original branding assets
+      - name: Verify branding asset integrity
         run: python packaging/verify-branding.py
+      - name: Verify every display asset against the selected master
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install Pillow==12.3.0
+          python packaging/generate-branding.py --check
       - name: Check formatting
         run: cargo fmt --all --check
       - name: Test core and native interaction logic
