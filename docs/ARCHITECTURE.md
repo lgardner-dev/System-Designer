@@ -1,55 +1,64 @@
 # Application design and source map
 
-System Designer is one Rust crate producing two binaries: the native editor and a headless validator. This document maps its seven responsibilities onto the source tree and records the invariants each one owns.
+System Designer is one Rust crate producing a native editor and a headless validator. The authoritative explorable architecture is `design/system-designer.project.json`; the application embeds those bytes and opens them as an unsaved example. New projects remain blank.
 
-The authoritative explorable version of this document is `design/system-designer.project.json`, an ordinary System Designer project. The app embeds those exact bytes with `include_str!` and offers **File → Open application design**, opening them as an unsaved copy. A new user project remains empty.
+## Responsibility tree
 
-## Seven immediate responsibilities
+| Root component | Owns | Main source locations |
+|---|---|---|
+| Workspace | Native composition, document lifecycle, navigation and unsaved-change decisions | `src/main.rs`, `src/ui/mod.rs`, `src/ui/workspace.rs` |
+| Canvas | Local projection, View/Focus/Arrange controls, drawing, picking, motion and gestures | `src/ui/canvas.rs`, `src/ui/canvas/` |
+| Authoring forms | Component and contract drafts, exact connection consent | `src/ui/inspector.rs`, `src/ui/contracts.rs` |
+| Edits and history | Validated candidates, shared-port consistency, authoritative Store and undo/redo | `src/edit/` |
+| Design model | Typed records, structural validation and derived hierarchy queries | `src/model/` |
+| AI handoff | Embedded prompt, bounded exports and safe replacements | `src/ui/handoff.rs`, `src/exchange/`, `assets/initialization.txt` |
+| Local files | Validated reads, guarded replacement, backup and recovery | `src/storage.rs` |
 
-| Component | Owns | Does not own | Source |
-|---|---|---|---|
-| Workspace | Window composition, navigation, selected level, document lifecycle, unsaved-change decisions | Structural validity or a second semantic project | `src/main.rs`, `src/ui/mod.rs`, `src/ui/workspace.rs` |
-| Canvas | Local projection, drawing, hit testing, pan/zoom, temporary gestures | Direct publication or automatic contract selection | `src/ui/canvas.rs` |
-| Authoring forms | Context inspection, component and contract drafts, explicit connection consent | A weaker validation path | `src/ui/inspector.rs`, `src/ui/contracts.rs` |
-| Edits and history | Complete mutation candidates, shared-port type consistency, authoritative Store, undo/redo | File effects or semantic design approval | `src/edit/` |
-| Design model | Typed records, structural validation, derived hierarchy and boundary queries | Rendering, file storage, workflow execution | `src/model/` |
-| AI handoff | Embedded prompt, bounded exports, context and base checks, scoped replacements | AI connectivity, autonomous publication, execution of supplied code | `src/ui/handoff.rs`, `src/exchange/`, `assets/initialization.txt` |
-| Local files | Validated reads, guarded replacement, previous-version backup, isolated recovery | Cloud sync, multi-writer merging, semantic authority | `src/storage.rs` |
+The model contains eight systems and 38 components. The root has seven components; Canvas has eight immediate responsibilities, and no level exceeds eight. This is a design guideline, not an enforced project limit. These boundaries do not imply separate crates, services or a runtime message bus.
 
-These boundaries represent independent responsibilities, not seven crates or services. A single Cargo package keeps build and dependency machinery small. The UI is one Rust module with focused submodules; the model, edits, exchange, and files can be built without the desktop feature. Standard eframe and rfd supply windowing/rendering and file dialogs. No custom platform abstraction, plugin engine, database, or backend was added.
+## Unified Canvas decomposition
 
-The JSON contains eight systems: the root and seven child decompositions. It contains 35 component nodes, with seven immediate root nodes and three to five in each child. The application **does not reject a user system containing more than eight nodes**. Eight is a reasoning heuristic, not proof that a decomposition is sound.
+| Responsibility | Implementation |
+|---|---|
+| Geometry projection | `canvas/geometry.rs`: measured Detail cards, one anchor per physical port, derived boundaries, common Path geometry |
+| Viewport and navigation | `canvas.rs`, `canvas/focus.rs::Viewport`: pan/zoom, fit, remembered level cameras |
+| Drawing and direction lights | `canvas.rs`, `canvas/motion.rs`: exact or summary routes, static direction, illustrative pulses |
+| Exact hit testing | `canvas.rs`, `geometry::Path::distance`: select the displayed route or exact endpoint |
+| Gestures and controls | `canvas.rs`: frozen attachment choices, explicit contract dialogs, validated completed edits |
+| Overview projection | `canvas/overview.rs`: counted ordered-pair summaries retaining real edge IDs |
+| Focus and exact tracing | `canvas/focus.rs`: exact one-hop membership, physical boundary navigation and Back trace |
+| Connection-aware arrangement | `canvas/arrangement.rs`: temporary SCCs/layers, bounded Detail-size measurement, current-level position candidates |
 
-## What the edges mean
+The responsibilities share focused modules where appropriate; they are not eight separate dispatch services. No new crate, generic graph framework, persistent view schema, plugin mechanism or execution scheduler was added.
 
-The self-design diagrams show responsibility-level inputs, outputs, and return paths. They are **not** a runtime message bus and are not an exact Rust ABI description. Several diagram contracts use an explicit JSON projection for a typed `Project`, `Contract`, or geometry value because the editor's small shape language has neither Rust references nor recursive type aliases. The actual application uses direct typed calls and borrows.
+## One project, one publication path
 
-For example, `ViewContext` includes a serialized projection of the project, selected system, selection, and generation. Actual native code reads the typed `Project` held by `Store`. `FileRequest` includes the document for writes, rather than leaving the storage component to obtain hidden global state. `FileResult` preserves fingerprint and failure information. A `ContractDraft` is deliberately distinct from a whole-project candidate.
+`Store` owns the current validated Project. Rendering reads immutable shared snapshots; only candidate construction creates a mutable prospective Project. All semantic edits and deliberate layout changes use validated publication. A failed candidate cannot alter the current project or its undo/redo history.
 
-Parent-local edges are used throughout. Ports on child frames derive from the owning node. No separate public boundary is stored. The JSON describes the semantic responsibility decomposition; it is not intended as a complete call graph of every standard-library operation or borrowed value.
+`canvas::Session` owns document-scoped View, Focus, remembered viewports and trace locations. `Selection` explicitly identifies a node, exact edge, port, boundary port or ordered component-pair summary. A summary recomputes membership from the current Project and has no independently editable representative edge. Project generation changes cancel stale gestures; invalid selections are cleared and reported by identity.
 
-## Publication and draft state
+Overview consumes full local geometry. Focus is calculated from real edges before aggregation, preserving total versus focused counts. Arrangement consumes the full graph, not a focus subset, and reserves footprints adequate for Detail. Substantial relayout is explicit, local and undoable. Mode changes do not move saved origins or automatically move the camera.
 
-`Store` owns the current validated project. UI frames obtain a cheap immutable `Arc<Project>` snapshot rather than cloning the entire project for every panel; only edit candidates are mutable copies. These snapshots do not introduce another publisher. Forms and wire gestures keep drafts outside it. An operation builds a complete candidate, validates it, and calls `Store::publish`. Failed validation cannot mutate current state, undo, or redo. A successful connection transaction can add a type, assign both endpoints, propagate required shared bindings, and create the edge as one undoable change.
+Drawing, pointer picking, arrowheads and particles consume the same final displayed Path. The animation is only a direction illustration. Effective direction of a projected child boundary still comes from its owner port, not its screen side. One physical port is not duplicated to accommodate fan-out.
 
-The connection impact calculation follows equality between physical ports. A child-boundary endpoint uses the same owner port ID, so type consistency is propagated without permitting cross-level graph edges. Existing assigned ports or other affected edges require explicit confirmation. Separate contracts that should evolve independently need separate ports.
+## Interface meaning
 
-UI selection, viewport pan/zoom, temporary wire previews, dialog drafts and file paths are not persisted as engineering truth. Optional layout is stored separately from the design records and is omitted from AI scope hashes.
+The self-design edges describe responsibility-level inputs and returns, not an exact ABI or message transport. Where the small schema cannot express a borrowed or recursively typed Rust value, the diagram names its serialized projection. Runtime implementation uses direct Rust calls and borrows. `CanvasEmphasis` documents a transient presentation result; it is not another graph of engineering truth.
 
-## Bounded AI exchange
+Parent-local edges are preserved. Child boundaries derive from the owning node, and external labels derive from actual parent edges. Trace navigation follows that identity without adding a cross-level semantic connection. A reached component input does not imply that all outputs depend on it.
 
-Component scope replaces one node. Level scope replaces the current local system but preserves hidden child ownership and internals. Subtree scope can change the complete selected internal subtree, but not its externally owned public boundary or unrelated branches.
+## Scoped exchange and embedded guidance
 
-The original source content is hashed using the version-1 canonicalization convention. The base is an optimistic concurrency token, **not authentication**. Read-only context is checked independently. Shared catalog entries cannot be silently rewritten by a scoped import. The complete merged project is validated before publication, including preserved hidden systems. The UI deliberately validates again on Apply, rather than trusting a cached candidate.
+Component, level and subtree packets retain their version-1 shapes and canonicalization. Context and source-base checks precede whole-project validation. Existing shared definitions cannot be silently overwritten. Apply reconstructs and validates again rather than trusting a cached candidate.
 
-The initialization prompt is compiled into the executable. Opening it or copying it does not expose project data; the user separately exports and transfers a selected scope. There is no network client or AI provider configuration in this implementation.
+View, Focus, summary objects, lights and trace history do not enter project or replacement JSON. Muted data is not omitted from a requested export. Saved layout remains separate from semantic scope hashes. The embedded initialization prompt explains these boundaries and requires the human's explicit data transfer; the application has no AI network client.
 
-## File continuity
+## Local continuity
 
-Normal saves write actual project files. The previous validated file becomes a `.bak` copy. The replacement uses a temporary file in the same directory, syncs its contents, replaces the target, and on Unix attempts a directory sync. Expected fingerprints detect ordinary external modifications. This is **not** a filesystem compare-and-swap, a distributed lock, or a guarantee against every power-failure/filesystem condition.
+Project saves retain the previous valid version and use a synced temporary file in the same directory. Expected fingerprints detect ordinary external edits but are not a filesystem compare-and-swap or multi-writer lock. A failed durability operation need not mean that no disk effect occurred.
 
-Recovery covers published project edits; unconfirmed dialog drafts and temporary gestures are not persisted. Each application instance uses a separate recovery filename. Recovery restores as an unsaved copy instead of overwriting the original project. Foreign and damaged recovery files are not automatically deleted. User data is not removed by the Windows uninstaller.
+Recovery uses isolated per-session files and restores an unsaved copy. It covers published edits, not temporary pointer gestures or unconfirmed modal drafts. User data is preserved on uninstall. Independent backups remain necessary.
 
-## Deliberate limits
+## Evidence and limits
 
-No semantic acceptance engine, multi-user collaboration, generic rule system, execution scheduler, auto-updater or AI API is included. Component containment is iterative and has no fixed depth rule. Nested field schemas still encounter serde_json's defensive parsing recursion limit; that is a distinct technical limit, not a component-tree limit. Full native accessibility, performance and platform behavior need execution evidence. See `RELEASE-CHECKLIST.md`.
+See [CANVAS-INTEGRATION.md](CANVAS-INTEGRATION.md) for executed checks and runtime limitations. Structural tests do not prove good design, full native accessibility or a measured readability improvement. Arrangement is a heuristic, not a complete obstacle router. There is no approval engine, multi-user merge system, universal workflow execution, live activity feed, semantic edge taxonomy or persistent custom-view format.

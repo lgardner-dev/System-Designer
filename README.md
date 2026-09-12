@@ -1,163 +1,115 @@
 # System Designer
 
-A native desktop editor for recursive system designs: components that contain
-components, typed ports, explicit local connections, and a bounded way to hand a
-slice of the design to an AI assistant and bring the result back.
+A native desktop editor for recursive system designs: components that contain components, typed ports, explicit local connections, and a bounded way to hand a slice of the design to an AI assistant and bring the result back.
 
-The application is written in Rust with egui/eframe. There is no webview, HTML,
-JavaScript, CSS, backend service, or AI API integration — it is a single native
-executable that reads and writes local JSON files and never contacts a network
-service.
+The application is written in Rust with egui/eframe. There is no webview, HTML, JavaScript, CSS, backend service, or AI API integration. The editor reads and writes local JSON files and does not contact a network service.
 
 ```sh
-cargo run --release --bin system-designer
+cargo run --locked --release --bin system-designer
 ```
 
 ## What it is for
 
-You describe a system as a tree of components. Each component has a purpose and
-a set of input/output ports. Each port carries exactly one contract — a named,
-versioned, structured type from the project's catalog. Components at the same
-level are wired to each other by edges; a component with internals can be
-entered, and its own ports appear as the boundary of the level inside it.
+Describe a system as a tree of components. Each component has a purpose and input/output ports. Each connected port carries exactly one contract: a named, versioned, structured type. Components at the same level are connected by edges. Enter a component to design its internals; its own ports appear as the boundary of that internal level.
 
-The result is a design you can navigate one level of detail at a time, where
-every interface between two responsibilities is written down and checked for
-consistency. It is a design model, not a workflow runner, an execution engine,
-or a semantic-approval system: a structurally valid project is not proof that
-the decomposition is good.
+The result is a design you can navigate one level at a time, with mechanically checked interface consistency. This is not a workflow runner, execution engine or semantic-approval system. Valid structure does not prove a good decomposition.
 
-* [Data model and exchange format](MODEL.md) — the exact JSON the app reads and writes.
-* [Architecture](docs/ARCHITECTURE.md) — how the application is built, and the source map.
-* [Contributing](CONTRIBUTING.md) — development setup, tests, and the change workflow.
+* [Data model and exchange format](MODEL.md): exact project and scoped JSON formats.
+* [Architecture](docs/ARCHITECTURE.md): responsibility boundaries and source map.
+* [Contributing](CONTRIBUTING.md): setup and development workflow.
+* [Unified canvas UX](docs/UNIFIED-CANVAS-UX.md): accepted interaction specification.
+* [Integration and verification notes](docs/CANVAS-INTEGRATION.md): checks and limitations.
 
 ## Install
 
-Installers are not committed to the repository. Build one, or download the
-artifact that `.github/workflows/ci.yml` produces for your platform.
+Installers are not committed. Build one or obtain the artifact produced by the repository's native-build workflow for your platform. Use artifacts from the exact revision you intend to test.
 
-**Windows.** `.\packaging\windows\build.ps1` runs the tests, then packages
-`dist\system-designer-setup.exe` — an unsigned per-user install that needs no
-administrator rights and no Visual C++ Redistributable. Uninstalling preserves
-your project files and recovery data. Building it needs Rust and NSIS.
+**Windows:** `packaging/windows/build.ps1` tests and packages an unsigned per-user NSIS installer. Building needs Rust, the Visual C++ build tools and NSIS. The repository retains its static CRT configuration. Uninstalling preserves project files and recovery data.
 
-**Linux.** `packaging/linux/build.sh` produces a self-extracting
-`dist/system-designer-setup.sh` that installs a per-user binary and desktop
-entry. It is not an AppImage and does not bundle system graphics libraries.
+**Linux:** `packaging/linux/build.sh` creates a per-user self-extracting installer and desktop entry. This is not an AppImage and does not bundle system graphics libraries. The host must provide the required X11/Wayland/OpenGL runtime libraries; compilation alone does not establish that an arbitrary target host can launch it.
 
-**macOS.** CI builds an unsigned, unnotarized `.app` bundle and DMG. Sign and
-notarize it before distributing.
+**macOS:** the native workflow builds an unsigned, unnotarized application bundle and DMG. Signing and notarization are separate release actions.
 
-People running the app need none of the build tooling — only the installed
-binary. Signing and notarization are release decisions; see
-[docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md).
+See [the release checklist](docs/RELEASE-CHECKLIST.md) before distributing installers. An artifact from successful CI is not a claim that the installed native interaction experience has been fully qualified.
 
-## Using it effectively
+## Unified canvas
 
-### Decompose only when a boundary earns it
+One set of controls composes without changing the underlying design:
 
-Add a component, write its purpose, and give it ports. Decompose it only when an
-independently meaningful responsibility or interface justifies another level —
-not because a component feels large. Double-click a component with internals to
-enter it; breadcrumbs and the tree take you back out.
+| Control | Behavior |
+|---|---|
+| **View: Detail / Overview** | Exact ports and connections, or compact cards and counted relationships. |
+| **Focus: Off / Selection / Incoming / Outgoing** | Quiet unrelated connections; Incoming/Outgoing apply to a whole component. |
+| **Arrange: Left to right / Top to bottom / Grid** | Explicit, current-level, undoable positioning action. It is not an automatic mode or execution-order declaration. |
+| **Lights: All visible / Selection / Off** | Illustrate direction on eligible displayed connections. Muted focus context never animates. |
+| **Fit** | Reframe the viewport without changing saved positions. |
 
-Around eight immediate components per level is a readability heuristic, and the
-self-design follows it. The validator does not enforce it and will not reject a
-larger coherent system. Never invent a boundary just to hit the number.
+The default is Detail with Focus Off and Lights All visible. Existing saved positions are retained. View and Focus changes do not automatically move components or fit the camera. Arrange considers the complete local graph and measures Detail footprints even when requested in Overview. Subsequent manual movement remains available.
 
-### Every wire is a deliberate typing decision
+Inputs and outputs can attach to every side of a card. Hollow ports receive and filled ports produce at the current level; direction does not come from the side. A shared port has one anchor per displayed diagram. Port targets remain stable during connection gestures.
 
-Drag between two ports in either direction — or click both, or use **Connect
-ports** — and the contract dialog opens. No wire exists until you confirm it.
-You either pick an existing contract or define a new structured one; the app
-never silently chooses a type for you. Releasing a drag on empty space cancels.
+### Overview and exact editing
 
-Connected ports that share a channel must hold one exact contract ID *and*
-version. Retyping a wire can therefore propagate to fan-out edges and to
-mirrored child-boundary ports. The dialog shows the full impact list before you
-commit, and any change to an already-assigned port needs explicit consent. Read
-that list — the contract belongs to the ports, not to the single edge you happen
-to be editing.
+Overview groups only connections between the same ordered pair of distinct local components. Opposite directions remain separate; boundary connections and self-loops stay individual. Every summary retains the exact IDs of its members. It is not a bus, shared contract, or replacement semantic edge.
 
-If two channels should be able to evolve independently, give them separate ports
-rather than widening one contract to cover both.
+Click a summary to inspect all members with their full endpoints, contract versions and labels. **Show exact wire** reveals one member in Detail; **Edit this wire** establishes that exact context before opening the normal contract editor. A multi-edge summary cannot be deleted or retyped without choosing an actual member. Partial focus reports both focused and total membership, such as “1 of 4 in focus”. Selecting an exact wire never silently selects its whole group.
 
-### Contracts are small on purpose
+### Focus and tracing
 
-The shape language is `string`, `integer`, `number`, `boolean`, `enum`, `array`,
-and `object` with named fields — deliberately smaller than JSON Schema, so that
-interfaces stay readable. Unsupported keywords are rejected rather than silently
-ignored. Express anything further in the purpose and field descriptions; the
-validator checks structure, not meaning, and never validates runtime payloads.
+Select a component, exact connection or port, then choose Focus. Right-click a port or choose it from the inspector to inspect its exact endpoint. **Source**, **Destination**, **Enter at this port**, **Follow in parent**, and **Back trace** navigate declared relationships and identical owner-port identities. Back restores navigation state, not project history.
 
-Reuse an existing contract only when the meaning genuinely matches. A new
-version is cheap; a wrong shared type is not.
+A trace does not infer that every input affects every output. Opaque components stop automatic continuation. Keyboard-accessible exact-connection rows provide an alternative to selecting intersecting wires with the pointer.
 
-### Work with AI on the smallest scope that fits
+### Direction lights
 
-The app contains everything the exchange needs, and performs none of it for you.
-**AI handoff → Initialize chat** gives you the complete initialization prompt: it
-explains the design method and the exact JSON format, and contains no project
-data. Copy it into a fresh chat, then export the smallest scope that covers the
-change:
+Lights follow the actual displayed route, with arrowheads along its destination tangent. The soft white/light-blue pulse is a direction preview, not live execution, traffic quantity, throughput, latency or proof that a branch runs. There is at most one pulse per displayed summary. Off remains off through navigation. Automatic operating-system reduced-motion detection is not implemented; the explicit Off control is always available.
+
+## Authoring
+
+Decompose only when an independently meaningful responsibility, interface or ownership boundary earns another level. Around eight immediate components is a readability heuristic, never a validity cap. Do not invent boundaries merely to hit that number.
+
+Drag between ports in either direction, click both, or use **Connect ports**. No new wire is published until the choose-or-define-contract dialog is confirmed. Cancelling or releasing on empty canvas changes no semantic data. Direct pointer wiring uses Detail; the form is available from either view and reveals Detail first.
+
+Connected ports sharing a channel require the exact same contract ID and version. Retyping can affect fan-out and mirrored child-boundary connections. The dialog lists those effects and requires explicit consent where applicable. Give independently evolving channels separate ports instead of widening one shared contract.
+
+Contracts support string, integer, number, boolean, enum, array and object fields. Unsupported keywords are rejected. Additional intended constraints may be described in prose, but the validator does not enforce that prose or validate runtime payload instances.
+
+## Manual AI collaboration
+
+**AI handoff → Initialize chat** contains the complete embedded design approach and JSON instructions, without project data. Copy it into a fresh chat and export the smallest appropriate scope:
 
 | Scope | Editable | Preserved |
 |---|---|---|
-| Component | The selected node | Siblings, local edges, deeper internals |
-| Level | Immediate nodes and their connections | Hidden child ownership and internals |
-| Subtree | The selected level and all descendants | Owner boundary, ancestors, unrelated branches |
+| Component | Selected node | Siblings, local edges and deeper internals |
+| Level | Immediate nodes and connections | Hidden child ownership and interiors |
+| Subtree | Selected level and all descendants | Owner boundary, ancestors and unrelated branches |
 
-Return to the same level, load the complete returned packet, choose **Validate
-candidate**, review what it reports, then **Apply validated changes**. Nothing is
-published until Apply, and the app revalidates at that moment.
+Return the complete scope packet to its original level. **Validate candidate** does not publish anything; **Apply validated changes** reconstructs and revalidates before one undoable publication. Changed read-only context, stale bases, missing definitions, illegal cross-level connections, outside identity collisions and silent shared-type rewrites are rejected.
 
-Imports are rejected — with a reason — for changed read-only context, a stale
-base token, missing contract definitions, cross-level edges, identity collisions
-with outside components, and any silent rewrite of an existing shared type. The
-base token is an optimistic concurrency check, not authentication: it exists to
-catch a design that moved on while the assistant was working, so neither you nor
-the assistant should ever recalculate it to force a stale edit through.
+**View, Focus and Lights never narrow an export.** Muted edges remain in their requested semantic scope. Summaries and highlights are not serialized as project objects. Layout-only changes leave scoped canonical bases unchanged. The base is a concurrency token, not authority; do not recompute it to force a stale edit through.
 
-Copying a scope into another service is always your own deliberate action. The
-executable does not send it anywhere.
+The app sends nothing to an AI service. Copying workplace information into another service is your separate deliberate action and remains subject to your organization's policies.
 
-### Files and recovery
+## Files and recovery
 
-Ctrl/Cmd+S writes the real project file. The previous valid version is kept as
-`<name>.bak`, and the replacement goes through a synchronized temporary file in
-the same directory. Fingerprints detect ordinary external edits, so a changed or
-damaged file is never silently overwritten — but they are not an interprocess
-lock, so do not edit one project in several app instances at once.
+Ctrl/Cmd+S writes the real project file. The previous valid version is retained as `<name>.bak`; replacement uses a synchronized same-directory temporary file. Fingerprints detect ordinary external edits, not race-free multi-process locking. Do not edit one project concurrently in several app instances.
 
-Recovery snapshots are written per session while the project is dirty, and cover
-published edits, not half-finished dialog drafts or in-progress gestures.
-Recovery always opens as an unsaved copy and never overwrites the original path;
-unknown or damaged recovery files are preserved rather than cleaned up. Keep
-independent backups of work you care about.
+Per-session recovery covers published edits, not unconfirmed form drafts or in-progress gestures. Recovery opens an unsaved copy instead of replacing the original project file. Unknown or damaged recovery bytes are preserved. Maintain independent backups.
+
+View, Focus, trace navigation and Lights do not mark the project dirty. Deliberate movement and arrangement modify the existing saved layout and are undoable. Undo/redo retains 50 session steps, not a persistent audit trail.
 
 ## Explore the application's own design
 
-`design/system-designer.project.json` is an ordinary System Designer project
-describing this application, and **File → Open application design** opens it as
-an unsaved copy. It has seven top-level components across eight systems in all,
-35 component nodes and 14 contracts, with component purposes pointing at the
-source paths that implement them.
+**File → Open application design** opens the embedded `design/system-designer.project.json` as an unsaved copy. It contains seven top-level components, eight systems, 38 components and 15 contract definitions. Canvas has eight immediate responsibilities; every level remains within the advisory eight-component budget. Component purposes identify implementation locations.
 
-It is an example, not a default: new projects start blank, with an empty
-contract catalog. See [the architecture notes](docs/ARCHITECTURE.md) for what its
-edges do and do not claim to mean.
+This is an optional example, not a seed: new projects start blank with an empty catalog. Both the self-design and initialization prompt are compiled into the executable, with no required resource sidecars.
 
-## Known limits
+## Limits
 
-Containment has no fixed depth or node-count limit; deeply nested *field schemas*
-are still bounded by serde_json's parsing recursion guard, which is a separate
-concern from the flat normalized component tree. Structural validation is not
-semantic validation, a runtime payload validator, or a formal acceptance system.
-There is no multi-user merge protocol, no auto-updater, no telemetry, and no AI
-API client. Undo/redo keeps 50 session steps and is not a persistent audit trail.
-Large-project performance and full accessibility have not been qualified.
+Arrangement is a deterministic heuristic, not a minimum-crossing guarantee or complete obstacle router. Circular cards, manual port-side pinning, executable scenarios, semantic edge taxonomies, persistent custom views and causal inference remain deferred.
+
+Containment has no fixed node-count or depth limit. Deeply nested field schemas remain subject to serde_json's separate parsing guard. There is no multi-user merge protocol, auto-updater, telemetry or AI client. Large-project performance and full native accessibility remain unqualified; consult the integration notes for what was actually executed.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). A dependency license and security review belongs in
-your own release process; none is claimed here.
+MIT — see [LICENSE](LICENSE). Dependency licensing and security review belong in the release process; no audit is claimed here.

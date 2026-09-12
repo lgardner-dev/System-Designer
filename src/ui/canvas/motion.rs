@@ -12,27 +12,17 @@ pub(super) enum Motion {
 }
 impl Motion {
     pub fn controls(ui: &mut egui::Ui) -> Self {
-        // Session-wide, outside Project and CanvasState: navigation must not
-        // turn motion back on after the user has disabled it.
         let id = Id::new("system-designer.direction-lights");
         let mut mode = ui
             .ctx()
             .data(|d| d.get_temp::<Self>(id))
             .unwrap_or_default();
-        ui.horizontal_wrapped(|ui| {
-            ui.label("Direction lights");
-            egui::ComboBox::from_id_salt(id).selected_text(match mode {
-                Self::Off => "Off", Self::Selected => "Selected", Self::All => "All",
-            }).show_ui(ui, |ui| {
-                ui.selectable_value(&mut mode, Self::Off, "Off");
-                ui.selectable_value(&mut mode, Self::Selected, "Selected");
-                ui.selectable_value(&mut mode, Self::All, "All");
-            });
-            ui.small("Direction preview — not live execution");
-            ui.label("Hollow receives · Filled produces").on_hover_text(
-                "Port side is visual only. Hollow ports receive; filled ports produce at this level. Full port names and contracts are available on hover and in the inspector.",
-            );
-        });
+        ui.label("Lights");
+        egui::ComboBox::from_id_salt(id).selected_text(match mode { Self::Off=>"Off",Self::Selected=>"Selection",Self::All=>"All visible" }).width(95.0).show_ui(ui,|ui|{
+            ui.selectable_value(&mut mode,Self::Off,"Off");
+            ui.selectable_value(&mut mode,Self::Selected,"Selection");
+            ui.selectable_value(&mut mode,Self::All,"All visible");
+        }).response.on_hover_text("Direction preview, not live execution. Focus takes precedence: muted context never animates. Off is available on every platform; automatic OS reduced-motion detection is not implemented.");
         ui.ctx().data_mut(|d| d.insert_temp(id, mode));
         mode
     }
@@ -40,20 +30,11 @@ impl Motion {
         match self {
             Self::Off => false,
             Self::All => true,
-            Self::Selected => match selected {
-                Selection::Edge(id) => edge.id == *id,
-                Selection::Node(id) => {
-                    edge.from.node.as_ref() == Some(id) || edge.to.node.as_ref() == Some(id)
-                }
-                Selection::Boundary(id) => {
-                    (edge.from.node.is_none() && edge.from.port == *id)
-                        || (edge.to.node.is_none() && edge.to.port == *id)
-                }
-                Selection::None => false,
-            },
+            Self::Selected => super::focus::matches(edge, selected, super::Focus::Selection),
         }
     }
 }
+
 fn phase(id: &str) -> f64 {
     let hash = id.bytes().fold(0xcbf29ce484222325u64, |h, b| {
         (h ^ b as u64).wrapping_mul(0x100000001b3)

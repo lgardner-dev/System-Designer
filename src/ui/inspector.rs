@@ -2,6 +2,9 @@ use super::*;
 use crate::edit;
 impl Designer {
     pub(super) fn inspector(&mut self, ui: &mut egui::Ui) {
+        if canvas::details(self, ui) {
+            return;
+        }
         let p = self.store.snapshot();
         match self.selected.clone() {
             Selection::Node(id) => {
@@ -106,6 +109,8 @@ impl Designer {
                     );
                     ui.label(edge.label.as_deref().unwrap_or(""));
                     if ui.button("Change contract / endpoints").clicked() {
+                        self.canvas_session.view = canvas::View::Detail;
+                        self.canvas.cancel();
                         self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
                             &p,
                             &self.current,
@@ -151,6 +156,7 @@ impl Designer {
                     }
                 }
             }
+            Selection::Port(_) | Selection::Summary(..) => {}
             Selection::None => {
                 let owner = p.owner(&self.current);
                 ui.heading(owner.map(|(_, n)| n.name.as_str()).unwrap_or(&p.name));
@@ -184,6 +190,10 @@ impl Designer {
         }
     }
     pub(super) fn ask_delete(&mut self) {
+        if matches!(self.selected, Selection::Summary(..)) {
+            self.status="A summary is not an editable edge. Choose an exact member before deleting or changing a contract.".into();
+            return;
+        }
         self.dialog=match &self.selected{
             Selection::Node(id)=>Some(Dialog::Confirm{
                 message:"Delete this component, all its internal systems, and attached connections? Undo remains available in this session.".into(),

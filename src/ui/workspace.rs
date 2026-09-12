@@ -32,8 +32,13 @@ impl Designer {
                 self.ask_delete();
             }
             if ctx.input(|i| i.key_pressed(Key::Escape)) {
-                self.canvas.cancel();
-                self.selected = Selection::None;
+                if self.canvas.has_gesture() {
+                    self.canvas.cancel();
+                } else if self.canvas_session.focus != canvas::Focus::Off {
+                    self.canvas_session.focus = canvas::Focus::Off;
+                } else {
+                    self.selected = Selection::None;
+                }
             }
         }
     }
@@ -108,6 +113,8 @@ impl Designer {
                         self.new_component();
                     }
                     if ui.button("Connect ports").clicked() {
+                        self.canvas_session.view = canvas::View::Detail;
+                        self.canvas.cancel();
                         self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
                             self.store.project(),
                             &self.current,
@@ -203,35 +210,8 @@ impl Designer {
                     });
                 });
             });
-        egui::CentralPanel::default().show(ctx,|ui|{
-            ui.add_enabled_ui(enabled,|ui|{
-                ui.horizontal(|ui|{
-                    if ui.button("Fit").clicked(){
-                        self.canvas.fit_requested=true;
-                    }
-                    if ui.button("Auto-layout").clicked(){
-                        let sid=self.current.clone();
-                        let positions=auto_layout(self.store.project(),&sid);
-                        let q=edit::candidate(self.store.project(),|q|{
-                            q.layout.insert(sid,positions);
-                            Ok(())
-                        });
-                        self.publish("Arrange components",q);
-                        self.canvas.fit_requested=true;
-                    }
-                    if ui.button("−").clicked(){
-                        self.canvas.zoom=(self.canvas.zoom/1.15).max(0.2);
-                    }
-                    if ui.button("+").clicked(){
-                        self.canvas.zoom=(self.canvas.zoom*1.15).min(2.5);
-                    }
-                    ui.label(format!("{:.0}%",self.canvas.zoom*100.0));
-                    let count=self.store.project().system(&self.current).map(|s|s.nodes.len()).unwrap_or(0);
-                    ui.label(format!("{count} components"));
-                    if count>8{
-                        ui.label("· Consider a meaningful decomposition").on_hover_text("Eight is a design heuristic, not a validity rule. Do not invent artificial boundaries just to meet a count.");
-                    }
-                });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.add_enabled_ui(enabled, |ui| {
                 self.canvas_view(ui);
             });
         });
@@ -268,7 +248,8 @@ impl Designer {
                         } else {
                             ui.add_space(22.0);
                         }
-                        let selected = self.selected == Selection::Node(node.id.clone())
+                        let selected = matches!(&self.selected,Selection::Port(ep) if ep.node.as_ref()==Some(&node.id))
+                            || self.selected == Selection::Node(node.id.clone())
                             || node.child.as_deref() == Some(&self.current);
                         let r = ui.selectable_label(selected, &node.name);
                         if r.clicked() {

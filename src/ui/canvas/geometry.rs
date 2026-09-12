@@ -102,6 +102,7 @@ pub(super) struct Anchor {
     pub boundary: bool,
     pub label_rect: Rect,
 }
+#[derive(Clone)]
 pub(super) struct Scene {
     pub cards: Vec<Card>,
     pub ports: Vec<Anchor>,
@@ -314,6 +315,26 @@ fn anchors(
     result
 }
 impl Scene {
+    pub fn move_card(&mut self, id: &str, position: Position) {
+        if let Some(card) = self.cards.iter_mut().find(|c| c.id == id) {
+            let delta = vec2(
+                (position.x - card.position.x) as f32,
+                (position.y - card.position.y) as f32,
+            );
+            card.position = position;
+            card.rect = card.rect.translate(delta);
+            card.header_y += delta.y;
+            for port in self
+                .ports
+                .iter_mut()
+                .filter(|p| p.endpoint.node.as_deref() == Some(id))
+            {
+                port.point += delta;
+                port.label_rect = port.label_rect.translate(delta);
+            }
+        }
+    }
+
     pub fn new(project: &Project, sid: &str, positions: &BTreeMap<String, Position>) -> Self {
         let mut result = Self {
             cards: vec![],
