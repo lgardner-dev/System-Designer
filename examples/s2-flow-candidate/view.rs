@@ -30,11 +30,29 @@ struct Anchor {
     name: String,
     contract: String,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FlowShape {
+    Process,
+    Decision,
+    Subprocess,
+    Terminator,
+    InterfaceCard,
+}
+fn flow_shape(step: &Step, tab: Tab) -> FlowShape {
+    if tab == Tab::Interfaces {
+        return FlowShape::InterfaceCard;
+    }
+    match step.kind {
+        Kind::Entry | Kind::Outcome => FlowShape::Terminator,
+        Kind::Action => FlowShape::Process,
+        Kind::Choice => FlowShape::Decision,
+        Kind::Call => FlowShape::Subprocess,
+    }
+}
 fn rect(s: &Step) -> Rect {
     let size = match s.kind {
         Kind::Choice => vec2(240.0, 140.0),
-        Kind::Entry => vec2(110.0, 80.0),
-        Kind::Outcome if s.component.is_none() => vec2(125.0, 80.0),
+        Kind::Entry | Kind::Outcome => vec2(210.0, 84.0),
         _ => vec2(240.0, 108.0),
     };
     Rect::from_min_size(pos2(s.position[0], s.position[1]), size)
@@ -53,95 +71,66 @@ fn perimeter(r: Rect, toward: Pos2) -> (Pos2, Vec2) {
         (r.center_top(), vec2(0.0, -1.0))
     }
 }
-fn smooth(points: &[Pos2]) -> Vec<Pos2> {
-    if points.len() < 3 {
-        return points.to_vec();
+fn diamond_anchor(r: Rect, toward: Pos2) -> (Pos2, Vec2) {
+    let d = toward - r.center();
+    if d.length_sq() < 0.001 {
+        return (r.center_bottom(), vec2(0.0, 1.0));
     }
-    let mut out = vec![points[0]];
-    for i in 1..points.len() - 1 {
-        let a = points[i - 1];
-        let b = points[i];
-        let c = points[i + 1];
-        let radius = 12.0_f32.min(a.distance(b) * 0.3).min(b.distance(c) * 0.3);
-        if radius < 0.01 {
-            out.push(b);
-            continue;
-        }
-        let before = b + (a - b).normalized() * radius;
-        let after = b + (c - b).normalized() * radius;
-        out.push(before);
-        for j in 1..=8 {
-            let t = j as f32 / 8.0;
-            let u = 1.0 - t;
-            out.push(pos2(
-                u * u * before.x + 2.0 * u * t * b.x + t * t * after.x,
-                u * u * before.y + 2.0 * u * t * b.y + t * t * after.y,
-            ));
-        }
-    }
-    out.push(*points.last().expect("three points"));
-    out
+    let half = r.size() * 0.5;
+    let scale = 1.0 / (d.x.abs() / half.x + d.y.abs() / half.y);
+    let point = r.center() + d * scale;
+    let normal = vec2(
+        if d.x >= 0.0 {
+            1.0 / half.x
+        } else {
+            -1.0 / half.x
+        },
+        if d.y >= 0.0 {
+            1.0 / half.y
+        } else {
+            -1.0 / half.y
+        },
+    )
+    .normalized();
+    (point, normal)
 }
-fn direct(a: Pos2, an: Vec2, b: Pos2, bn: Vec2) -> Vec<Pos2> {
-    if (a.x - b.x).abs() < 2.0 || (a.y - b.y).abs() < 2.0 {
-        return vec![a, b];
-    }
-    let aa = a + an * 28.0;
-    let bb = b + bn * 28.0;
-    let corner = if an.x.abs() > 0.5 {
-        pos2(bb.x, aa.y)
+fn control_anchor(step: &Step, toward: Pos2) -> (Pos2, Vec2) {
+    let r = rect(step);
+    if flow_shape(step, Tab::Control) == FlowShape::Decision {
+        diamond_anchor(r, toward)
     } else {
-        pos2(aa.x, bb.y)
-    };
-    smooth(&[a, aa, corner, bb, b])
+        perimeter(r, toward)
+    }
 }
-fn decision_exit(r: Rect, fraction: f32) -> Pos2 {
-    let x = r.left() + r.width() * fraction;
-    let y =
-        r.center().y + r.height() * 0.5 * (1.0 - ((x - r.center().x) / (r.width() * 0.5)).abs());
-    pos2(x, y)
-}
-fn diamond(step: &Step, tab: Tab) -> bool {
-    step.kind == Kind::Choice && tab == Tab::Control
+/// Same cubic Bezier connector used by the production System Design Canvas.
+fn connector(a: Pos2, a_normal: Vec2, b: Pos2, b_normal: Vec2) -> Vec<Pos2> {
+    let distance = (a.distance(b) * 0.4).clamp(20.0, 180.0);
+    let controls = [a, a + a_normal * distance, b + b_normal * distance, b];
+    let samples = (a.distance(b) / 12.0).ceil().clamp(24.0, 128.0) as usize;
+    (0..=samples)
+        .map(|i| {
+            let t = i as f32 / samples as f32;
+            let u = 1.0 - t;
+            let v = controls[0].to_vec2() * (u * u * u)
+                + controls[1].to_vec2() * (3.0 * u * u * t)
+                + controls[2].to_vec2() * (3.0 * u * t * t)
+                + controls[3].to_vec2() * (t * t * t);
+            pos2(v.x, v.y)
+        })
+        .collect()
 }
 fn control_routes(flow: &Flow) -> Vec<Route> {
     flow.transitions
         .iter()
         .filter_map(|e| {
-            let a = rect(flow.step(&e.from)?);
-            let b = rect(flow.step(&e.to)?);
-            let (ap, an) = perimeter(a, b.center());
-            let (bp, bn) = perimeter(b, a.center());
-            let points = match e.source_flow.as_str() {
-                "S2.e10" => smooth(&[
-                    a.left_center(),
-                    pos2(22.0, a.center().y),
-                    pos2(22.0, b.center().y),
-                    b.left_center(),
-                ]),
-                "S2.e9" | "S2.e11" => {
-                    let start = decision_exit(a, if e.source_flow == "S2.e9" { 0.3 } else { 0.7 });
-                    let end = b.center_top();
-                    smooth(&[start, pos2(start.x, 665.0), pos2(end.x, 665.0), end])
-                }
-                "S2.e3" => smooth(&[a.center_bottom(), b.center_top()]),
-                "S2.e4" if flow.id != "behavior.experiment" => smooth(&[
-                    a.right_center(),
-                    pos2(b.center().x, a.center().y),
-                    b.center_top(),
-                ]),
-                "S2.e7" if flow.id != "behavior.experiment" => {
-                    let start = a.left_center();
-                    let end = b.right_center();
-                    let mid = (start.x + end.x) * 0.5;
-                    smooth(&[start, pos2(mid, start.y), pos2(mid, end.y), end])
-                }
-                _ => direct(ap, an, bp, bn),
-            };
+            let from = flow.step(&e.from)?;
+            let to = flow.step(&e.to)?;
+            let (a, an) = control_anchor(from, rect(to).center());
+            let (b, bn) = control_anchor(to, rect(from).center());
             Some(Route {
                 id: e.id.clone(),
                 transition: e.id.clone(),
-                points,
+                points: connector(a, an, b, bn),
                 label: e.condition.clone(),
             })
         })
@@ -242,24 +231,7 @@ fn interface_routes(app: &App, flow: &Flow) -> (Vec<Route>, Vec<Anchor>) {
                 .find(|t| t.exchanges.contains(&e.id))
                 .map(|t| t.id.clone())
                 .unwrap_or_default();
-            let points = if transition == "S2.e10" {
-                // Two distinct channels remain distinct around the return lane.
-                let offset = if a.contract.starts_with("C04") {
-                    12.0
-                } else {
-                    0.0
-                };
-                smooth(&[
-                    a.point,
-                    a.point + a.normal * 24.0,
-                    pos2(16.0 + offset, a.point.y + 24.0),
-                    pos2(16.0 + offset, b.point.y - 24.0),
-                    b.point + b.normal * 24.0,
-                    b.point,
-                ])
-            } else {
-                direct(a.point, a.normal, b.point, b.normal)
-            };
+            let points = connector(a.point, a.normal, b.point, b.normal);
             routes.push(Route {
                 id: e.id.clone(),
                 transition,
@@ -481,36 +453,48 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
         };
         let fill = Color32::from_rgb(26, 35, 47);
         let stroke = Stroke::new(if selected { 2.4 } else { 1.3 }, border);
-        if diamond(step, app.at.tab) {
-            painter.add(egui::Shape::convex_polygon(
-                vec![
-                    r.center_top(),
-                    r.right_center(),
-                    r.center_bottom(),
-                    r.left_center(),
-                ],
-                fill,
-                stroke,
-            ));
-        } else {
-            let round = if step.kind == Kind::Outcome || step.kind == Kind::Entry {
-                28
-            } else {
-                10
-            };
-            painter.rect_filled(r, round, fill);
-            painter.rect_stroke(r, round, stroke, StrokeKind::Inside);
-            if step.kind == Kind::Call {
-                painter.rect_stroke(
-                    r.shrink(5.0 * z),
-                    7,
-                    Stroke::new(0.7, border),
-                    StrokeKind::Inside,
-                );
+        match flow_shape(step, app.at.tab) {
+            FlowShape::Decision => {
+                painter.add(egui::Shape::convex_polygon(
+                    vec![
+                        r.center_top(),
+                        r.right_center(),
+                        r.center_bottom(),
+                        r.left_center(),
+                    ],
+                    fill,
+                    stroke,
+                ));
+            }
+            FlowShape::Terminator => {
+                let radius = r.height() * 0.5;
+                painter.rect_filled(r, radius, fill);
+                painter.rect_stroke(r, radius, stroke, StrokeKind::Inside);
+            }
+            FlowShape::Subprocess => {
+                painter.rect_filled(r, 4, fill);
+                painter.rect_stroke(r, 4, stroke, StrokeKind::Inside);
+                let inset = 13.0 * z;
+                for x in [r.left() + inset, r.right() - inset] {
+                    painter.line_segment(
+                        [pos2(x, r.top()), pos2(x, r.bottom())],
+                        Stroke::new(if selected { 2.0 } else { 1.2 }, border),
+                    );
+                }
+            }
+            FlowShape::Process => {
+                painter.rect_filled(r, 4, fill);
+                painter.rect_stroke(r, 4, stroke, StrokeKind::Inside);
+            }
+            FlowShape::InterfaceCard => {
+                painter.rect_filled(r, 10, fill);
+                painter.rect_stroke(r, 10, stroke, StrokeKind::Inside);
             }
         }
-        let width = if diamond(step, app.at.tab) {
+        let width = if flow_shape(step, app.at.tab) == FlowShape::Decision {
             r.width() * 0.63
+        } else if flow_shape(step, app.at.tab) == FlowShape::Subprocess {
+            r.width() - 54.0 * z
         } else {
             r.width() - 24.0 * z
         };
@@ -544,7 +528,7 @@ pub fn canvas(app: &mut App, ui: &mut egui::Ui, flow: &Flow) {
             );
         }
         if pointer.is_some_and(|p| {
-            let inside = if diamond(step, app.at.tab) {
+            let inside = if flow_shape(step, app.at.tab) == FlowShape::Decision {
                 ((p.x - r.center().x) / (r.width() * 0.5)).abs()
                     + ((p.y - r.center().y) / (r.height() * 0.5)).abs()
                     <= 1.0
@@ -606,10 +590,36 @@ mod geometry_tests {
     use crate::model::Document;
 
     #[test]
-    fn branch_exits_touch_the_drawn_diamond() {
+    fn standard_control_shapes_are_used_only_in_control_flow() {
+        let doc = Document::load().unwrap();
+        let parent = &doc.study.flows[0];
+        assert_eq!(
+            flow_shape(parent.step("step.S2.frame").unwrap(), Tab::Control),
+            FlowShape::Process
+        );
+        assert_eq!(
+            flow_shape(parent.step("step.S2.enough").unwrap(), Tab::Control),
+            FlowShape::Decision
+        );
+        assert_eq!(
+            flow_shape(parent.step("step.S2.experiment").unwrap(), Tab::Control),
+            FlowShape::Subprocess
+        );
+        assert_eq!(
+            flow_shape(parent.step("step.S2.exit").unwrap(), Tab::Control),
+            FlowShape::Terminator
+        );
+        assert_eq!(
+            flow_shape(parent.step("step.S2.enough").unwrap(), Tab::Interfaces),
+            FlowShape::InterfaceCard
+        );
+    }
+
+    #[test]
+    fn decision_anchors_touch_the_drawn_diamond() {
         let r = Rect::from_min_size(pos2(10.0, 20.0), vec2(240.0, 140.0));
-        for fraction in [0.3, 0.5, 0.7] {
-            let p = decision_exit(r, fraction);
+        for toward in [pos2(-50.0, 250.0), pos2(300.0, 300.0), pos2(130.0, -200.0)] {
+            let (p, _) = diamond_anchor(r, toward);
             let normalized = ((p.x - r.center().x) / (r.width() * 0.5)).abs()
                 + ((p.y - r.center().y) / (r.height() * 0.5)).abs();
             assert!((normalized - 1.0).abs() < 0.001);
@@ -617,11 +627,17 @@ mod geometry_tests {
     }
 
     #[test]
-    fn interface_cards_do_not_inherit_control_diamonds() {
-        let doc = Document::load().unwrap();
-        let step = doc.study.flows[0].step("step.S2.enough").unwrap();
-        assert!(diamond(step, Tab::Control));
-        assert!(!diamond(step, Tab::Interfaces));
+    fn connector_matches_the_production_cubic_behavior() {
+        let a = pos2(10.0, 20.0);
+        let b = pos2(330.0, 250.0);
+        let points = connector(a, vec2(1.0, 0.0), b, vec2(0.0, -1.0));
+        assert_eq!(points.first().copied(), Some(a));
+        assert_eq!(points.last().copied(), Some(b));
+        assert!(points.len() >= 25);
+        assert!(points.windows(2).any(|pair| {
+            let d = pair[1] - pair[0];
+            d.x.abs() > 0.01 && d.y.abs() > 0.01
+        }));
     }
 
     #[test]

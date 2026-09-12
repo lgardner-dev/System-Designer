@@ -192,7 +192,7 @@ impl App {
         ui.add_space(15.0);
         ui.separator();
         ui.label(RichText::new("Legend").strong());
-        ui.small("Rounded card · action\nDiamond · recorded choice (Control Flow only)\nDouble border · subprocess\nPill · entry or outcome");
+        ui.small("Control Flow uses standard flowchart notation:\nRectangle · process/action\nDiamond · decision/assessment\nPredefined process · subprocess\nTerminator · entry/outcome\nInterfaces remain ordinary system cards");
         ui.add_space(12.0);
         ui.small("Colors supplement labels. These are design declarations—not execution, completion, or approval status.");
     }
