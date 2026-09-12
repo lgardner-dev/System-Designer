@@ -1,0 +1,56 @@
+name: Import S2 study source
+on:
+  push:
+    branches: [work/s2-study-prep]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode bounded source bundle
+        shell: python
+        run: |
+          import base64, hashlib, json, lzma, pathlib
+          encoded = ''.join(pathlib.Path(f'.s2-import/part{i}').read_text() for i in range(4))
+          raw = base64.b64decode(encoded, validate=True)
+          assert hashlib.sha256(raw).hexdigest() == 'ae1d000a351f8be27700920099c8b317141b48789dabd13b716f71386e78e6bb'
+          files = json.loads(lzma.decompress(raw))
+          allowed = {
+            'Cargo.toml',
+            '.github/workflows/control-flow-study.yml',
+            'examples/s2-flow-candidate/main.rs',
+            'examples/s2-flow-candidate/model.rs',
+            'examples/s2-flow-candidate/view.rs',
+            'examples/s2-flow-candidate/tests.rs',
+            'examples/s2-flow-candidate/initialization.txt',
+            'examples/s2-flow-candidate/control-flow.study.json',
+            'examples/s2-flow-candidate/interfaces.project.json',
+            'examples/s2-flow-candidate/source-S2.json',
+            'docs/control-flow-study/README.md',
+            'docs/control-flow-study/DESIGN.md',
+            'docs/control-flow-study/SOURCE-MAP.md',
+          }
+          assert set(files) == allowed
+          for name, text in files.items():
+            assert isinstance(text, str)
+            path = pathlib.Path(name)
+            assert not path.is_absolute() and '..' not in path.parts
+            if name.startswith('.github/'):
+              assert path.read_text() == text, 'The ordinary workflow must already match the source bundle'
+              continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding='utf-8', newline='\n')
+          print(f'Imported {len(files)} allowlisted files; source bundle hash verified')
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and publish import workbench
+        run: |
+          cargo fmt --all
+          git config user.name 'System Designer source import'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.toml examples/s2-flow-candidate docs/control-flow-study
+          git commit -m 'Import and format S2 control-flow worked candidate'
+          git push origin HEAD:refs/heads/work/s2-study-imported
