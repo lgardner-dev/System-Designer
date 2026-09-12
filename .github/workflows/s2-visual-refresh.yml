@@ -1,0 +1,30 @@
+name: Refresh S2 control-flow visuals
+on:
+  push:
+    branches: [work/control-flow-study]
+    paths:
+      - '.s2-visual-refresh.py'
+      - '.github/workflows/s2-visual-refresh.yml'
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Apply bounded visual refresh
+        run: |
+          python .s2-visual-refresh.py
+          cargo fmt --all
+          cargo test --locked --example s2-flow-candidate
+      - name: Publish clean candidate update
+        run: |
+          rm .s2-visual-refresh.py .github/workflows/s2-visual-refresh.yml
+          git config user.name 'System Designer visual refresh'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Use standard flowchart shapes and production Bezier connectors'
+          git push origin HEAD:refs/heads/work/control-flow-study
