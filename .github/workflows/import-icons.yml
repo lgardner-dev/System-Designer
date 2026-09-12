@@ -28,13 +28,20 @@ jobs:
           cargo fmt --all
           python packaging/verify-branding.py
           bash -n packaging/linux/installer-header.sh packaging/linux/make-installer.sh packaging/linux/install.sh
-      - name: Publish prepared source only to the temporary work branch
+      - name: Preserve proposed CI change for authorized connector publication
+        run: cp .github/workflows/ci.yml /tmp/iconography-ci.yml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iconography-ci-proposal
+          path: /tmp/iconography-ci.yml
+          if-no-files-found: error
+      - name: Publish assets and code only to the temporary work branch
         run: |
           set -euo pipefail
-          git rm .github/import-icons.py .github/workflows/import-icons.yml
+          git restore .github/workflows
           git add -A
           git diff --cached --stat
-          git -c user.name='System Designer automation' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Integrate approved iconography and native platform resources'
+          git -c user.name='System Designer automation' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Prepare approved artwork and native platform resources'
           git push origin HEAD:refs/heads/work/iconography-prep
           git rev-parse HEAD
           git rev-parse HEAD^{tree}
