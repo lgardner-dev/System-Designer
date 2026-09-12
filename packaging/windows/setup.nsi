@@ -30,7 +30,7 @@ Unicode true
 Name "System Designer"
 OutFile "${OUT_FILE}"
 InstallDir "$LOCALAPPDATA\Programs\System Designer"
-InstallDirRegKey HKCU "Software\System Designer" "InstallDir" "$INSTDIR"
+InstallDirRegKey HKCU "Software\System Designer" "InstallDir"
 ; Per-user install: no administrator rights required, nothing written outside
 ; the user's own profile and HKCU.
 RequestExecutionLevel user
