@@ -89,7 +89,7 @@ fn no_dangling_or_cross_scope_call_is_accepted() {
     a.scopes[0]
         .steps
         .iter_mut()
-        .find(|s| s.kind == Kind::Call)
+        .find(|s| s.kind == super::model::Kind::Call)
         .unwrap()
         .target = Some("model.validation.edges.contracts".into());
     assert!(a.check().is_err());
@@ -113,7 +113,7 @@ fn unlabelled_choice_is_rejected() {
     let id = b
         .steps
         .iter()
-        .find(|s| s.kind == Kind::Decision)
+        .find(|s| s.kind == super::model::Kind::Decision)
         .unwrap()
         .id
         .clone();
