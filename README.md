@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/branding/system-designer-atom-mark-color.png" width="128" alt="System Designer atom icon">
+</p>
+
 # System Designer
 
 A native desktop editor for recursive system designs: components that contain components, typed ports, explicit local connections, and a bounded way to hand a slice of the design to an AI assistant and bring the result back.
@@ -7,6 +11,10 @@ The application is written in Rust with egui/eframe. There is no webview, HTML, 
 ```sh
 cargo run --locked --release --bin system-designer
 ```
+
+The selected [color mark](assets/branding/svg/system-designer-atom-mark-color.svg)
+is the single source for the native app, installers, README and web exports. See
+[branding integration](docs/BRANDING.md) for regeneration and pixel-level checks.
 
 ## What it is for
 

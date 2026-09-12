@@ -11,7 +11,11 @@ and clippy. The crate needs Rust 1.88 or newer (edition 2024).
 * **Debian/Ubuntu** needs the X11/Wayland/GL development libraries installed by
   the Linux job in `.github/workflows/ci.yml`.
 
-Nothing else is required: no Node, no bundler, no service to run alongside.
+Desktop Windows builds additionally use the Windows SDK resource compiler
+(installed with the C++ tools) through the build-only `embed-resource` crate.
+Missing resource tooling fails the desktop build instead of silently shipping
+an unbranded executable. Headless builds do not invoke the resource compiler.
+No Node, bundler, image conversion tool, or runtime service is required.
 
 ```sh
 cargo test --locked --all-targets
@@ -54,7 +58,7 @@ src/
   storage.rs   project files, backups, recovery snapshots
   ui/          workspace, canvas, inspector, schema/contract forms, AI handoff
   main.rs      native executable          check.rs  headless validator
-assets/        initialization prompt, embedded with include_str!
+assets/        embedded initialization prompt and approved branding/icon family
 design/        the application's own design, embedded and importable
 tests/         integration tests plus JSON golden fixtures
 packaging/     Windows NSIS and Linux self-extracting installer recipes

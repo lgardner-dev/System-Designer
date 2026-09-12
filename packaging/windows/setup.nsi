@@ -9,12 +9,21 @@ Unicode true
 !ifndef APP_VERSION_4
   !define APP_VERSION_4 "0.2.0.0"
 !endif
+; MakeNSIS changes its working directory to this script's directory by default.
+; Do not prepend __FILEDIR__ again: it can itself be relative to the caller.
+; The build helper and CI may override these defaults with absolute paths.
 !ifndef APP_BINARY
-  !define APP_BINARY "${__FILEDIR__}\..\..\target\release\system-designer.exe"
+  !define APP_BINARY "..\..\target\release\system-designer.exe"
 !endif
 !ifndef OUT_FILE
-  !define OUT_FILE "${__FILEDIR__}\..\..\dist\system-designer-setup.exe"
+  !define OUT_FILE "..\..\dist\system-designer-setup.exe"
 !endif
+
+!ifndef APP_ICON
+  !define APP_ICON "..\..\assets\branding\windows\system-designer.ico"
+!endif
+!define MUI_ICON "${APP_ICON}"
+!define MUI_UNICON "${APP_ICON}"
 
 !define ARP "Software\Microsoft\Windows\CurrentVersion\Uninstall\SystemDesigner"
 
@@ -59,7 +68,7 @@ Section "System Designer" SEC_APP
 
   WriteRegStr HKCU "${ARP}" "DisplayName" "System Designer"
   WriteRegStr HKCU "${ARP}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKCU "${ARP}" "DisplayIcon" '"$INSTDIR\SystemDesigner.exe"'
+  WriteRegStr HKCU "${ARP}" "DisplayIcon" '"$INSTDIR\SystemDesigner.exe",0'
   WriteRegStr HKCU "${ARP}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${ARP}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegStr HKCU "${ARP}" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'

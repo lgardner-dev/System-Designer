@@ -18,7 +18,9 @@ trap 'rm -rf "$stage"' EXIT
 install -m 755 "$binary" "$stage/system-designer"
 install -m 644 packaging/linux/system-designer.desktop "$stage/system-designer.desktop"
 install -m 644 LICENSE "$stage/LICENSE"
-tar -C "$stage" -czf "$stage/payload.tar.gz" system-designer system-designer.desktop LICENSE
+mkdir -p "$stage/icons"
+cp -R assets/branding/linux/png assets/branding/linux/scalable "$stage/icons/"
+tar -C "$stage" -czf "$stage/payload.tar.gz" system-designer system-designer.desktop LICENSE icons
 
 sed "s/@VERSION@/${version}/g" packaging/linux/installer-header.sh > "$out"
 # The payload begins on the line after the header. Substituting the count in

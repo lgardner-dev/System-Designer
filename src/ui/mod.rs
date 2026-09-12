@@ -1,4 +1,6 @@
 //! Native immediate-mode desktop UI. Only this module depends on eframe/rfd.
+mod branding;
+pub use branding::window_icon;
 mod canvas;
 mod contracts;
 mod handoff;

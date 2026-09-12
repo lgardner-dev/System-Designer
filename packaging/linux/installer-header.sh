@@ -47,7 +47,17 @@ app_dir="${data_home}/applications"
 desktop_dir="$( { command -v xdg-user-dir >/dev/null 2>&1 && xdg-user-dir DESKTOP; } || echo "${HOME}/Desktop" )"
 [ -n "$desktop_dir" ] || desktop_dir="${HOME}/Desktop"
 
+icon_root="${data_home}/icons/hicolor"
+refresh_icons() {
+    command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "$icon_root" 2>/dev/null || true
+}
+
 if [ "$do_uninstall" -eq 1 ]; then
+    for size in 16 24 32 48 64 128 256 512; do
+        rm -f "$icon_root/${size}x${size}/apps/system-designer.png"
+    done
+    rm -f "$icon_root/scalable/apps/system-designer.svg"
+    refresh_icons
     rm -f "${bin_dir}/system-designer"
     rm -f "${app_dir}/system-designer.desktop"
     rm -f "${desktop_dir}/system-designer.desktop"
@@ -71,6 +81,11 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 tail -n +"${PAYLOAD_LINE}" "$0" | tar xz -C "$tmp"
 
+for size in 16 24 32 48 64 128 256 512; do
+    install -Dm644 "$tmp/icons/png/system-designer-${size}.png" "$icon_root/${size}x${size}/apps/system-designer.png"
+done
+install -Dm644 "$tmp/icons/scalable/system-designer.svg" "$icon_root/scalable/apps/system-designer.svg"
+refresh_icons
 mkdir -p "$bin_dir" "$app_dir"
 install -m 755 "${tmp}/system-designer" "${bin_dir}/system-designer"
 
