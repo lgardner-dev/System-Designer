@@ -28,6 +28,12 @@ Normal production tests remain available with `cargo test --locked --all-targets
 5. Use **Back**, then inspect Dispose conclusion. Resolved/bounded, inconclusive with a renewed bound, and truthful stop remain distinct alternatives.
 6. Select **Original Atlas · 10 steps** for an unchanged behavioral comparison. Returning to Interfaces locates the selected work in the candidate's one component tree.
 
+### Visual notation
+
+The **Control Flow** view uses conventional flowchart shapes: process rectangles for ordinary work, decision diamonds for choices/assessments, the predefined-process symbol for recursively decomposed subprocesses, and terminators for entry/outcome points. The **Interfaces** view deliberately keeps ordinary system-design cards rather than reusing flowchart semantics.
+
+Control-flow and interface connections use the same sampled cubic Bézier connector geometry as the production System Design Canvas. The study does not impose orthogonal/90-degree routing. Decision edges attach to the actual diamond perimeter before following the shared curved connector.
+
 Fit and pan/zoom are presentation only. Lights are optional selected-direction previews, never execution. The list and inspector provide ordinary keyboard-accessible buttons; the canvas additionally supports clicking and double-clicking. This is not a completed accessibility qualification.
 
 ## Files and protocol boundary
