@@ -223,9 +223,17 @@ fn transition_edits(a: &Transition, b: &Transition) -> Vec<String> {
 fn endpoint(e: &DataEnd) -> String {
     format!(
         "{}; port {}",
-        e.step.as_deref().unwrap_or("scope boundary"),
-        e.port.as_deref().unwrap_or("Unassigned")
+        e.step
+            .as_ref()
+            .map(|id| format!("step {id:?}"))
+            .unwrap_or_else(|| "scope boundary".into()),
+        optional(&e.port)
     )
+}
+fn endpoint_field(out: &mut Vec<String>, name: &str, a: &DataEnd, b: &DataEnd) {
+    if a != b {
+        out.push(format!("{name}: [{}] → [{}]", endpoint(a), endpoint(b)));
+    }
 }
 fn data(d: &DataLink) -> String {
     format!(
@@ -240,18 +248,8 @@ fn data(d: &DataLink) -> String {
 fn data_edits(a: &DataLink, b: &DataLink) -> Vec<String> {
     let mut out = vec![];
     field(&mut out, "name", &a.name, &b.name);
-    field(
-        &mut out,
-        "producer / port",
-        &endpoint(&a.from),
-        &endpoint(&b.from),
-    );
-    field(
-        &mut out,
-        "consumer / port",
-        &endpoint(&a.to),
-        &endpoint(&b.to),
-    );
+    endpoint_field(&mut out, "producer / port", &a.from, &b.from);
+    endpoint_field(&mut out, "consumer / port", &a.to, &b.to);
     optional_field(&mut out, "contract", &a.contract, &b.contract);
     optional_field(&mut out, "interface wire", &a.exchange, &b.exchange);
     out

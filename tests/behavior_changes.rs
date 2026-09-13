@@ -212,6 +212,37 @@ fn information_diff_names_exact_ports_contract_versions_and_wire_associations() 
             .iter()
             .any(|s| s.contains("Added information requirement record"))
     );
+    // A literal identity that resembles a display placeholder is still distinct
+    // from the actual scope boundary. Compare typed endpoints, not display text.
+    let mut p = fixture();
+    let f = p.behavior.get_mut(ROOT).expect("flow");
+    f.steps.push(Step::new(
+        "scope boundary",
+        StepKind::Action,
+        "Explicit producer",
+    ));
+    f.data.push(DataLink {
+        id: "record".into(),
+        name: "Record".into(),
+        from: DataEnd {
+            step: None,
+            port: None,
+        },
+        to: DataEnd {
+            step: Some("a".into()),
+            port: None,
+        },
+        contract: None,
+        exchange: None,
+    });
+    let mut q = p.clone();
+    q.behavior.get_mut(ROOT).expect("flow").data[0].from.step = Some("scope boundary".into());
+    let details = diff(&p, &q).details.join("\n");
+    assert!(
+        details.contains("producer / port: [scope boundary;")
+            && details.contains("[step \"scope boundary\";"),
+        "{details}"
+    );
 }
 #[test]
 fn empty_existing_flow_and_null_clear_require_review_but_empty_creation_does_not() {
