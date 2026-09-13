@@ -176,7 +176,9 @@ impl Designer {
             self.flow.cancel();
         }
         self.canvas.generation = Some(self.store.generation);
-        if !canvas::selection_valid(self.store.project(), &self.current, &self.selected) {
+        if self.selected != Selection::None
+            && !canvas::selection_valid(self.store.project(), &self.current, &self.selected)
+        {
             self.selected = Selection::None;
             self.status =
                 "The selected item was changed or removed; selection and focus cleared.".into();

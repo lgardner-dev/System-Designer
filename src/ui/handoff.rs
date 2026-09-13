@@ -113,12 +113,17 @@ impl Designer {
                     }
                 });
                 let mut text = crate::INITIALIZATION;
-                ui.add(
-                    TextEdit::multiline(&mut text)
-                        .code_editor()
-                        .desired_rows(18)
-                        .desired_width(f32::INFINITY),
-                );
+                egui::ScrollArea::vertical()
+                    .id_salt("initialization_text")
+                    .max_height(450.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            TextEdit::multiline(&mut text)
+                                .code_editor()
+                                .desired_rows(18)
+                                .desired_width(f32::INFINITY),
+                        );
+                    });
             }
             Tab::Export => {
                 ui.label("Overview, Focus and Lights do not narrow this export. Every real object in the chosen semantic scope is included.");
@@ -158,6 +163,10 @@ impl Designer {
                     d.exported.clear();
                 }
                 if !d.behavior {
+                    if self.interface_system().is_none() {
+                        ui.label("Leaf boundary: Interfaces exports target this component in its owning parent level.");
+                    }
+                    ui.label("Other behavior and layouts are preserved. Context is read-only; version-2 interface context may include sibling behavior interiors.");
                     ui.label(match d.scope{
                     Scope::Component=>"Only the selected node is editable. Siblings, wires, and deeper internals are preserved.",
                     Scope::Level=>"Immediate nodes and connections only. Hidden child systems and their ownership are preserved.",
@@ -203,12 +212,17 @@ impl Designer {
                     }
                 });
                 let mut text = d.exported.as_str();
-                ui.add(
-                    TextEdit::multiline(&mut text)
-                        .code_editor()
-                        .desired_rows(18)
-                        .desired_width(f32::INFINITY),
-                );
+                egui::ScrollArea::vertical()
+                    .id_salt("exported_text")
+                    .max_height(360.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            TextEdit::multiline(&mut text)
+                                .code_editor()
+                                .desired_rows(18)
+                                .desired_width(f32::INFINITY),
+                        );
+                    });
             }
             Tab::Import => {
                 ui.label("Load the complete returned scope packet at the original level. Do not change its base, context, or public boundary. Full-project JSON is intentionally rejected here.");
@@ -232,16 +246,21 @@ impl Designer {
                         }
                     }
                 }
-                if ui
-                    .add(
-                        TextEdit::multiline(&mut d.incoming)
-                            .code_editor()
-                            .desired_rows(15)
-                            .desired_width(f32::INFINITY)
-                            .hint_text("Paste the complete JSON object, without markdown fences"),
-                    )
-                    .changed()
-                {
+                let response = egui::ScrollArea::vertical()
+                    .id_salt("incoming_text")
+                    .max_height(300.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            TextEdit::multiline(&mut d.incoming)
+                                .code_editor()
+                                .desired_rows(15)
+                                .desired_width(f32::INFINITY)
+                                .hint_text(
+                                    "Paste the complete JSON object, without markdown fences",
+                                ),
+                        )
+                    });
+                if response.inner.changed() {
                     d.validated = None;
                     d.summary.clear();
                     d.clear = false;
@@ -295,5 +314,118 @@ impl Designer {
         }
         ui.separator();
         ui.button("Close").clicked()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::behavior::{self, Flow, ROOT};
+    fn frame(a: &mut Designer, ctx: &egui::Context, events: Vec<egui::Event>) -> egui::FullOutput {
+        ctx.run(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1500.0, 1000.0),
+                )),
+                events,
+                focused: true,
+                ..Default::default()
+            },
+            |ctx| a.draw(ctx),
+        )
+    }
+    fn locate(s: &egui::Shape, label: &str) -> Option<egui::Pos2> {
+        match s {
+            egui::Shape::Text(t) if t.galley.text() == label => Some(t.pos + t.galley.size() * 0.5),
+            egui::Shape::Vec(v) => v.iter().find_map(|s| locate(s, label)),
+            _ => None,
+        }
+    }
+    fn click(a: &mut Designer, ctx: &egui::Context, label: &str) {
+        frame(a, ctx, vec![]);
+        let out = frame(a, ctx, vec![]);
+        let pos = out
+            .shapes
+            .iter()
+            .find_map(|s| locate(&s.shape, label))
+            .unwrap_or_else(|| panic!("Missing visible control {label}"));
+        for pressed in [true, false] {
+            frame(
+                a,
+                ctx,
+                vec![
+                    egui::Event::PointerMoved(pos),
+                    egui::Event::PointerButton {
+                        pos,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+    }
+    fn open(a: &mut Designer, packet: &serde_json::Value) {
+        a.open_handoff();
+        if let Some(Dialog::Handoff(d)) = &mut a.dialog {
+            d.tab = Tab::Import;
+            d.incoming = serde_json::to_string_pretty(packet).expect("packet");
+        }
+    }
+    #[test]
+    fn full_workspace_handoff_requires_explicit_clear_and_rechecks_stale_input() {
+        let ctx = egui::Context::default();
+        let mut a = Designer::blank();
+        a.publish(
+            "Start",
+            behavior::set(a.store.project(), ROOT, Flow::starter()),
+        );
+        let p = a.store.project().clone();
+        let generation = a.store.generation;
+        let mut packet = behavior::export(&p, ROOT).expect("export");
+        packet["flow"] = serde_json::Value::Null;
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        assert!(matches!(&a.dialog,Some(Dialog::Handoff(d)) if d.clear && !d.clear_confirmed));
+        click(&mut a, &ctx, "Apply validated changes");
+        assert_eq!(a.store.project(), &p);
+        assert_eq!(a.store.generation, generation);
+        click(
+            &mut a,
+            &ctx,
+            "Clear this component’s entire control flow and its saved flow layout",
+        );
+        click(&mut a, &ctx, "Apply validated changes");
+        assert!(a.store.project().behavior.is_empty());
+        assert_eq!(a.store.generation, generation + 1);
+        a.store.undo();
+        a.normalize_selection();
+        assert_eq!(a.store.project(), &p);
+        let packet = behavior::export(&p, ROOT).expect("export");
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        let mut step = p.behavior[ROOT].steps[1].clone();
+        step.name = "Concurrent edit".into();
+        a.publish("Edit", behavior::save_step(&p, ROOT, step));
+        let changed = a.store.project().clone();
+        let generation = a.store.generation;
+        click(&mut a, &ctx, "Apply validated changes");
+        assert!(a.error.as_ref().is_some_and(|s| s.contains("Stale")));
+        assert_eq!(a.store.project(), &changed);
+        assert_eq!(a.store.generation, generation);
+    }
+    #[test]
+    fn full_workspace_long_handoff_keeps_validation_visible() {
+        let ctx = egui::Context::default();
+        let mut a = Designer::blank();
+        let p = parse(crate::APPLICATION_DESIGN).expect("self design");
+        a.current = p.root.clone();
+        a.store = Store::new(p).expect("store");
+        let packet = behavior::export(a.store.project(), ROOT).expect("export");
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        assert!(a.error.is_none(), "{:?}", a.error);
+        assert!(matches!(&a.dialog,Some(Dialog::Handoff(d)) if d.validated.is_some()));
     }
 }

@@ -433,3 +433,15 @@ fn full_workspace_modal_resizes_after_short_start_dialog() {
     assert!(text_position(&out, "Save step").is_some());
     assert!(text_position(&out, "Cancel — discard draft").is_some());
 }
+
+#[test]
+fn leaf_rendering_does_not_report_an_empty_selection_as_removed() {
+    let ctx = egui::Context::default();
+    let mut a = app();
+    let (p, id) = edit::add_node(a.store.project(), &a.current).expect("leaf");
+    a.store = Store::new(p).expect("store");
+    a.go_scope(id, Layer::Flow);
+    a.status = "Entered component".into();
+    frame(&mut a, &ctx, vec![], false);
+    assert_eq!(a.status, "Entered component");
+}
