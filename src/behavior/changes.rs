@@ -2,7 +2,7 @@
 use super::{DataEnd, DataLink, Flow, Step, Transition, validate::issue_details};
 use crate::model::Project;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct BehaviorChanges {
@@ -104,8 +104,9 @@ impl BehaviorChanges {
                     owner,
                     "Edited",
                     format!(
-                        "extraction provenance: {:?} → {:?}",
-                        a.extraction, b.extraction
+                        "extraction provenance: {} → {}",
+                        serde_json::to_string(&a.extraction).expect("provenance serializes"),
+                        serde_json::to_string(&b.extraction).expect("provenance serializes")
                     ),
                 );
             }
@@ -162,13 +163,29 @@ fn field<T: Debug + PartialEq>(out: &mut Vec<String>, name: &str, a: &T, b: &T) 
         out.push(format!("{name}: {a:?} → {b:?}"));
     }
 }
+fn optional<T: Display>(value: &Option<T>) -> String {
+    value
+        .as_ref()
+        .map(|v| format!("{:?}", v.to_string()))
+        .unwrap_or_else(|| "Unassigned".into())
+}
+fn optional_field<T: Display + PartialEq>(
+    out: &mut Vec<String>,
+    name: &str,
+    a: &Option<T>,
+    b: &Option<T>,
+) {
+    if a != b {
+        out.push(format!("{name}: {} → {}", optional(a), optional(b)));
+    }
+}
 fn step(s: &Step) -> String {
     format!(
-        "{:?}, {}; purpose {:?}; target {:?}; information reviewed {}",
+        "{:?}, {}; purpose {:?}; target {}; information reviewed {}",
         s.name,
         s.kind.label(),
         s.purpose,
-        s.target,
+        optional(&s.target),
         s.information_reviewed
     )
 }
@@ -177,7 +194,7 @@ fn step_edits(a: &Step, b: &Step) -> Vec<String> {
     field(&mut out, "name", &a.name, &b.name);
     field(&mut out, "kind", &a.kind, &b.kind);
     field(&mut out, "purpose", &a.purpose, &b.purpose);
-    field(&mut out, "target", &a.target, &b.target);
+    optional_field(&mut out, "target", &a.target, &b.target);
     field(
         &mut out,
         "information reviewed",
@@ -188,8 +205,11 @@ fn step_edits(a: &Step, b: &Step) -> Vec<String> {
 }
 fn transition(t: &Transition) -> String {
     format!(
-        "{} → {}; condition {:?}; outcome {:?}",
-        t.from, t.to, t.condition, t.outcome
+        "{} → {}; condition {:?}; outcome {}",
+        t.from,
+        t.to,
+        t.condition,
+        optional(&t.outcome)
     )
 }
 fn transition_edits(a: &Transition, b: &Transition) -> Vec<String> {
@@ -197,7 +217,7 @@ fn transition_edits(a: &Transition, b: &Transition) -> Vec<String> {
     field(&mut out, "from", &a.from, &b.from);
     field(&mut out, "to", &a.to, &b.to);
     field(&mut out, "condition", &a.condition, &b.condition);
-    field(&mut out, "outcome", &a.outcome, &b.outcome);
+    optional_field(&mut out, "outcome", &a.outcome, &b.outcome);
     out
 }
 fn endpoint(e: &DataEnd) -> String {
@@ -209,12 +229,12 @@ fn endpoint(e: &DataEnd) -> String {
 }
 fn data(d: &DataLink) -> String {
     format!(
-        "{:?}; producer [{}]; consumer [{}]; contract {:?}; interface wire {:?}",
+        "{:?}; producer [{}]; consumer [{}]; contract {}; interface wire {}",
         d.name,
         endpoint(&d.from),
         endpoint(&d.to),
-        d.contract,
-        d.exchange
+        optional(&d.contract),
+        optional(&d.exchange)
     )
 }
 fn data_edits(a: &DataLink, b: &DataLink) -> Vec<String> {
@@ -232,7 +252,7 @@ fn data_edits(a: &DataLink, b: &DataLink) -> Vec<String> {
         &endpoint(&a.to),
         &endpoint(&b.to),
     );
-    field(&mut out, "contract", &a.contract, &b.contract);
-    field(&mut out, "interface wire", &a.exchange, &b.exchange);
+    optional_field(&mut out, "contract", &a.contract, &b.contract);
+    optional_field(&mut out, "interface wire", &a.exchange, &b.exchange);
     out
 }

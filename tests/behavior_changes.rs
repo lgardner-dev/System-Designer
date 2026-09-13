@@ -197,7 +197,7 @@ fn information_diff_names_exact_ports_contract_versions_and_wire_associations() 
         "consumer / port:",
         "A.in",
         "contract:",
-        "version: 1",
+        "T@1",
         "interface wire:",
         "incoming",
     ] {
