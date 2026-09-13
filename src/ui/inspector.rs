@@ -32,6 +32,12 @@ impl Designer {
                             }
                         }
                     });
+                    if ui.button("Enter component behavior").clicked() {
+                        self.go_scope(id.clone(), Layer::Flow);
+                    }
+                    if ui.button("Show uses in Control Flow").clicked() {
+                        self.dialog = Some(Dialog::Flow(flow::FlowDialog::Uses(id.clone())));
+                    }
                     ui.separator();
                     ui.strong("Public interface");
                     for r in &node.ports {
@@ -47,6 +53,7 @@ impl Designer {
                                             }
                                         }
                                     }
+                                    if ui.small_button("Refine contract…").clicked() { self.open_port_refinement(&r.id); }
                                     if ui.small_button("Remove port").clicked(){
                                         let refs=edit::port_edges(&p,&r.id);
                                         self.dialog=Some(Dialog::Confirm{
@@ -216,6 +223,7 @@ impl Designer {
             ui.set_width((ctx.available_rect().width()-80.0).clamp(440.0,800.0));
             egui::ScrollArea::vertical().max_height((ctx.available_rect().height()-110.0).max(260.0)).show(ui,|ui|{
                 match &mut dialog{
+                    Dialog::Flow(d) => { keep = !self.flow_form(ui,d); }
                     Dialog::Project{
                         name,
                         purpose
@@ -263,7 +271,7 @@ impl Designer {
                                 ui.group(|ui|{
                                     ui.text_edit_singleline(&mut port.name);
                                     ui.small(&port.id);
-                                    let connected=!edit::port_edges(self.store.project(),&port.id).is_empty();
+                                    let connected=!edit::port_edges(self.store.project(),&port.id).is_empty() || !crate::behavior::references(self.store.project(),&port.id).is_empty();
                                     ui.add_enabled_ui(!connected,|ui|{
                                         ui.horizontal(|ui|{
                                             egui::ComboBox::from_id_salt("direction").selected_text(port.direction.label()).show_ui(ui,|ui|{
@@ -283,7 +291,7 @@ impl Designer {
                                         });
                                     });
                                     if connected{
-                                        ui.small("Connected: change type through its connection; remove this port in the inspector to remove all affected wires.");
+                                        ui.small("Bound: use Refine contract in the inspector to review both layers. Remove ports from the inspector.");
                                     }
                                 });
                             });

@@ -3,21 +3,24 @@ mod branding;
 pub use branding::window_icon;
 mod canvas;
 mod contracts;
+mod flow;
 mod handoff;
 mod inspector;
+mod scope;
 mod workspace;
 use crate::{edit::Store, model::*, storage};
 use canvas::CanvasState;
 use contracts::{ConnectionDialog, ContractDialog};
 use eframe::egui;
 use handoff::HandoffDialog;
+use scope::Layer;
 use std::{
     collections::HashSet,
     path::PathBuf,
     time::{Duration, Instant},
 };
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum Selection {
+enum Selection {
     None,
     Node(String),
     Edge(String),
@@ -26,7 +29,7 @@ pub(super) enum Selection {
     Summary(String, String),
 }
 #[derive(Clone)]
-pub(super) enum LoadAction {
+enum LoadAction {
     New,
     Open(PathBuf),
     Builtin,
@@ -34,14 +37,15 @@ pub(super) enum LoadAction {
     Close,
 }
 #[derive(Clone)]
-pub(super) enum ConfirmAction {
+enum ConfirmAction {
     Node(String),
     Child(String),
     Port(String, String),
     Edge(String),
     Contract(ContractRef),
 }
-pub(super) enum Dialog {
+enum Dialog {
+    Flow(flow::FlowDialog),
     Project {
         name: String,
         purpose: String,
@@ -60,13 +64,17 @@ pub(super) enum Dialog {
     Help,
 }
 pub struct Designer {
-    pub(super) store: Store,
-    pub(super) current: String,
-    pub(super) selected: Selection,
-    pub(super) canvas: CanvasState,
-    pub(super) canvas_session: canvas::Session,
-    pub(super) dialog: Option<Dialog>,
-    pub(super) collapsed: HashSet<String>,
+    store: Store,
+    current: String,
+    owner: String,
+    layer: Layer,
+    navigation: scope::Navigation,
+    flow: flow::FlowState,
+    selected: Selection,
+    canvas: CanvasState,
+    canvas_session: canvas::Session,
+    dialog: Option<Dialog>,
+    collapsed: HashSet<String>,
     path: Option<PathBuf>,
     file_stamp: Option<String>,
     saved: Option<Project>,
@@ -74,9 +82,9 @@ pub struct Designer {
     last_recovery: Instant,
     recovered_generation: u64,
     allow_close: bool,
-    pub(super) status: String,
-    pub(super) error: Option<String>,
-    pub(super) recoveries: Vec<PathBuf>,
+    status: String,
+    error: Option<String>,
+    recoveries: Vec<PathBuf>,
 }
 impl Designer {
     pub fn new(cc: &eframe::CreationContext<'_>, initial: Option<PathBuf>) -> Self {
@@ -109,6 +117,10 @@ impl Designer {
         Self {
             store: Store::new(p.clone()).expect("blank project is valid"),
             current: root,
+            owner: crate::behavior::ROOT.into(),
+            layer: Layer::Flow,
+            navigation: scope::Navigation::default(),
+            flow: flow::FlowState::default(),
             selected: Selection::None,
             canvas: CanvasState::default(),
             canvas_session: canvas::Session::default(),
@@ -121,15 +133,15 @@ impl Designer {
             last_recovery: Instant::now(),
             recovered_generation: 0,
             allow_close: false,
-            status: "New local project. Add a component to begin.".into(),
+            status: "New local project. Start a flow or explore Interfaces.".into(),
             error,
             recoveries,
         }
     }
-    pub(super) fn dirty(&self) -> bool {
+    fn dirty(&self) -> bool {
         self.saved.as_ref() != Some(self.store.project())
     }
-    pub(super) fn publish(&mut self, label: &str, result: Result<Project>) {
+    fn publish(&mut self, label: &str, result: Result<Project>) {
         match result.and_then(|p| self.store.publish(label, p)) {
             Ok(()) => {
                 self.error = None;
@@ -139,34 +151,19 @@ impl Designer {
             Err(e) => self.error = Some(e.to_string()),
         }
     }
-    pub(super) fn navigate(&mut self, sid: String) {
-        if self.store.project().system(&sid).is_none() {
+    fn navigate(&mut self, sid: String) {
+        let p = self.store.project();
+        let owner = if sid == p.root {
+            crate::behavior::ROOT.into()
+        } else if let Some((_, n)) = p.owner(&sid) {
+            n.id.clone()
+        } else {
             return;
-        }
-        for a in self.store.project().ancestors(&sid) {
-            if let Some(id) = a["node"].as_str() {
-                self.collapsed.remove(id);
-            }
-        }
-        self.canvas_session.viewports.insert(
-            self.current.clone(),
-            canvas::Viewport {
-                pan: self.canvas.pan,
-                zoom: self.canvas.zoom,
-                fit: self.canvas.fit_requested,
-            },
-        );
-        self.current = sid;
-        self.selected = Selection::None;
-        self.canvas = CanvasState::default();
-        if let Some(viewport) = self.canvas_session.viewports.get(&self.current) {
-            self.canvas.pan = viewport.pan;
-            self.canvas.zoom = viewport.zoom;
-            self.canvas.fit_requested = viewport.fit;
-        }
-        self.canvas_session.focus = canvas::Focus::Off;
+        };
+        self.go_scope(owner, Layer::Interfaces);
     }
     fn normalize_selection(&mut self) {
+        self.normalize_scope();
         if self
             .canvas
             .generation
@@ -176,13 +173,9 @@ impl Designer {
                 self.status = "Canvas gesture cancelled because the project changed.".into();
             }
             self.canvas.cancel();
+            self.flow.cancel();
         }
         self.canvas.generation = Some(self.store.generation);
-        if self.store.project().system(&self.current).is_none() {
-            self.current = self.store.project().root.clone();
-            self.canvas = CanvasState::default();
-            self.status = "The previous level was removed; returned to the project root.".into();
-        }
         if !canvas::selection_valid(self.store.project(), &self.current, &self.selected) {
             self.selected = Selection::None;
             self.status =
@@ -199,7 +192,7 @@ impl Designer {
             }
         }
     }
-    pub(super) fn request_load(&mut self, action: LoadAction, ctx: &egui::Context) {
+    fn request_load(&mut self, action: LoadAction, ctx: &egui::Context) {
         if self.dirty() {
             self.dialog = Some(Dialog::Unsaved(action));
         } else {
@@ -213,6 +206,7 @@ impl Designer {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
+        let is_new = matches!(action, LoadAction::New);
         let result: Result<(Project, Option<PathBuf>, Option<String>, bool)> = match action {
             LoadAction::New => Ok((Project::blank(), None, None, false)),
             LoadAction::Open(path) => {
@@ -229,6 +223,14 @@ impl Designer {
                 self.error = None;
                 self.clear_recovery();
                 self.current = p.root.clone();
+                self.owner = crate::behavior::ROOT.into();
+                self.layer = if is_new || p.behavior.contains_key(crate::behavior::ROOT) {
+                    Layer::Flow
+                } else {
+                    Layer::Interfaces
+                };
+                self.navigation = scope::Navigation::default();
+                self.flow = flow::FlowState::default();
                 self.collapsed = p
                     .systems
                     .iter()
@@ -255,7 +257,7 @@ impl Designer {
             Err(e) => self.error = Some(e.to_string()),
         }
     }
-    pub(super) fn save(&mut self, save_as: bool) -> bool {
+    fn save(&mut self, save_as: bool) -> bool {
         let chosen = if save_as || self.path.is_none() {
             rfd::FileDialog::new()
                 .add_filter("System Designer project", &["json"])

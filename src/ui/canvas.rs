@@ -7,14 +7,14 @@ use std::collections::BTreeMap;
 
 mod arrangement;
 mod focus;
-mod geometry;
+pub(super) mod geometry;
 #[cfg(test)]
 mod integration_tests;
 mod overview;
 pub(super) use focus::{Focus, Session, Viewport};
 pub(super) use focus::{details, valid as selection_valid};
 pub(super) use overview::View;
-mod motion;
+pub(super) mod motion;
 #[cfg(test)]
 mod tests;
 use geometry::{Anchor, Path, Scene, Side};

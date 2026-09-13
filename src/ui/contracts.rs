@@ -90,7 +90,7 @@ fn endpoint_picker(
             }
         });
 }
-fn definition_form(ui: &mut Ui, c: &mut Contract, identity_editable: bool) {
+pub(super) fn definition_form(ui: &mut Ui, c: &mut Contract, identity_editable: bool) {
     ui.add_enabled_ui(identity_editable, |ui| {
         ui.horizontal(|ui| {
             ui.label("Stable ID");
@@ -317,10 +317,13 @@ impl Designer {
                     ui.monospace(format!("{} · {}", e.system, e.id));
                 }
             }
+            for d in &impact.data {
+                ui.label(format!("Control Flow {} · {} [{}]", d.owner, d.name, d.id));
+            }
             if impact.requires_consent {
                 ui.checkbox(
                     &mut d.consent,
-                    "I confirm all listed shared-port and connection changes",
+                    "I confirm all listed port, connection and information changes",
                 );
             }
         }

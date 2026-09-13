@@ -29,10 +29,20 @@ impl Designer {
                 self.normalize_selection();
             }
             if ctx.input(|i| i.key_pressed(Key::Delete)) {
-                self.ask_delete();
+                if self.layer == Layer::Flow {
+                    self.ask_delete_flow();
+                } else {
+                    self.ask_delete();
+                }
             }
             if ctx.input(|i| i.key_pressed(Key::Escape)) {
-                if self.canvas.has_gesture() {
+                if self.layer == Layer::Flow {
+                    if self.flow.has_gesture() {
+                        self.flow.cancel();
+                    } else {
+                        self.flow.selection = flow::FlowSelection::default();
+                    }
+                } else if self.canvas.has_gesture() {
                     self.canvas.cancel();
                 } else if self.canvas_session.focus != canvas::Focus::Off {
                     self.canvas_session.focus = canvas::Focus::Off;
@@ -110,10 +120,22 @@ impl Designer {
                         self.store.redo();
                     }
                     ui.separator();
-                    if ui.button("+ Component").clicked() {
+                    if ui
+                        .add_enabled(
+                            self.interface_system().is_some(),
+                            egui::Button::new("+ Component"),
+                        )
+                        .clicked()
+                    {
                         self.new_component();
                     }
-                    if ui.button("Connect ports").clicked() {
+                    if ui
+                        .add_enabled(
+                            self.interface_system().is_some(),
+                            egui::Button::new("Connect ports"),
+                        )
+                        .clicked()
+                    {
                         self.canvas_session.view = canvas::View::Detail;
                         self.canvas.cancel();
                         self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
@@ -135,25 +157,46 @@ impl Designer {
                 });
                 ui.horizontal_wrapped(|ui| {
                     if ui
+                        .add_enabled(self.can_go_back(), egui::Button::new("← Back"))
+                        .clicked()
+                    {
+                        self.back_scope();
+                    }
+                    if ui
                         .selectable_label(
-                            self.current == self.store.project().root,
+                            self.owner == crate::behavior::ROOT,
                             &self.store.project().name,
                         )
                         .clicked()
                     {
-                        self.navigate(self.store.project().root.clone());
+                        self.go_scope(crate::behavior::ROOT.into(), self.layer);
                     }
-                    for a in self.store.project().ancestors(&self.current) {
+                    let p = self.store.snapshot();
+                    let mut owners = vec![];
+                    let mut owner = self.owner.clone();
+                    while owner != crate::behavior::ROOT {
+                        owners.push(owner.clone());
+                        let Some((system, _)) = p.node(&owner) else {
+                            break;
+                        };
+                        owner = p
+                            .owner(&system.id)
+                            .map(|(_, n)| n.id.clone())
+                            .unwrap_or_else(|| crate::behavior::ROOT.into());
+                    }
+                    for id in owners.iter().rev() {
                         ui.label("/");
-                        let name = a["name"].as_str().unwrap_or("Component");
-                        let child = a["node"]
-                            .as_str()
-                            .and_then(|id| self.store.project().node(id))
-                            .and_then(|(_, n)| n.child.clone());
-                        if ui.button(name).clicked() {
-                            if let Some(sid) = child {
-                                self.navigate(sid);
-                            }
+                        if ui.button(crate::behavior::name(&p, id)).clicked() {
+                            self.go_scope(id.clone(), self.layer);
+                        }
+                    }
+                    ui.separator();
+                    for (layer, label) in [
+                        (Layer::Flow, "Control Flow"),
+                        (Layer::Interfaces, "Interfaces"),
+                    ] {
+                        if ui.selectable_label(self.layer == layer, label).clicked() {
+                            self.go_scope(self.owner.clone(), layer);
                         }
                     }
                     if self.dirty() {
@@ -207,13 +250,25 @@ impl Designer {
             .show(ctx, |ui| {
                 ui.add_enabled_ui(enabled, |ui| {
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.inspector(ui);
+                        if self.layer == Layer::Flow {
+                            self.flow_inspector(ui);
+                        } else if self.interface_system().is_none() {
+                            self.leaf_inspector(ui);
+                        } else {
+                            self.inspector(ui);
+                        }
                     });
                 });
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.add_enabled_ui(enabled, |ui| {
-                self.canvas_view(ui);
+                if self.layer == Layer::Flow {
+                    self.flow_view(ui);
+                } else if self.interface_system().is_none() {
+                    self.leaf_interfaces(ui);
+                } else {
+                    self.canvas_view(ui);
+                }
             });
         });
     }
@@ -222,12 +277,12 @@ impl Designer {
         egui::ScrollArea::both().show(ui, |ui| {
             if ui
                 .selectable_label(
-                    self.current == p.root && self.selected == Selection::None,
+                    self.owner == crate::behavior::ROOT && self.selected == Selection::None,
                     format!("{}  [root]", p.name),
                 )
                 .clicked()
             {
-                self.navigate(p.root.clone());
+                self.go_scope(crate::behavior::ROOT.into(), self.layer);
             }
             let mut pending: Vec<(&System, &Node, usize)> = p
                 .system(&p.root)
@@ -251,18 +306,16 @@ impl Designer {
                         }
                         let selected = matches!(&self.selected,Selection::Port(ep) if ep.node.as_ref()==Some(&node.id))
                             || self.selected == Selection::Node(node.id.clone())
-                            || node.child.as_deref() == Some(&self.current);
+                            || self.owner == node.id;
                         let r = ui.selectable_label(selected, &node.name);
                         if r.clicked() {
-                            if self.current != system.id {
+                            if self.current != system.id || self.layer != Layer::Interfaces {
                                 self.navigate(system.id.clone());
                             }
                             self.selected = Selection::Node(node.id.clone());
                         }
-                        if let Some(child) = &node.child {
-                            if r.double_clicked() || ui.small_button(">").clicked() {
-                                self.navigate(child.clone());
-                            }
+                        if r.double_clicked() || ui.small_button(">").clicked() {
+                            self.go_scope(node.id.clone(), self.layer);
                         }
                     });
                 });
@@ -277,6 +330,7 @@ impl Designer {
         });
     }
     pub(super) fn new_component(&mut self) {
+        self.go_scope(self.owner.clone(), Layer::Interfaces);
         match edit::add_node(self.store.project(), &self.current) {
             Ok((p, id)) => {
                 self.publish("Add component", Ok(p));

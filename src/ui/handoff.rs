@@ -10,6 +10,10 @@ enum Tab {
 pub(super) struct HandoffDialog {
     tab: Tab,
     scope: Scope,
+    behavior: bool,
+    interface_system: String,
+    clear: bool,
+    clear_confirmed: bool,
     node: Option<String>,
     exported: String,
     incoming: String,
@@ -18,12 +22,29 @@ pub(super) struct HandoffDialog {
 }
 impl Designer {
     pub(super) fn open_handoff(&mut self) {
-        let node = match &self.selected {
-            Selection::Node(id) => Some(id.clone()),
-            _ => None,
+        let node = if self.interface_system().is_none() {
+            Some(self.owner.clone())
+        } else {
+            match &self.selected {
+                Selection::Node(id) => Some(id.clone()),
+                _ => None,
+            }
         };
         self.dialog = Some(Dialog::Handoff(HandoffDialog {
             tab: Tab::Initialize,
+            behavior: self.layer == Layer::Flow,
+            interface_system: self
+                .interface_system()
+                .map(|s| s.id.clone())
+                .or_else(|| {
+                    self.store
+                        .project()
+                        .node(&self.owner)
+                        .map(|(s, _)| s.id.clone())
+                })
+                .unwrap_or_default(),
+            clear: false,
+            clear_confirmed: false,
             scope: if node.is_some() {
                 Scope::Component
             } else {
@@ -101,35 +122,59 @@ impl Designer {
             }
             Tab::Export => {
                 ui.label("Overview, Focus and Lights do not narrow this export. Every real object in the chosen semantic scope is included.");
+                let previous_layer = d.behavior;
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut d.behavior, false, "Interfaces");
+                    ui.selectable_value(&mut d.behavior, true, "Control Flow — current component");
+                });
+                if previous_layer != d.behavior {
+                    d.exported.clear();
+                }
+                if d.behavior {
+                    ui.label("Writable: this component's flow only. Preserved: every interface, other flows and both saved layouts. Read-only: owner boundary, child signatures/outcomes, exact local exchanges, callers and contract catalog.");
+                    ui.small("Context policy v1 includes the complete contract catalog and some repeated child signatures. Unrelated catalog edits can stale this packet; this is not minimal-context delivery.");
+                }
                 let previous = d.scope;
-                egui::ComboBox::from_id_salt("export_scope")
-                    .selected_text(d.scope.label())
-                    .show_ui(ui, |ui| {
-                        if d.node.is_some() {
+                ui.add_enabled_ui(!d.behavior, |ui| {
+                    egui::ComboBox::from_id_salt("export_scope")
+                        .selected_text(d.scope.label())
+                        .show_ui(ui, |ui| {
+                            if d.node.is_some() {
+                                ui.selectable_value(
+                                    &mut d.scope,
+                                    Scope::Component,
+                                    Scope::Component.label(),
+                                );
+                            }
+                            ui.selectable_value(&mut d.scope, Scope::Level, Scope::Level.label());
                             ui.selectable_value(
                                 &mut d.scope,
-                                Scope::Component,
-                                Scope::Component.label(),
+                                Scope::Subtree,
+                                Scope::Subtree.label(),
                             );
-                        }
-                        ui.selectable_value(&mut d.scope, Scope::Level, Scope::Level.label());
-                        ui.selectable_value(&mut d.scope, Scope::Subtree, Scope::Subtree.label());
-                    });
+                        });
+                });
                 if previous != d.scope {
                     d.exported.clear();
                 }
-                ui.label(match d.scope{
+                if !d.behavior {
+                    ui.label(match d.scope{
                     Scope::Component=>"Only the selected node is editable. Siblings, wires, and deeper internals are preserved.",
                     Scope::Level=>"Immediate nodes and connections only. Hidden child systems and their ownership are preserved.",
                     Scope::Subtree=>"This level and every descendant. Ancestors and outside branches remain unchanged."
                 });
+                }
                 if d.exported.is_empty() {
-                    match exchange::export(
-                        self.store.project(),
-                        &self.current,
-                        d.scope,
-                        d.node.as_deref(),
-                    )
+                    match if d.behavior {
+                        crate::behavior::export(self.store.project(), &self.owner)
+                    } else {
+                        exchange::export(
+                            self.store.project(),
+                            &d.interface_system,
+                            d.scope,
+                            d.node.as_deref(),
+                        )
+                    }
                     .and_then(|v| serde_json::to_string_pretty(&v).map_err(ModelError::one))
                     {
                         Ok(text) => {
@@ -139,7 +184,15 @@ impl Designer {
                         Err(e) => self.error = Some(e.to_string()),
                     }
                 }
-                ui.monospace(format!("{} · {} bytes", self.current, d.exported.len()));
+                ui.monospace(format!(
+                    "{} · {} bytes",
+                    if d.behavior {
+                        &self.owner
+                    } else {
+                        &d.interface_system
+                    },
+                    d.exported.len()
+                ));
                 ui.horizontal(|ui| {
                     if ui.button("Copy scope JSON").clicked() {
                         ctx.copy_text(d.exported.clone());
@@ -159,7 +212,10 @@ impl Designer {
             }
             Tab::Import => {
                 ui.label("Load the complete returned scope packet at the original level. Do not change its base, context, or public boundary. Full-project JSON is intentionally rejected here.");
-                ui.monospace(format!("Target level: {}", self.current));
+                ui.monospace(format!(
+                    "Interfaces target: {} · Control Flow owner: {}",
+                    d.interface_system, self.owner
+                ));
                 if ui.button("Read scope file…").clicked() {
                     if let Some(path) = rfd::FileDialog::new()
                         .add_filter("Scope JSON", &["json"])
@@ -169,6 +225,8 @@ impl Designer {
                             Ok(text) => {
                                 d.incoming = text;
                                 d.validated = None;
+                                d.clear = false;
+                                d.clear_confirmed = false;
                             }
                             Err(e) => self.error = Some(e.to_string()),
                         }
@@ -186,14 +244,32 @@ impl Designer {
                 {
                     d.validated = None;
                     d.summary.clear();
+                    d.clear = false;
+                    d.clear_confirmed = false;
+                }
+                if d.clear {
+                    ui.checkbox(
+                        &mut d.clear_confirmed,
+                        "Clear this component’s entire control flow and its saved flow layout",
+                    );
                 }
                 ui.horizontal(|ui|{
                     if ui.button("Validate candidate").clicked(){
-                        let result=serde_json::from_str::<serde_json::Value>(&d.incoming).map_err(ModelError::one).and_then(|packet|exchange::replace(self.store.project(),&packet,&self.current));
+                        let result=serde_json::from_str::<serde_json::Value>(&d.incoming).map_err(ModelError::one).and_then(|packet|exchange::replace_packet(self.store.project(),&packet,&d.interface_system,&self.owner));
                         match result{
                             Ok(p)=>{
                                 d.validated=Some(d.incoming.clone());
-                                d.summary=format!("Valid merged project: {} systems, {} components. No changes applied yet.",p.systems.len(),p.systems.iter().map(|s|s.nodes.len()).sum::<usize>());
+                                d.clear = self.store.project().behavior.contains_key(&self.owner) && !p.behavior.contains_key(&self.owner);
+                                d.clear_confirmed = false;
+                                d.summary = if d.clear { format!("Explicit clear: remove the control flow and saved flow layout of {}. Interfaces and other owners remain intact. No changes applied yet.",self.owner) }
+                                    else { format!("Valid merged project: {} systems, {} components, {} behavior scopes. No changes applied yet.",p.systems.len(),p.systems.iter().map(|s|s.nodes.len()).sum::<usize>(),p.behavior.len()) };
+                                if let Some(next) = p.behavior.get(&self.owner) {
+                                    for step in &next.steps {
+                                        if let Some(old) = self.store.project().behavior.get(&self.owner).and_then(|f|f.step(&step.id)) {
+                                            if old != step {d.summary.push_str(&format!("\nStep {}: {} → {}",step.id,old.name,step.name));}
+                                        } else {d.summary.push_str(&format!("\nAdd step {}: {}",step.id,step.name));}
+                                    }
+                                }
                                 self.error=None;
                             },
                             Err(e)=>{
@@ -202,9 +278,9 @@ impl Designer {
                             }
                         }
                     }
-                    if ui.add_enabled(d.validated.as_ref()==Some(&d.incoming),egui::Button::new("Apply validated changes")).clicked(){
+                    if ui.add_enabled(d.validated.as_ref()==Some(&d.incoming) && (!d.clear || d.clear_confirmed),egui::Button::new("Apply validated changes")).clicked(){
                         // Deliberately reconstruct and revalidate; never trust a cached candidate.
-                        let result=serde_json::from_str::<serde_json::Value>(&d.incoming).map_err(ModelError::one).and_then(|packet|exchange::replace(self.store.project(),&packet,&self.current));
+                        let result=serde_json::from_str::<serde_json::Value>(&d.incoming).map_err(ModelError::one).and_then(|packet|exchange::replace_packet(self.store.project(),&packet,&d.interface_system,&self.owner));
                         self.publish("Apply scoped replacement",result);
                         if self.error.is_none(){
                             d.summary="Applied as one undoable edit. Outside scope preserved.".into();

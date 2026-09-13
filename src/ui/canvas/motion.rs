@@ -4,7 +4,7 @@ use crate::model::Edge;
 use eframe::egui::{self, Color32, Id, Painter};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) enum Motion {
+pub(in crate::ui) enum Motion {
     Off,
     Selected,
     #[default]
@@ -43,7 +43,7 @@ fn phase(id: &str) -> f64 {
 }
 /// Arc length, not Bezier t: a light does not speed up through a tight bend.
 /// A gap lets it disappear at the destination before restarting at the source.
-pub(super) fn position(time: f64, length: f32, id: &str) -> Option<f32> {
+pub(in crate::ui) fn position(time: f64, length: f32, id: &str) -> Option<f32> {
     if length <= 0.01 || !length.is_finite() || !time.is_finite() {
         return None;
     }
@@ -51,7 +51,7 @@ pub(super) fn position(time: f64, length: f32, id: &str) -> Option<f32> {
     let distance = (time * 100.0 + phase(id) * period).rem_euclid(period);
     (distance <= length as f64).then_some(distance as f32)
 }
-pub(super) fn paint(painter: &Painter, path: &Path, time: f64, id: &str) {
+pub(in crate::ui) fn paint(painter: &Painter, path: &Path, time: f64, id: &str) {
     let Some(distance) = position(time, path.length, id) else {
         return;
     };

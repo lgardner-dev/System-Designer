@@ -13,10 +13,15 @@ fn run() -> model::Result<()> {
         let packet: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(path).map_err(model::ModelError::one)?)
                 .map_err(model::ModelError::one)?;
-        let sid = packet["systemId"]
+        let target_field = match packet["format"].as_str() {
+            Some("system-designer-scope") => "systemId",
+            Some("system-designer-behavior-scope") => "owner",
+            _ => return Err(model::ModelError::one("Unknown scope packet format")),
+        };
+        let target = packet[target_field]
             .as_str()
-            .ok_or_else(|| model::ModelError::one("missing systemId"))?;
-        exchange::replace(&project, &packet, sid)?;
+            .ok_or_else(|| model::ModelError::one(format!("Missing {target_field}")))?;
+        exchange::replace_packet(&project, &packet, target, target)?;
         println!("Scope replacement validates. No files changed.");
     } else {
         println!(

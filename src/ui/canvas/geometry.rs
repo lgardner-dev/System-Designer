@@ -451,7 +451,7 @@ impl Scene {
 
 /// Drawing, picking, arrowheads and animation all use this SAME sampled path.
 #[derive(Clone)]
-pub(super) struct Path {
+pub(in crate::ui) struct Path {
     pub points: Vec<Pos2>,
     distances: Vec<f32>,
     pub length: f32,
