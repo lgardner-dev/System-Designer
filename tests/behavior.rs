@@ -311,3 +311,363 @@ fn extraction_preserves_each_explicit_outcome_path() {
         assert_eq!(outer.outcome.as_deref(), Some(inner.to.as_str()));
     }
 }
+
+#[test]
+fn r1_missing_flow_is_not_clear() {
+    let p = fixture();
+    let mut packet = export(&p, ROOT).unwrap();
+    packet.as_object_mut().unwrap().remove("flow");
+    assert!(replace(&p, &packet, ROOT).is_err());
+}
+#[test]
+fn r2_reserve_crossing_transition_identity() {
+    let mut p = fixture();
+    p.behavior.get_mut(ROOT).unwrap().transitions[1].id = "transition.1".into();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    validate(&apply(&p, &plan).unwrap()).unwrap();
+}
+#[test]
+fn r3_connection_refines_extracted_information_atomically() {
+    let mut p = fixture();
+    p.behavior.get_mut(ROOT).unwrap().data.push(DataLink {
+        id: "input".into(),
+        name: "Input".into(),
+        from: DataEnd {
+            step: None,
+            port: None,
+        },
+        to: DataEnd {
+            step: Some("action".into()),
+            port: None,
+        },
+        contract: None,
+        exchange: None,
+    });
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    let q = apply(&p, &plan).unwrap();
+    let (q, source) = edit::add_node(&q, &q.root).unwrap();
+    let q = edit::add_port(&q, &source, Direction::Out).unwrap();
+    let from = Endpoint {
+        node: Some(source.clone()),
+        port: q.node(&source).unwrap().1.ports[0].id.clone(),
+    };
+    let to = Endpoint {
+        node: Some(plan.component.clone()),
+        port: plan.requirements[0].id.clone(),
+    };
+    let c = Contract::draft("Input".into());
+    let r = c.reference();
+    let q = edit::connect(
+        &q,
+        &q.root,
+        &edit::Connection {
+            id: None,
+            from,
+            to,
+            label: "Input".into(),
+            contract: r.clone(),
+            new_contract: Some(c),
+            consent: true,
+        },
+    )
+    .unwrap();
+    assert_eq!(q.behavior[ROOT].data[0].contract, Some(r.clone()));
+    assert_eq!(q.behavior[&plan.component].data[0].contract, Some(r));
+}
+#[test]
+fn r4_missing_and_duplicate_returns_are_draft_issues() {
+    let p = fixture();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    let mut q = apply(&p, &plan).unwrap();
+    q.behavior
+        .get_mut(&plan.component)
+        .unwrap()
+        .steps
+        .push(Step::new("rejection", StepKind::Outcome, "Rejected"));
+    let mut duplicate = q.behavior[ROOT]
+        .transitions
+        .iter()
+        .find(|t| t.from == plan.call)
+        .unwrap()
+        .clone();
+    duplicate.id = "duplicate".into();
+    q.behavior
+        .get_mut(ROOT)
+        .unwrap()
+        .transitions
+        .push(duplicate);
+    validate(&q).unwrap();
+    let messages = issues(&q, ROOT).join("\n");
+    assert!(messages.contains("unhandled outcome"), "{messages}");
+    assert!(messages.contains("duplicate unguarded"), "{messages}");
+}
+
+#[test]
+fn explicit_clear_empty_and_rejected_packets_preserve_history() {
+    let p = fixture();
+    let mut store = Store::new(p.clone()).unwrap();
+    let mut packet = export(&p, ROOT).unwrap();
+    packet["flow"] = serde_json::Value::Null;
+    let q = replace(&p, &packet, ROOT).unwrap();
+    assert!(q.behavior.is_empty());
+    assert_eq!(q.version, 2);
+    store.publish("Clear", q).unwrap();
+    store.undo();
+    let generation = store.generation;
+    let redo = store.redo_label().map(str::to_owned);
+    packet.as_object_mut().unwrap().remove("flow");
+    assert!(replace(store.project(), &packet, ROOT).is_err());
+    assert_eq!(store.project(), &p);
+    assert_eq!(store.generation, generation);
+    assert_eq!(store.redo_label(), redo.as_deref());
+    packet["flow"] = serde_json::to_value(Flow::default()).unwrap();
+    assert!(
+        replace(&p, &packet, ROOT)
+            .unwrap()
+            .behavior
+            .contains_key(ROOT)
+    );
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    let q = apply(&p, &plan).unwrap();
+    let mut packet = export(&q, &plan.component).unwrap();
+    packet["flow"] = serde_json::Value::Null;
+    assert!(replace(&q, &packet, &plan.component).is_err());
+}
+
+/// Expand only this bounded local-region transform, retaining original stable IDs.
+/// Compare alternatives, descriptive labels and declared data uses, not execution.
+fn assert_expansion(p: &Project, owner: &str, plan: &Extraction) {
+    let q = apply(p, plan).unwrap();
+    let original = &p.behavior[owner];
+    let parent = &q.behavior[owner];
+    let child = &q.behavior[&plan.component];
+    let mut expanded = parent.clone();
+    expanded.steps.retain(|s| s.id != plan.call);
+    expanded.steps.extend(
+        child
+            .steps
+            .iter()
+            .filter(|s| plan.region.members.contains(&s.id))
+            .cloned(),
+    );
+    for t in &mut expanded.transitions {
+        if t.to == plan.call {
+            t.to = plan.region.entry.clone();
+        }
+        if t.from == plan.call {
+            let inner = child
+                .transitions
+                .iter()
+                .find(|x| x.to == *t.outcome.as_ref().unwrap())
+                .unwrap();
+            t.from = inner.from.clone();
+            t.condition = inner.condition.clone();
+            t.outcome = inner.outcome.clone();
+        }
+    }
+    expanded.transitions.extend(
+        child
+            .transitions
+            .iter()
+            .filter(|t| {
+                plan.region.members.contains(&t.from) && plan.region.members.contains(&t.to)
+            })
+            .cloned(),
+    );
+    for d in &mut expanded.data {
+        if d.from.step.as_ref() == Some(&plan.call) {
+            d.from = child
+                .data
+                .iter()
+                .find(|x| x.id == d.id)
+                .unwrap()
+                .from
+                .clone();
+        }
+        if d.to.step.as_ref() == Some(&plan.call) {
+            d.to = child.data.iter().find(|x| x.id == d.id).unwrap().to.clone();
+        }
+    }
+    expanded.data.extend(
+        child
+            .data
+            .iter()
+            .filter(|d| {
+                d.from
+                    .step
+                    .as_ref()
+                    .is_some_and(|s| plan.region.members.contains(s))
+                    && d.to
+                        .step
+                        .as_ref()
+                        .is_some_and(|s| plan.region.members.contains(s))
+            })
+            .cloned(),
+    );
+    let mut expected = original.clone();
+    for f in [&mut expanded, &mut expected] {
+        f.steps.sort_by(|a, b| a.id.cmp(&b.id));
+        f.transitions.sort_by(|a, b| a.id.cmp(&b.id));
+        f.data.sort_by(|a, b| a.id.cmp(&b.id));
+    }
+    assert_eq!(expanded.steps, expected.steps);
+    assert_eq!(expanded.transitions, expected.transitions);
+    assert_eq!(expanded.data, expected.data);
+}
+#[test]
+fn extraction_expansion_covers_loops_alternatives_merges_and_data_collisions() {
+    for data_id in ["entry.1", "transition.1", "outcome.1"] {
+        let mut p = fixture();
+        let f = p.behavior.get_mut(ROOT).unwrap();
+        f.steps[1].kind = StepKind::Decision;
+        f.steps.extend([
+            Step::new("retry", StepKind::Action, "Retry"),
+            Step::new("merge", StepKind::Merge, "Merge alternatives"),
+            Step::new("rejected", StepKind::Outcome, "Rejected"),
+        ]);
+        f.transitions[1].id = "transition.1".into();
+        f.transitions[1].condition = "valid".into();
+        for (id, from, to, condition) in [
+            ("again", "action", "retry", "retryable"),
+            ("loop", "retry", "merge", ""),
+            ("back", "merge", "action", ""),
+            ("reject", "action", "rejected", "invalid"),
+        ] {
+            f.transitions.push(Transition {
+                id: id.into(),
+                from: from.into(),
+                to: to.into(),
+                condition: condition.into(),
+                outcome: None,
+            });
+        }
+        f.data.push(DataLink {
+            id: data_id.into(),
+            name: "Record".into(),
+            from: DataEnd {
+                step: None,
+                port: None,
+            },
+            to: DataEnd {
+                step: Some("retry".into()),
+                port: None,
+            },
+            contract: None,
+            exchange: None,
+        });
+        // Avoid an invalid original collision: transition and data share namespace.
+        if data_id == "transition.1" {
+            f.transitions[1].id = "outcome.1".into();
+        }
+        let members = BTreeSet::from(["action".into(), "retry".into(), "merge".into()]);
+        let plan = preview(
+            &p,
+            ROOT,
+            &members,
+            "Validation",
+            "Validate with bounded retries",
+        )
+        .unwrap();
+        assert_eq!(plan.region.exits.len(), 2);
+        assert_expansion(&p, ROOT, &plan);
+        let q = apply(&p, &plan).unwrap();
+        let nested = preview(&q, &plan.component, &members, "Inner", "Review input").unwrap();
+        assert_expansion(&q, &plan.component, &nested);
+        let f = p.behavior.get_mut(ROOT).unwrap();
+        f.transitions.push(Transition {
+            id: "side".into(),
+            from: "entry".into(),
+            to: "retry".into(),
+            condition: String::new(),
+            outcome: None,
+        });
+        assert!(preview(&p, ROOT, &members, "Bad", "Multiple entries").is_err());
+        assert!(
+            preview(
+                &q,
+                ROOT,
+                &BTreeSet::from([plan.call]),
+                "Bad",
+                "Existing call"
+            )
+            .is_err()
+        );
+    }
+}
+#[test]
+fn review_is_invalidated_by_meaning_and_incident_data_edits() {
+    let mut p = fixture();
+    p.behavior.get_mut(ROOT).unwrap().steps[1].information_reviewed = true;
+    let mut step = p.behavior[ROOT].steps[1].clone();
+    step.name = "Other work".into();
+    let q = save_step(&p, ROOT, step).unwrap();
+    assert!(!q.behavior[ROOT].steps[1].information_reviewed);
+    let (q, _) = information_candidate(
+        &p,
+        ROOT,
+        DataLink {
+            id: "need".into(),
+            name: "Input".into(),
+            from: DataEnd {
+                step: None,
+                port: None,
+            },
+            to: DataEnd {
+                step: Some("action".into()),
+                port: None,
+            },
+            contract: None,
+            exchange: None,
+        },
+        None,
+    )
+    .unwrap();
+    assert!(!q.behavior[ROOT].steps[1].information_reviewed);
+}
+#[test]
+fn exact_refinement_preserves_unrelated_same_named_channels_and_cancel() {
+    let mut p = fixture();
+    let link = DataLink {
+        id: "input".into(),
+        name: "Input".into(),
+        from: DataEnd {
+            step: None,
+            port: None,
+        },
+        to: DataEnd {
+            step: Some("action".into()),
+            port: None,
+        },
+        contract: None,
+        exchange: None,
+    };
+    p.behavior.get_mut(ROOT).unwrap().data.push(link.clone());
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    let mut p = apply(&p, &plan).unwrap();
+    let mut unrelated = link;
+    unrelated.id = "unrelated".into();
+    unrelated.to.step = Some("done".into());
+    p.behavior
+        .get_mut(ROOT)
+        .unwrap()
+        .data
+        .push(unrelated.clone());
+    let store = Store::new(p.clone()).unwrap();
+    let c = Contract::draft("Record".into());
+    let impact = edit::binding_impact(
+        &p,
+        &[plan.requirements[0].id.clone()],
+        &[],
+        Some(&c.reference()),
+        None,
+    );
+    assert_eq!(impact.data.len(), 2);
+    let q = edit::refine_port(&p, &plan.requirements[0].id, Some(c.reference()), Some(c)).unwrap();
+    assert_eq!(
+        q.behavior[ROOT].data.iter().find(|d| d.id == "unrelated"),
+        Some(&unrelated)
+    );
+    assert_eq!(store.project(), &p);
+    assert_eq!(store.generation, 0);
+    assert!(store.undo_label().is_none());
+}

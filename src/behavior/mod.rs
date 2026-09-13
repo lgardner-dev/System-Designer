@@ -1,4 +1,6 @@
 //! Design-time control flow. Never executes predicates, calls, or project code.
+mod edit;
+pub use edit::*;
 mod exchange;
 mod extract;
 mod model;

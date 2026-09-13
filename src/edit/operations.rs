@@ -3,6 +3,7 @@ use std::collections::HashSet;
 pub fn candidate(p: &Project, f: impl FnOnce(&mut Project) -> Result<()>) -> Result<Project> {
     let mut q = p.clone();
     f(&mut q)?;
+    crate::behavior::invalidate_reviews(p, &mut q);
     validate(&q)?;
     Ok(q)
 }
@@ -53,6 +54,14 @@ pub fn delete_child(p: &Project, nid: &str) -> Result<Project> {
         .as_ref()
         .map(|c| p.descendants(c))
         .unwrap_or_default();
+    let identities: Vec<String> = p
+        .systems
+        .iter()
+        .filter(|s| removed.contains(&s.id))
+        .flat_map(|s| s.nodes.iter())
+        .flat_map(|n| std::iter::once(n.id.clone()).chain(n.ports.iter().map(|r| r.id.clone())))
+        .collect();
+    block_behavior_references(p, &identities)?;
     candidate(p, |q| {
         q.systems.retain(|s| !removed.contains(&s.id));
         if let Some(n) = q.node_mut(nid) {
@@ -72,6 +81,16 @@ pub fn delete_node(p: &Project, nid: &str) -> Result<Project> {
         .as_ref()
         .map(|c| p.descendants(c))
         .unwrap_or_default();
+    let mut identities: Vec<String> = p
+        .systems
+        .iter()
+        .filter(|s| removed.contains(&s.id))
+        .flat_map(|s| s.nodes.iter())
+        .flat_map(|n| std::iter::once(n.id.clone()).chain(n.ports.iter().map(|r| r.id.clone())))
+        .collect();
+    identities.push(nid.into());
+    identities.extend(n.ports.iter().map(|r| r.id.clone()));
+    block_behavior_references(p, &identities)?;
     candidate(p, |q| {
         q.systems.retain(|s| !removed.contains(&s.id));
         for s in &mut q.systems {
@@ -96,6 +115,7 @@ pub fn port_edges(p: &Project, pid: &str) -> Vec<(String, String)> {
         .collect()
 }
 pub fn delete_port(p: &Project, nid: &str, pid: &str) -> Result<Project> {
+    block_behavior_references(p, &[pid.to_owned()])?;
     candidate(p, |q| {
         let n = q
             .node_mut(nid)
@@ -111,6 +131,7 @@ pub fn delete_port(p: &Project, nid: &str, pid: &str) -> Result<Project> {
     })
 }
 pub fn delete_edge(p: &Project, sid: &str, eid: &str) -> Result<Project> {
+    block_behavior_references(p, &[eid.to_owned()])?;
     candidate(p, |q| {
         let s = q
             .system_mut(sid)
@@ -214,4 +235,18 @@ pub fn delete_contract(p: &Project, r: &ContractRef) -> Result<Project> {
 }
 pub fn contract_ids(p: &Project) -> HashSet<ContractRef> {
     p.contracts.iter().map(Contract::reference).collect()
+}
+
+fn block_behavior_references(p: &Project, identities: &[String]) -> Result<()> {
+    let refs: Vec<_> = identities
+        .iter()
+        .flat_map(|id| crate::behavior::references(p, id))
+        .collect();
+    if !refs.is_empty() {
+        return Err(ModelError::one(format!(
+            "Reconcile these behavior references first: {}",
+            refs.join("; ")
+        )));
+    }
+    Ok(())
 }

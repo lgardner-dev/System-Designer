@@ -211,3 +211,45 @@ pub fn fingerprint(p: &Project) -> String {
             .as_bytes(),
     )
 }
+
+/// Material edits invalidate human information-use review on every incident local
+/// action/decision. This is conservative review state, never a completeness proof.
+pub fn invalidate_reviews(before: &Project, after: &mut Project) {
+    for (owner, flow) in &mut after.behavior {
+        let Some(old) = before.behavior.get(owner) else {
+            continue;
+        };
+        for step in &mut flow.steps {
+            if !matches!(step.kind, StepKind::Action | StepKind::Decision) {
+                continue;
+            }
+            let meaning_changed = old.step(&step.id).is_some_and(|s| {
+                s.name != step.name
+                    || s.purpose != step.purpose
+                    || s.kind != step.kind
+                    || s.target != step.target
+            });
+            let incident = |d: &&DataLink| {
+                d.from.step.as_ref() == Some(&step.id) || d.to.step.as_ref() == Some(&step.id)
+            };
+            let a: BTreeMap<_, _> = old
+                .data
+                .iter()
+                .filter(incident)
+                .map(|d| (&d.id, d))
+                .collect();
+            let b: BTreeMap<_, _> = flow
+                .data
+                .iter()
+                .filter(incident)
+                .map(|d| (&d.id, d))
+                .collect();
+            let definition_changed = b.values().filter_map(|d| d.contract.as_ref()).any(|r| {
+                before.contract(r) != after.contracts.iter().find(|c| c.reference() == *r)
+            });
+            if meaning_changed || a != b || definition_changed {
+                step.information_reviewed = false;
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 use crate::model::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::BTreeSet;
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChangedPort {
     pub node: String,
@@ -14,9 +14,17 @@ pub struct ChangedEdge {
     pub system: String,
 }
 #[derive(Clone, Debug, PartialEq)]
+pub struct ChangedData {
+    pub owner: String,
+    pub id: String,
+    pub name: String,
+    pub previous: Option<ContractRef>,
+}
+#[derive(Clone, Debug, PartialEq)]
 pub struct Impact {
     pub ports: Vec<ChangedPort>,
     pub edges: Vec<ChangedEdge>,
+    pub data: Vec<ChangedData>,
     pub requires_consent: bool,
 }
 #[derive(Clone, Debug)]
@@ -52,70 +60,158 @@ pub fn connection_impact(
             "choose a local output and input (or corresponding boundary ports)",
         ));
     }
-    let mut adjacency: HashMap<&str, Vec<&str>> = HashMap::new();
-    for s in &p.systems {
-        for n in &s.nodes {
-            for r in &n.ports {
-                adjacency.entry(&r.id).or_default();
-            }
-        }
-        for e in &s.edges {
-            if Some(e.id.as_str()) != editing {
-                adjacency.entry(&e.from.port).or_default().push(&e.to.port);
-                adjacency.entry(&e.to.port).or_default().push(&e.from.port);
-            }
-        }
-    }
-    let mut seen = HashSet::new();
-    let mut pending = vec![from.port.as_str(), to.port.as_str()];
-    while let Some(id) = pending.pop() {
-        if !seen.insert(id) {
-            continue;
-        }
-        if let Some(neighbors) = adjacency.get(id) {
-            pending.extend(neighbors.iter().copied());
-        }
-    }
-    let mut ports = vec![];
-    for s in &p.systems {
-        for n in &s.nodes {
-            for r in &n.ports {
-                if seen.contains(r.id.as_str()) && r.contract.as_ref() != Some(chosen) {
-                    ports.push(ChangedPort {
-                        node: n.id.clone(),
-                        port: r.id.clone(),
-                        name: format!("{} · {}", n.name, r.name),
-                        system: s.id.clone(),
-                        previous: r.contract.clone(),
-                    });
+    Ok(binding_impact(
+        p,
+        &[from.port.clone(), to.port.clone()],
+        &[],
+        Some(chosen),
+        editing,
+    ))
+}
+/// The closure follows exact shared port identities, interface edges and explicit
+/// DataEnd bindings. Names and previous contract equality never create adjacency.
+pub fn binding_impact(
+    p: &Project,
+    seed_ports: &[String],
+    seed_data: &[(String, String)],
+    chosen: Option<&ContractRef>,
+    editing_edge: Option<&str>,
+) -> Impact {
+    let mut ports: BTreeSet<String> = seed_ports.iter().cloned().collect();
+    let mut links: BTreeSet<(String, String)> = seed_data.iter().cloned().collect();
+    loop {
+        let before = (ports.len(), links.len());
+        for s in &p.systems {
+            for e in &s.edges {
+                if Some(e.id.as_str()) != editing_edge
+                    && (ports.contains(&e.from.port) || ports.contains(&e.to.port))
+                {
+                    ports.insert(e.from.port.clone());
+                    ports.insert(e.to.port.clone());
                 }
             }
         }
+        for (owner, f) in &p.behavior {
+            for d in &f.data {
+                let key = (owner.clone(), d.id.clone());
+                let bound: Vec<_> = [&d.from.port, &d.to.port].into_iter().flatten().collect();
+                if links.contains(&key) || bound.iter().any(|id| ports.contains(*id)) {
+                    links.insert(key);
+                    ports.extend(bound.into_iter().cloned());
+                }
+            }
+        }
+        if before == (ports.len(), links.len()) {
+            break;
+        }
     }
-    let changed: HashSet<&str> = ports.iter().map(|r| r.port.as_str()).collect();
-    let edges: Vec<_> = p
+    let changed_ports: Vec<_> = p
         .systems
         .iter()
         .flat_map(|s| {
-            s.edges
+            s.nodes
                 .iter()
-                .filter(|e| {
-                    Some(e.id.as_str()) != editing
-                        && (changed.contains(e.from.port.as_str())
-                            || changed.contains(e.to.port.as_str()))
-                })
-                .map(move |e| ChangedEdge {
-                    id: e.id.clone(),
-                    system: s.id.clone(),
-                })
+                .flat_map(move |n| n.ports.iter().map(move |r| (s, n, r)))
+        })
+        .filter(|(_, _, r)| ports.contains(&r.id) && r.contract.as_ref() != chosen)
+        .map(|(s, n, r)| ChangedPort {
+            node: n.id.clone(),
+            port: r.id.clone(),
+            name: format!("{} · {}", n.name, r.name),
+            system: s.id.clone(),
+            previous: r.contract.clone(),
         })
         .collect();
-    let requires_consent = !edges.is_empty() || ports.iter().any(|r| r.previous.is_some());
-    Ok(Impact {
-        ports,
+    let changed: BTreeSet<_> = changed_ports.iter().map(|r| &r.port).collect();
+    let edges: Vec<_> = p
+        .systems
+        .iter()
+        .flat_map(|s| s.edges.iter().map(move |e| (s, e)))
+        .filter(|(_, e)| {
+            Some(e.id.as_str()) != editing_edge
+                && (changed.contains(&e.from.port) || changed.contains(&e.to.port))
+        })
+        .map(|(s, e)| ChangedEdge {
+            id: e.id.clone(),
+            system: s.id.clone(),
+        })
+        .collect();
+    let data: Vec<_> = p
+        .behavior
+        .iter()
+        .flat_map(|(o, f)| f.data.iter().map(move |d| (o, d)))
+        .filter(|(o, d)| {
+            links.contains(&(o.to_string(), d.id.clone())) && d.contract.as_ref() != chosen
+        })
+        .map(|(o, d)| ChangedData {
+            owner: o.clone(),
+            id: d.id.clone(),
+            name: d.name.clone(),
+            previous: d.contract.clone(),
+        })
+        .collect();
+    let requires_consent =
+        !edges.is_empty() || !data.is_empty() || changed_ports.iter().any(|r| r.previous.is_some());
+    Impact {
+        ports: changed_ports,
         edges,
+        data,
         requires_consent,
+    }
+}
+/// Candidate-internal helper; the caller must validate the complete transaction.
+pub(crate) fn reconcile(q: &mut Project, impact: &Impact, chosen: Option<&ContractRef>) {
+    for r in &impact.ports {
+        if let Some(n) = q.node_mut(&r.node)
+            && let Some(port) = n.ports.iter_mut().find(|p| p.id == r.port)
+        {
+            port.contract = chosen.cloned();
+        }
+    }
+    for d in &impact.data {
+        if let Some(f) = q.behavior.get_mut(&d.owner)
+            && let Some(link) = f.data.iter_mut().find(|l| l.id == d.id)
+        {
+            link.contract = chosen.cloned();
+        }
+    }
+}
+pub fn refine_port(
+    p: &Project,
+    pid: &str,
+    contract: Option<ContractRef>,
+    new_contract: Option<Contract>,
+) -> Result<Project> {
+    if !p
+        .systems
+        .iter()
+        .flat_map(|s| &s.nodes)
+        .flat_map(|n| &n.ports)
+        .any(|r| r.id == pid)
+    {
+        return Err(ModelError::one("Missing public port"));
+    }
+    let impact = binding_impact(p, &[pid.into()], &[], contract.as_ref(), None);
+    super::candidate(p, |q| {
+        add_definition(q, contract.as_ref(), new_contract)?;
+        reconcile(q, &impact, contract.as_ref());
+        Ok(())
     })
+}
+pub(crate) fn add_definition(
+    q: &mut Project,
+    chosen: Option<&ContractRef>,
+    definition: Option<Contract>,
+) -> Result<()> {
+    if let Some(c) = definition {
+        if Some(&c.reference()) != chosen || q.contract(&c.reference()).is_some() {
+            return Err(ModelError::one(
+                "New contract must match the assignment and have an unused identity/version",
+            ));
+        }
+        q.contracts.push(c);
+    }
+    Ok(())
 }
 pub fn connect(p: &Project, sid: &str, request: &Connection) -> Result<Project> {
     validate(p)?;
@@ -147,17 +243,7 @@ pub fn connect(p: &Project, sid: &str, request: &Connection) -> Result<Project> 
             "confirm the displayed shared port and connection changes",
         ));
     }
-    for r in &impact.ports {
-        let n = q
-            .node_mut(&r.node)
-            .ok_or_else(|| ModelError::one("missing affected component"))?;
-        let port = n
-            .ports
-            .iter_mut()
-            .find(|p| p.id == r.port)
-            .ok_or_else(|| ModelError::one("missing affected port"))?;
-        port.contract = Some(request.contract.clone());
-    }
+    reconcile(&mut q, &impact, Some(&request.contract));
     let id = request.id.clone().unwrap_or_else(|| q.fresh("edge"));
     let edge = Edge {
         id,
@@ -178,6 +264,7 @@ pub fn connect(p: &Project, sid: &str, request: &Connection) -> Result<Project> 
     } else {
         s.edges.push(edge);
     }
+    crate::behavior::invalidate_reviews(p, &mut q);
     validate(&q)?;
     Ok(q)
 }

@@ -42,6 +42,11 @@ pub fn export(p: &Project, owner: &str) -> Result<Value> {
     .map_err(ModelError::one)
 }
 pub fn replace(p: &Project, value: &Value, owner: &str) -> Result<Project> {
+    if value.get("flow").is_none() {
+        return Err(ModelError::one(
+            "Missing flow payload; explicit flow: null requests clearing this scope",
+        ));
+    }
     let packet: Packet = serde_json::from_value(value.clone()).map_err(ModelError::one)?;
     if packet.format != "system-designer-behavior-scope"
         || packet.version != 1

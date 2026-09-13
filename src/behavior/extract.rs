@@ -241,12 +241,29 @@ pub fn preview(
             .collect(),
         ..Default::default()
     };
-    let entry = child.fresh("entry");
+    // Reserve the entire source namespace before allocating synthetic identities.
+    // Crossing transitions and data links enter the child later in construction.
+    let mut reserved: BTreeSet<String> = f
+        .steps
+        .iter()
+        .map(|s| s.id.clone())
+        .chain(f.transitions.iter().map(|t| t.id.clone()))
+        .chain(f.data.iter().map(|d| d.id.clone()))
+        .collect();
+    let mut fresh = |prefix: &str| {
+        let id = (1u64..)
+            .map(|i| format!("{prefix}.{i}"))
+            .find(|id| !reserved.contains(id))
+            .expect("finite namespace");
+        reserved.insert(id.clone());
+        id
+    };
+    let entry = fresh("entry");
     child
         .steps
         .push(Step::new(&entry, StepKind::Entry, "Begin"));
     child.transitions.push(Transition {
-        id: child.fresh("transition"),
+        id: fresh("transition"),
         from: entry,
         to: region.entry.clone(),
         condition: String::new(),
@@ -266,7 +283,7 @@ pub fn preview(
         }
     }
     for exit in &region.exits {
-        let out = child.fresh("outcome");
+        let out = fresh("outcome");
         let label = if exit.condition.trim().is_empty() {
             f.step(&exit.to)
                 .map(|s| s.name.as_str())

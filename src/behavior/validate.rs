@@ -260,6 +260,30 @@ pub fn issues(p: &Project, owner: &str) -> Vec<String> {
         if s.kind == StepKind::Call && edges.iter().any(|t| t.outcome.is_none()) {
             out.push(format!("{} has an unresolved return outcome.", s.name));
         }
+        if s.kind == StepKind::Call
+            && let Some(child) = s.target.as_ref().and_then(|id| p.behavior.get(id))
+        {
+            for outcome in child.steps.iter().filter(|s| s.kind == StepKind::Outcome) {
+                let handlers: Vec<_> = edges
+                    .iter()
+                    .filter(|t| t.outcome.as_ref() == Some(&outcome.id))
+                    .collect();
+                if handlers.is_empty() {
+                    out.push(format!(
+                        "{} [{}] has an unhandled outcome: {} [{}].",
+                        s.name, s.id, outcome.name, outcome.id
+                    ));
+                }
+                if handlers
+                    .iter()
+                    .filter(|t| t.condition.trim().is_empty())
+                    .count()
+                    > 1
+                {
+                    out.push(format!("{} [{}] has duplicate unguarded returns for {} [{}]; use one continuation and an explicit parent decision.", s.name, s.id, outcome.name, outcome.id));
+                }
+            }
+        }
     }
     let n = f
         .steps

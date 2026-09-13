@@ -178,3 +178,29 @@ Canonical scope hashes use one fixed convention: UTF-16-sorted object keys, unch
 Component containment is normalized and traversed iteratively without an arbitrary tree depth limit. Deeply nested contract shapes remain subject to serde_json's defensive parsing recursion limit, so unlimited nesting of every possible JSON structure is not claimed.
 
 A structurally valid design is not proof of useful decomposition, complete requirements, correct contracts, implementation safety, or human acceptance. The approximate eight-component guideline is advisory and does not reject larger valid systems.
+
+### Guided behavior editing and explicit clearing
+
+A `system-designer-behavior-scope` version-1 packet requires the `flow` key.
+Omitting it is an error. `flow: null` explicitly requests clearing only the named
+owner, including that owner's flow layout; this is previewed as a destructive
+change in the app. A flow object with empty `steps` and `transitions` is an
+incomplete, saveable specification, distinct from absence. Full merged-project
+validation rejects clearing a child with referenced outcomes. Clearing never
+downgrades a version-2 project.
+
+Information contract refinement computes a closure over exact public-port IDs,
+interface edges, and explicitly bound DataLinks (including child boundaries and
+all call occurrences). A new definition and all assignments are one validated
+candidate. Equal names or equal old contract references do not imply a binding.
+Unassigned links without a binding remain independent. Material step meaning or
+incident information edits invalidate human information-use review. Missing child
+outcome handlers and duplicate unguarded handlers are draft issues; dangling
+outcome references remain errors.
+
+Extraction reserves the source flow's complete identity namespace before adding
+synthetic child markers. Existing source identities are retained. Its stale-plan
+stamp conservatively includes both saved layouts; viewport and selection are
+session state and do not enter that stamp. Behavior exchange hashes continue to
+exclude saved layouts. The first context policy still includes the full contract
+catalog, so unrelated catalog edits conservatively stale behavior packets.
