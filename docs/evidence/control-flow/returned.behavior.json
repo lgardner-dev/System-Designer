@@ -1,0 +1,196 @@
+{
+  "base": "cfdbea9747aaed59307b05c15d3a31f7f5ffd7eb69aa505071bcfbffa021fa99",
+  "context": {
+    "callers": [],
+    "children": [
+      {
+        "component": {
+          "id": "component.1",
+          "kind": "component",
+          "name": "Import normalization",
+          "ports": [
+            {
+              "contract": {
+                "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+                "version": 1
+              },
+              "direction": "in",
+              "id": "port.1",
+              "name": "Imported record"
+            },
+            {
+              "contract": null,
+              "direction": "out",
+              "id": "port.2",
+              "name": "Normalized record"
+            }
+          ],
+          "purpose": "Produce a validated, normalized record from an imported record."
+        },
+        "outcomes": [
+          {
+            "id": "outcome.1",
+            "information_reviewed": false,
+            "kind": "outcome",
+            "name": "Complete",
+            "purpose": "",
+            "target": null
+          }
+        ]
+      }
+    ],
+    "component": null,
+    "contracts": [
+      {
+        "definition": {
+          "fields": [
+            {
+              "name": "source_name",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "type": "object"
+        },
+        "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+        "name": "Imported record",
+        "purpose": "Raw input fields to validate before normalization.",
+        "version": 1
+      }
+    ],
+    "interfaces": {
+      "edges": [],
+      "id": "root",
+      "nodes": [
+        {
+          "id": "component.1",
+          "kind": "component",
+          "name": "Import normalization",
+          "ports": [
+            {
+              "contract": {
+                "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+                "version": 1
+              },
+              "direction": "in",
+              "id": "port.1",
+              "name": "Imported record"
+            },
+            {
+              "contract": null,
+              "direction": "out",
+              "id": "port.2",
+              "name": "Normalized record"
+            }
+          ],
+          "purpose": "Produce a validated, normalized record from an imported record."
+        }
+      ]
+    },
+    "project": {
+      "id": "project.validate-normalize-smoke",
+      "name": "Validate and normalize import",
+      "purpose": "Validate an imported record and normalize it for downstream use. Native authoring smoke example."
+    }
+  },
+  "flow": {
+    "data": [
+      {
+        "contract": {
+          "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+          "version": 1
+        },
+        "exchange": null,
+        "from": {
+          "port": null,
+          "step": null
+        },
+        "id": "information.1",
+        "name": "Imported record",
+        "to": {
+          "port": "port.1",
+          "step": "call.1"
+        }
+      },
+      {
+        "contract": null,
+        "exchange": null,
+        "from": {
+          "port": "port.2",
+          "step": "call.1"
+        },
+        "id": "information.2",
+        "name": "Normalized record",
+        "to": {
+          "port": null,
+          "step": null
+        }
+      }
+    ],
+    "extraction": null,
+    "primitive": "",
+    "steps": [
+      {
+        "id": "entry",
+        "information_reviewed": false,
+        "kind": "entry",
+        "name": "Begin",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "done",
+        "information_reviewed": false,
+        "kind": "outcome",
+        "name": "Complete",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "call.1",
+        "information_reviewed": false,
+        "kind": "call",
+        "name": "Normalize the first record",
+        "purpose": "Produce a validated, normalized record from an imported record.",
+        "target": "component.1"
+      },
+      {
+        "id": "step.1",
+        "information_reviewed": false,
+        "kind": "call",
+        "name": "Normalize another record",
+        "purpose": "",
+        "target": "component.1"
+      }
+    ],
+    "transitions": [
+      {
+        "condition": "",
+        "from": "entry",
+        "id": "begin",
+        "outcome": null,
+        "to": "call.1"
+      },
+      {
+        "condition": "",
+        "from": "call.1",
+        "id": "finish",
+        "outcome": "outcome.1",
+        "to": "step.1"
+      },
+      {
+        "condition": "",
+        "from": "step.1",
+        "id": "transition.1",
+        "outcome": "outcome.1",
+        "to": "done"
+      }
+    ]
+  },
+  "format": "system-designer-behavior-scope",
+  "owner": "@root",
+  "project_id": "project.validate-normalize-smoke",
+  "version": 1
+}

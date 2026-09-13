@@ -868,3 +868,58 @@ fn removing_occurrence_preserves_shared_definition_and_other_uses() {
     );
     assert_eq!(q.behavior[&plan.component], p.behavior[&plan.component]);
 }
+
+#[test]
+fn extraction_expansion_preserves_parent_reentry_and_all_data_boundary_directions() {
+    let mut p = fixture();
+    let f = p.behavior.get_mut(ROOT).expect("root");
+    f.steps.extend([
+        Step::new("normalize", StepKind::Action, "Normalize"),
+        Step::new("retry", StepKind::Decision, "Try another record?"),
+    ]);
+    f.transitions[1].to = "normalize".into();
+    for (id, from, to, condition) in [
+        ("leave", "normalize", "retry", ""),
+        ("reenter", "retry", "action", "another record"),
+        ("complete", "retry", "done", "finished"),
+    ] {
+        f.transitions.push(Transition {
+            id: id.into(),
+            from: from.into(),
+            to: to.into(),
+            condition: condition.into(),
+            outcome: None,
+        });
+    }
+    for (id, from, to) in [
+        ("input", None, Some("action")),
+        ("internal", Some("action"), Some("normalize")),
+        ("output", Some("normalize"), Some("retry")),
+    ] {
+        f.data.push(DataLink {
+            id: id.into(),
+            name: id.into(),
+            from: DataEnd {
+                step: from.map(str::to_owned),
+                port: None,
+            },
+            to: DataEnd {
+                step: to.map(str::to_owned),
+                port: None,
+            },
+            contract: None,
+            exchange: None,
+        });
+    }
+    let members = BTreeSet::from(["normalize".into(), "action".into()]);
+    let plan = preview(
+        &p,
+        ROOT,
+        &members,
+        "Normalize records",
+        "Normalize each declared record",
+    )
+    .expect("single entry with parent reentry");
+    assert_eq!(plan.requirements.len(), 2);
+    assert_expansion(&p, ROOT, &plan);
+}

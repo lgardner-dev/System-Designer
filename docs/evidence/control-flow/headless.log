@@ -1,0 +1,173 @@
+   Compiling system-designer v0.2.0 (/home/luke/projects/System-Designer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.51s
+     Running unittests src/lib.rs (target/debug/deps/system_designer-56832ba70e584830)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/check.rs (target/debug/deps/designer_check-3335cb217c242a3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/behavior.rs (target/debug/deps/behavior-94095d21b1ac9efe)
+
+running 36 tests
+test behavior_data_prevents_contract_deletion ... ok
+test dangling_transition_rejected ... ok
+test draft_decision_is_saved_but_diagnosed ... ok
+test behavior_promotes_explicitly ... ok
+test extraction_needs_responsibility ... ok
+test changing_layout_invalidates_extraction_preview ... ok
+test behavior_exchange_preserves_interfaces ... ok
+test extraction_has_one_undoable_publication ... ok
+test exact_format_dispatch_rejects_wrong_scopes_and_unknown_formats ... ok
+test behavior_exchange_context_is_read_only ... ok
+test extraction_expansion_preserves_parent_reentry_and_all_data_boundary_directions ... ok
+test invalid_extraction_does_not_mutate_store ... ok
+test no_metric_claim_for_unreachable_draft ... ok
+test exact_refinement_preserves_unrelated_same_named_channels_and_cancel ... ok
+test legacy_stays_version_one ... ok
+test explicit_dependency_becomes_a_draft_boundary_port ... ok
+test one_region_produces_one_shared_child_identity ... ok
+test interface_packet_stales_when_preserved_behavior_changes ... ok
+test review_is_invalidated_by_meaning_and_incident_data_edits ... ok
+test simple_metric_is_one ... ok
+test interface_replacement_preserves_behavior ... ok
+test extraction_preserves_each_explicit_outcome_path ... ok
+test r1_missing_flow_is_not_clear ... ok
+test leaf_can_be_refined_recursively ... ok
+test r2_reserve_crossing_transition_identity ... ok
+test v1_cannot_hide_behavior ... ok
+test r4_missing_and_duplicate_returns_are_draft_issues ... ok
+test removing_occurrence_preserves_shared_definition_and_other_uses ... ok
+test r3_connection_refines_extracted_information_atomically ... ok
+test stale_behavior_exchange_rejected ... ok
+test explicit_clear_empty_and_rejected_packets_preserve_history ... ok
+test repeat_preview_is_deterministic ... ok
+test behavior_packets_keep_conservative_context_policy_and_ignore_layout ... ok
+test command_line_validates_both_packet_formats_without_writing ... ok
+test extraction_expansion_covers_loops_alternatives_merges_and_data_collisions ... ok
+test both_layers_and_layouts_survive_save_backup_and_recovery ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/core.rs (target/debug/deps/core-d14898e33abaebcb)
+
+running 51 tests
+test blank_root ... ok
+test boundary_mirrors_owner ... ok
+test connected_null_rejected ... ok
+test all_shape_forms ... ok
+test create_only_one_child ... ok
+test delete_referenced_type_rejected ... ok
+test cross_level_rejected ... ok
+test fixture_with_feedback_loops ... ok
+test disconnected_cycle ... ok
+test external_labels_derived ... ok
+test frame_snapshot_remains_immutable_after_publication ... ok
+test duplicate_edge ... ok
+test duplicate_enum_value ... ok
+test empty_enum ... ok
+test duplicate_node ... ok
+test duplicate_public_boundary_rejected ... ok
+test explicit_null_child_rejected ... ok
+test explicit_shared_definition_confirmation ... ok
+test invalid_publication_preserves_redo ... ok
+test invented_edge_contract_rejected ... ok
+test missing_contract_field_is_not_null ... ok
+test mismatched_version ... ok
+test invented_root_boundary ... ok
+test invalid_schema_duplicate_field ... ok
+test missing_endpoint ... ok
+test full_json_round_trip ... ok
+test missing_contract ... ok
+test duplicate_port ... ok
+test missing_endpoint_node_is_not_boundary ... ok
+test history_is_bounded ... ok
+test missing_child ... ok
+test port_delete_cleans_projected_edges ... ok
+test removing_internals_keeps_owner ... ok
+test undo_redo_snapshot ... ok
+test missing_root ... ok
+test negative_layout ... ok
+test nonlocal_layout ... ok
+test orphan_system ... ok
+test unknown_project_field ... ok
+test root_cannot_have_owner ... ok
+test unassigned_unconnected_port_allowed ... ok
+test structural_id_spaces_overlap ... ok
+test two_owners ... ok
+test safe_recursive_node_delete ... ok
+test unknown_shape_keyword ... ok
+test unsafe_integer_version ... ok
+test wrong_boundary_direction ... ok
+test wrong_direction ... ok
+test wrong_port_owner ... ok
+test more_than_eight_allowed ... ok
+test arbitrary_containment_depth ... ok
+
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/exchange.rs (target/debug/deps/exchange-90c0e867b3f24976)
+
+running 24 tests
+test connected_retype_requires_consent ... ok
+test full_project_rejected_from_scope_action ... ok
+test first_assignment_creates_contract_and_edge_together ... ok
+test contract_retype_matches_original ... ok
+test component_cannot_change_child ... ok
+test component_cannot_break_wires ... ok
+test context_is_read_only ... ok
+test component_preserves_siblings_and_internals ... ok
+test boundary_is_read_only ... ok
+test level_cannot_delete_hidden_child ... ok
+test canvas_positions_do_not_stale_scope ... ok
+test independent_hidden_child_edit_survives ... ok
+test missing_referenced_definition_rejected ... ok
+test unicode_protocol_matches_reference ... ok
+test unknown_packet_property_rejected ... ok
+test scope_import_cannot_rewrite_catalog ... ok
+test stale_ancestor_rejected ... ok
+test stale_local_input_rejected ... ok
+test wrong_project_rejected ... ok
+test wrong_target_rejected ... ok
+test original_replacement_matches_reference ... ok
+test subtree_can_remove_internal_descendants ... ok
+test new_contract_versions_can_be_added ... ok
+test original_export_bytes_and_hashes ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/self_design.rs (target/debug/deps/self_design-d801c96d4fd007f3)
+
+running 4 tests
+test blank_start_does_not_load_self_design ... ok
+test initialization_embeds_exact_protocol ... ok
+test embedded_design_is_a_real_project ... ok
+test self_design_all_scopes_round_trip ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/storage.rs (target/debug/deps/storage-ea36e23f37d55e44)
+
+running 9 tests
+test invalid_recovery_preserves_bytes ... ok
+test io_failure_is_visible ... ok
+test missing_expected_file_is_not_silently_recreated ... ok
+test invalid_target_is_not_destroyed ... ok
+test external_edit_is_not_overwritten ... ok
+test recovery_round_trip ... ok
+test project_file_save_and_open ... ok
+test invalid_candidate_never_replaces_disk ... ok
+test save_keeps_prior_valid_backup ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests system_designer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

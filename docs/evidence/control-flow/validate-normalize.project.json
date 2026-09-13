@@ -1,0 +1,272 @@
+{
+  "format": "system-designer-project",
+  "version": 2,
+  "id": "project.validate-normalize-smoke",
+  "name": "Validate and normalize import",
+  "purpose": "Validate an imported record and normalize it for downstream use. Native authoring smoke example.",
+  "root": "root",
+  "contracts": [
+    {
+      "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+      "version": 1,
+      "name": "Imported record",
+      "purpose": "Raw input fields to validate before normalization.",
+      "definition": {
+        "type": "object",
+        "fields": [
+          {
+            "name": "source_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "root",
+      "nodes": [
+        {
+          "id": "component.1",
+          "name": "Import normalization",
+          "purpose": "Produce a validated, normalized record from an imported record.",
+          "kind": "component",
+          "ports": [
+            {
+              "id": "port.1",
+              "name": "Imported record",
+              "direction": "in",
+              "contract": {
+                "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+                "version": 1
+              }
+            },
+            {
+              "id": "port.2",
+              "name": "Normalized record",
+              "direction": "out",
+              "contract": null
+            }
+          ]
+        }
+      ],
+      "edges": []
+    }
+  ],
+  "behavior": {
+    "@root": {
+      "steps": [
+        {
+          "id": "entry",
+          "name": "Begin",
+          "kind": "entry",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "done",
+          "name": "Complete",
+          "kind": "outcome",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "call.1",
+          "name": "Normalize the first record",
+          "kind": "call",
+          "purpose": "Produce a validated, normalized record from an imported record.",
+          "target": "component.1",
+          "information_reviewed": false
+        },
+        {
+          "id": "step.1",
+          "name": "Normalize another record",
+          "kind": "call",
+          "purpose": "",
+          "target": "component.1",
+          "information_reviewed": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "begin",
+          "from": "entry",
+          "to": "call.1",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "call.1",
+          "to": "step.1",
+          "condition": "",
+          "outcome": "outcome.1"
+        },
+        {
+          "id": "transition.1",
+          "from": "step.1",
+          "to": "done",
+          "condition": "",
+          "outcome": "outcome.1"
+        }
+      ],
+      "data": [
+        {
+          "id": "information.1",
+          "name": "Imported record",
+          "from": {
+            "step": null,
+            "port": null
+          },
+          "to": {
+            "step": "call.1",
+            "port": "port.1"
+          },
+          "contract": {
+            "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+            "version": 1
+          },
+          "exchange": null
+        },
+        {
+          "id": "information.2",
+          "name": "Normalized record",
+          "from": {
+            "step": "call.1",
+            "port": "port.2"
+          },
+          "to": {
+            "step": null,
+            "port": null
+          },
+          "contract": null,
+          "exchange": null
+        }
+      ],
+      "primitive": "",
+      "extraction": null
+    },
+    "component.1": {
+      "steps": [
+        {
+          "id": "action",
+          "name": "Validate and normalize record",
+          "kind": "action",
+          "purpose": "Check required fields and normalize one imported record.",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "entry.1",
+          "name": "Begin",
+          "kind": "entry",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "outcome.1",
+          "name": "Complete",
+          "kind": "outcome",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "transition.1",
+          "from": "entry.1",
+          "to": "action",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "action",
+          "to": "outcome.1",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [
+        {
+          "id": "information.1",
+          "name": "Imported record",
+          "from": {
+            "step": null,
+            "port": "port.1"
+          },
+          "to": {
+            "step": "action",
+            "port": null
+          },
+          "contract": {
+            "id": "Contract.c92fffd0-a73b-4ffe-975c-af77033fc53c",
+            "version": 1
+          },
+          "exchange": null
+        },
+        {
+          "id": "information.2",
+          "name": "Normalized record",
+          "from": {
+            "step": "action",
+            "port": null
+          },
+          "to": {
+            "step": null,
+            "port": "port.2"
+          },
+          "contract": null,
+          "exchange": null
+        }
+      ],
+      "primitive": "Primitive: validate and normalize a single record. No independently meaningful child responsibility is needed here.",
+      "extraction": {
+        "rule_version": 1,
+        "parent": "@root",
+        "source_steps": [
+          "action"
+        ],
+        "responsibility": "Produce a validated, normalized record from an imported record.",
+        "base": "ffc09f8ab607542dbcba3bb0ffba38a88c5ab79ead38604deaa0fa8be14e9a6b"
+      }
+    }
+  },
+  "flow_layout": {
+    "@root": {
+      "call.1": {
+        "x": 420.0,
+        "y": 70.0
+      },
+      "done": {
+        "x": 760.0,
+        "y": 70.0
+      },
+      "entry": {
+        "x": 80.0,
+        "y": 70.0
+      }
+    },
+    "component.1": {
+      "action": {
+        "x": 80.0,
+        "y": 230.0
+      },
+      "entry.1": {
+        "x": 420.0,
+        "y": 70.0
+      },
+      "outcome.1": {
+        "x": 760.0,
+        "y": 70.0
+      }
+    }
+  }
+}

@@ -89,16 +89,18 @@ boundary.
 
 ## Tests
 
-The suite is 94 tests and runs in well under a second; there is no reason to
-skip it.
+The suite currently has 195 tests with all targets enabled, including 124 that
+run without the UI feature. The tests themselves run in seconds after compilation.
 
 | File | Covers |
 |---|---|
 | `tests/core.rs` | Parsing and round trips, required/null field strictness, identity and ownership rules, locality, direction, exact contract versions, schema forms, derived boundaries, safe deletion, history, a 2,048-level containment chain, and that more than eight nodes is valid |
+| `tests/behavior.rs` | Flow drafts and validation, bounded extraction and structural expansion, exact contract reconciliation, review invalidation, occurrence deletion, behavior packets and CLI dispatch |
 | `tests/exchange.rs` | Export bytes and hashes, Unicode, replacement and retyping outputs, stale base and ancestor state, read-only context and boundaries, preserved hidden internals, new versus rewritten shared types, wrong targets, missing definitions, layout exclusion, atomic connection creation |
 | `tests/storage.rs` | Save/open, prior-version backups, external modification, missing and damaged files, invalid candidates, recovery round trips, I/O failures |
 | `tests/self_design.rs` | The embedded application design, all three scopes, blank defaults, the embedded initialization prompt |
 | `src/ui/canvas.rs` | Cubic-curve hit testing and raw egui pointer events for forward, reverse and cancelled drags |
+| `src/ui/flow/tests.rs` and `src/ui/handoff.rs` | Root/leaf navigation, flow gestures and drafts, extraction preview/cancel/apply/undo, information review, full-workspace dialogs, handoff validation and explicit clearing |
 
 `tests/fixtures/` holds golden JSON — real exports and their expected
 replacement outputs, including Unicode cases. Treat them as a specification: if a
