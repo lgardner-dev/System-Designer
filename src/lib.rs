@@ -8,3 +8,5 @@ pub mod ui;
 /// These resources are part of the executable, never runtime sidecar requirements.
 pub const INITIALIZATION: &str = include_str!("../assets/initialization.txt");
 pub const APPLICATION_DESIGN: &str = include_str!("../design/system-designer.project.json");
+
+pub mod behavior;

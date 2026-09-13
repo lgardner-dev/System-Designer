@@ -41,7 +41,7 @@ pub fn export(p: &Project, sid: &str, scope: Scope, nid: Option<&str>) -> Result
     let s = p
         .system(sid)
         .ok_or_else(|| ModelError::one("missing selected system"))?;
-    let content = if scope == Scope::Component {
+    let mut content = if scope == Scope::Component {
         let nid = nid.ok_or_else(|| ModelError::one("select a component first"))?;
         let n = s
             .nodes
@@ -148,6 +148,27 @@ pub fn export(p: &Project, sid: &str, scope: Scope, nid: Option<&str>) -> Result
             }
         })
     };
+    if p.version >= 2 {
+        // Interface packets never carry writable behavior. Relevant behavior is
+        // read-only context; the final merged validator checks all cross references.
+        let selected = if scope == Scope::Subtree {
+            p.descendants(sid)
+        } else {
+            HashSet::from([sid.to_owned()])
+        };
+        let relevant: std::collections::BTreeMap<_, _> = p
+            .behavior
+            .iter()
+            .filter(|(owner, _)| {
+                owner.as_str() == crate::behavior::ROOT && sid == p.root
+                    || p.node(owner).is_some_and(|(s, n)| {
+                        selected.contains(&s.id) || n.child.as_deref() == Some(sid)
+                    })
+            })
+            .collect();
+        content["context"]["preservedBehavior"] =
+            serde_json::to_value(relevant).map_err(ModelError::one)?;
+    }
     let base = digest(canonical_json(&content).as_bytes());
     let mut packet = content;
     let m = packet

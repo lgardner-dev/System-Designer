@@ -144,16 +144,29 @@ pub fn save_node(p: &Project, node: Node) -> Result<Project> {
     })
 }
 pub fn contract_users(p: &Project, r: &ContractRef) -> Vec<String> {
-    p.systems
+    let mut users: Vec<_> = p
+        .systems
         .iter()
         .flat_map(|s| s.nodes.iter())
         .flat_map(|n| {
             n.ports
                 .iter()
-                .filter(|p| p.contract.as_ref() == Some(r))
-                .map(move |p| format!("{} · {}", n.name, p.name))
+                .filter(|port| port.contract.as_ref() == Some(r))
+                .map(move |port| format!("{} · {}", n.name, port.name))
         })
-        .collect()
+        .collect();
+    for (owner, flow) in &p.behavior {
+        for link in &flow.data {
+            if link.contract.as_ref() == Some(r) {
+                users.push(format!(
+                    "Behavior {} · {}",
+                    crate::behavior::name(p, owner),
+                    link.name
+                ));
+            }
+        }
+    }
+    users
 }
 pub fn save_contract(
     p: &Project,

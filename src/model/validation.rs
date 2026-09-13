@@ -63,7 +63,7 @@ pub fn validate(p: &Project) -> Result<()> {
     if p.format != FORMAT {
         issue(&mut errors, "format", format!("expected {FORMAT}"));
     }
-    if p.version != 1 {
+    if p.version != 1 && p.version != 2 {
         issue(&mut errors, "version", "unsupported project version");
     }
     identity(&mut errors, &mut ids, "id", &p.id);
@@ -249,7 +249,7 @@ pub fn validate(p: &Project) -> Result<()> {
         }
     }
     if errors.is_empty() {
-        Ok(())
+        crate::behavior::check(p)
     } else {
         Err(ModelError(errors))
     }

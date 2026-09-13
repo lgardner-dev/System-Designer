@@ -17,6 +17,10 @@ pub struct Project {
     pub systems: Vec<System>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub layout: Layout,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub behavior: BTreeMap<String, crate::behavior::Flow>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub flow_layout: Layout,
 }
 impl Project {
     pub fn blank() -> Self {
@@ -34,6 +38,8 @@ impl Project {
                 edges: vec![],
             }],
             layout: Layout::new(),
+            behavior: BTreeMap::new(),
+            flow_layout: Layout::new(),
         }
     }
 }
