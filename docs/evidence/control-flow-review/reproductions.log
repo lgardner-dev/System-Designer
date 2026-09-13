@@ -1,0 +1,46 @@
+   Compiling system-designer v0.2.0 (/home/luke/projects/System-Designer)
+warning: unused import: `BTreeSet`
+ --> tests/behavior_layout.rs:2:34
+  |
+2 | use std::collections::{BTreeMap, BTreeSet};
+  |                                  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `edit::Store`
+ --> tests/behavior_layout.rs:3:36
+  |
+3 | use system_designer::{behavior::*, edit::Store, model::*};
+  |                                    ^^^^^^^^^^^
+
+warning: `system-designer` (test "behavior_layout") generated 2 warnings (run `cargo fix --test "behavior_layout" -p system-designer` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.55s
+     Running unittests src/lib.rs (target/debug/deps/system_designer-3453b289cf9e8421)
+
+running 4 tests
+test ui::flow::tests::f2_review_distinct_return_labels_have_separate_canvas_routes ... FAILED
+test ui::flow::tests::raw_information_review_cancel_and_apply_reconcile_both_layers ... ok
+test ui::flow::tests::raw_selection_preview_cancel_apply_cross_view_and_undo ... ok
+test ui::handoff::tests::f3_review_removed_transition_is_disclosed_before_apply ... FAILED
+
+failures:
+
+---- ui::flow::tests::f2_review_distinct_return_labels_have_separate_canvas_routes stdout ----
+
+thread 'ui::flow::tests::f2_review_distinct_return_labels_have_separate_canvas_routes' (3991985) panicked at src/ui/flow/tests.rs:18:5:
+overlapping label positions: [750.0 502.0], [750.0 502.0]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- ui::handoff::tests::f3_review_removed_transition_is_disclosed_before_apply stdout ----
+
+thread 'ui::handoff::tests::f3_review_removed_transition_is_disclosed_before_apply' (3991988) panicked at src/ui/handoff.rs:389:9:
+removed return must be disclosed
+
+
+failures:
+    ui::flow::tests::f2_review_distinct_return_labels_have_separate_canvas_routes
+    ui::handoff::tests::f3_review_removed_transition_is_disclosed_before_apply
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.15s
+
+error: test failed, to rerun pass `--lib`

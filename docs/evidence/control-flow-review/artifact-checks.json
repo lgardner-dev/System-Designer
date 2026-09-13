@@ -1,0 +1,79 @@
+[
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--no-default-features",
+      "--bin",
+      "designer-check",
+      "--",
+      "docs/evidence/control-flow-review/after-extraction.project.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Valid project: 1 systems, 1 components, 0 contracts\n",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s\n     Running `target/debug/designer-check docs/evidence/control-flow-review/after-extraction.project.json`\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--no-default-features",
+      "--bin",
+      "designer-check",
+      "--",
+      "docs/evidence/control-flow-review/after-return-removal.project.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Valid project: 1 systems, 1 components, 0 contracts\n",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s\n     Running `target/debug/designer-check docs/evidence/control-flow-review/after-return-removal.project.json`\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--no-default-features",
+      "--bin",
+      "designer-check",
+      "--",
+      "docs/evidence/control-flow-review/after-empty.project.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Valid project: 1 systems, 1 components, 0 contracts\n",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s\n     Running `target/debug/designer-check docs/evidence/control-flow-review/after-empty.project.json`\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--no-default-features",
+      "--bin",
+      "designer-check",
+      "--",
+      "docs/evidence/control-flow-review/after-extraction.project.json",
+      "tests/fixtures/control-flow-review/returned-delete-transition.behavior.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Scope replacement validates. No files changed.\n",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s\n     Running `target/debug/designer-check docs/evidence/control-flow-review/after-extraction.project.json tests/fixtures/control-flow-review/returned-delete-transition.behavior.json`\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--no-default-features",
+      "--bin",
+      "designer-check",
+      "--",
+      "docs/evidence/control-flow-review/after-extraction.project.json",
+      "docs/evidence/control-flow-review/returned-empty.behavior.json"
+    ],
+    "exit_code": 0,
+    "stdout": "Scope replacement validates. No files changed.\n",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s\n     Running `target/debug/designer-check docs/evidence/control-flow-review/after-extraction.project.json docs/evidence/control-flow-review/returned-empty.behavior.json`\n"
+  }
+]

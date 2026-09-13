@@ -1,0 +1,171 @@
+{
+  "reviewed_commit": "f307fe756f303fd093a67b0b9af61284a49a6961",
+  "review_zip_sha256": "82ba78436f4c2e6ddf8786b8f1065835ad5515bb32ab1398b7ee71b15c9104e5",
+  "branch": "work/add-logic-diagramming",
+  "source_binaries": {
+    "dab1667ad6a845c19a84c542edc2c1f53a2b39df": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+    "b410322a6747a249cc67a5fc7a9aa383a08e91fc": "31d4cbb857f15c22812f55938216f68c1234ff571b6d360ca77fc3dd8f1eef19",
+    "c688acaf38c432c5a98cab2c042f53790d52617b": "d5acdfa8a8352caaadcb2edb551aafad115a6355e188d7011d8c12ca8f35150d"
+  },
+  "native_setup": {
+    "display": ":94",
+    "screen": "1600x1050x24",
+    "window_manager": null,
+    "xdg_directories": "/tmp/system-designer-followup-native",
+    "window_mapping_and_focus": "explicit xdotool calls; clipboard supplied after focus",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+  },
+  "semantic_comparisons": {
+    "review_fixture_copies_byte_identical": true,
+    "extraction_changed_only_flow_layout": true,
+    "return_removal_changed_only_root_t3": true,
+    "emptying_changed_only_root_flow_and_its_layout": true
+  },
+  "screenshots": [
+    {
+      "path": "01-before-extraction.png",
+      "sha256": "2a89206b7e90db6596d03a2e168cafaa6e8c02ea3db39085ff5986b3498afb79",
+      "source_commit": "dab1667ad6a845c19a84c542edc2c1f53a2b39df",
+      "binary_sha256": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "02-extraction-preview.png",
+      "sha256": "36b9aa8aae0aa83a2a09305aa5b71ce90a16b23a4710a93372b2362be6e051dd",
+      "source_commit": "dab1667ad6a845c19a84c542edc2c1f53a2b39df",
+      "binary_sha256": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "03-extracted-parent.png",
+      "sha256": "202e6662265f52cc66e7507d4d12c33f461ea1d0a155936bffb80b25ecda92b2",
+      "source_commit": "dab1667ad6a845c19a84c542edc2c1f53a2b39df",
+      "binary_sha256": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "04-extraction-undo.png",
+      "sha256": "f9c234ad47317d4e28fb3700378b520e3aa2efa8204ebbd9e214b7fbd4735066",
+      "source_commit": "dab1667ad6a845c19a84c542edc2c1f53a2b39df",
+      "binary_sha256": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "05-extracted-child.png",
+      "sha256": "ca4d2410c9a7f43cbf4998f246fb0d1af0c0194fd73c1eed01858506f72e6426",
+      "source_commit": "dab1667ad6a845c19a84c542edc2c1f53a2b39df",
+      "binary_sha256": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "06-handoff-removed-return.png",
+      "sha256": "3efc7c56a53d791b907588a00bcd4af9f0457c15d1a3baeea2ead37d952467f8",
+      "source_commit": "c688acaf38c432c5a98cab2c042f53790d52617b",
+      "binary_sha256": "d5acdfa8a8352caaadcb2edb551aafad115a6355e188d7011d8c12ca8f35150d",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "07-applied-incomplete-draft.png",
+      "sha256": "31dba30b52bb95f7d7f901123751df960d0709852317b76d8f21631abd868354",
+      "source_commit": "dab1667ad6a845c19a84c542edc2c1f53a2b39df",
+      "binary_sha256": "e1ec864f8ade937f2fdfee4dd4b299dbe67e98ceec17bfca14809e7d939d6c96",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "08-reopened-extraction.png",
+      "sha256": "d2c3b895ba702bb5a3dacddae5a99de0e8e8a73ff15784453d9113c7c82033ce",
+      "source_commit": "c688acaf38c432c5a98cab2c042f53790d52617b",
+      "binary_sha256": "d5acdfa8a8352caaadcb2edb551aafad115a6355e188d7011d8c12ca8f35150d",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "09-empty-flow-confirmation.png",
+      "sha256": "81c1247471115eac85dd69966d9b60be26bb27363e4f2c9ab9b8b6fdbbe11850",
+      "source_commit": "b410322a6747a249cc67a5fc7a9aa383a08e91fc",
+      "binary_sha256": "31d4cbb857f15c22812f55938216f68c1234ff571b6d360ca77fc3dd8f1eef19",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "10-accepted-return-selected.png",
+      "sha256": "007c6ed3fd24b86617ee3649b8b8b9da0c545b55ad1c1a95cfc6e5266a8017a2",
+      "source_commit": "b410322a6747a249cc67a5fc7a9aa383a08e91fc",
+      "binary_sha256": "31d4cbb857f15c22812f55938216f68c1234ff571b6d360ca77fc3dd8f1eef19",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    },
+    {
+      "path": "11-rejected-return-selected.png",
+      "sha256": "5d88b9e57f828ff9f1b33752c053e62608b31fe788838b9a1562f1a1b3d58bae",
+      "source_commit": "b410322a6747a249cc67a5fc7a9aa383a08e91fc",
+      "binary_sha256": "31d4cbb857f15c22812f55938216f68c1234ff571b6d360ca77fc3dd8f1eef19",
+      "capture": "Unmodified ffmpeg X11 frame, 1600x1050"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "after-empty.project.json",
+      "sha256": "fd0d5d2043f4940ddbcb6c4f1642a8631c91b4e8745e0b6f8818d3c815a7a007",
+      "bytes": 3014
+    },
+    {
+      "path": "after-extraction.project.json",
+      "sha256": "91ced8480e618be592f22d65988f2e3eb2eaebd2c711cd3e4452796c32848c47",
+      "bytes": 4138
+    },
+    {
+      "path": "after-return-removal.project.json",
+      "sha256": "f609e683a22d14dd0ffc5069de4475f46acd4fc9dd1ec8c32d99035821d0876e",
+      "bytes": 3983
+    },
+    {
+      "path": "all-targets.log",
+      "sha256": "a607b49bea03a51b33262c1cf041e9ab5e1952e63935792cd5c3d9e8965624bc",
+      "bytes": 15563
+    },
+    {
+      "path": "artifact-checks.json",
+      "sha256": "8c10b41a267e6b2d11c82fef682706a7d2d90ef464376736040e367880c94fcd",
+      "bytes": 2897
+    },
+    {
+      "path": "clippy.log",
+      "sha256": "d13cda0e9a5fb08e0eaf5b4ccae959612d4d176c2842fbc6f3877bf53dd37306",
+      "bytes": 37867
+    },
+    {
+      "path": "graphics.log",
+      "sha256": "31a969b90d57c5b738a1177ffe475d49a02c08b0dc690eb8c374796ce334a312",
+      "bytes": 1744
+    },
+    {
+      "path": "headless.log",
+      "sha256": "35d02533d245575b0969dfb083fb3ecd6689f56e9708f43bdebe398544817580",
+      "bytes": 8548
+    },
+    {
+      "path": "release.log",
+      "sha256": "b574448ff7610a675a3c7577932ef0046edbc337e5ffc5fe62f33b34db3924aa",
+      "bytes": 137
+    },
+    {
+      "path": "reproduce-layout.log",
+      "sha256": "d68abf27d413ff57d970daca4447c3da91cae031d647f05753b9d509a9da3146",
+      "bytes": 1911
+    },
+    {
+      "path": "reproductions.log",
+      "sha256": "67601e006f4e58b687a24d0f43b8e38796df31071dc9665397a1a3d82ad5107c",
+      "bytes": 2166
+    },
+    {
+      "path": "returned-empty.behavior.json",
+      "sha256": "823e14dfd67ebeb712b3f2d657c014eb2bd70336331c33ef3f8df512ddbb93e6",
+      "bytes": 1326
+    },
+    {
+      "path": "self-design.log",
+      "sha256": "53e1a41cf1f47fb7c70d8654513bdef0aec5829da384ab213c52480935f50de8",
+      "bytes": 205
+    }
+  ]
+}

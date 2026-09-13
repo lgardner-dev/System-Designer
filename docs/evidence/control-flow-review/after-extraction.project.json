@@ -1,0 +1,198 @@
+{
+  "format": "system-designer-project",
+  "version": 2,
+  "id": "project.review",
+  "name": "Review fixture - three action extraction",
+  "purpose": "A review-only fixture, not a user design.",
+  "root": "root",
+  "contracts": [],
+  "systems": [
+    {
+      "id": "root",
+      "nodes": [
+        {
+          "id": "component.1",
+          "name": "Import record",
+          "purpose": "Prepare one record",
+          "kind": "component",
+          "ports": []
+        }
+      ],
+      "edges": []
+    }
+  ],
+  "behavior": {
+    "@root": {
+      "steps": [
+        {
+          "id": "entry",
+          "name": "Begin",
+          "kind": "entry",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "done",
+          "name": "Complete",
+          "kind": "outcome",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "call.1",
+          "name": "Import record",
+          "kind": "call",
+          "purpose": "Prepare one record",
+          "target": "component.1",
+          "information_reviewed": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t0",
+          "from": "entry",
+          "to": "call.1",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "t3",
+          "from": "call.1",
+          "to": "done",
+          "condition": "",
+          "outcome": "outcome.1"
+        }
+      ],
+      "data": [],
+      "primitive": "",
+      "extraction": null
+    },
+    "component.1": {
+      "steps": [
+        {
+          "id": "a",
+          "name": "Validate",
+          "kind": "action",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "b",
+          "name": "Normalize",
+          "kind": "action",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "c",
+          "name": "Store",
+          "kind": "action",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "entry.1",
+          "name": "Begin",
+          "kind": "entry",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "outcome.1",
+          "name": "Complete",
+          "kind": "outcome",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t1",
+          "from": "a",
+          "to": "b",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "t2",
+          "from": "b",
+          "to": "c",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "transition.1",
+          "from": "entry.1",
+          "to": "a",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "t3",
+          "from": "c",
+          "to": "outcome.1",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "",
+      "extraction": {
+        "rule_version": 1,
+        "parent": "@root",
+        "source_steps": [
+          "a",
+          "b",
+          "c"
+        ],
+        "responsibility": "Prepare one record",
+        "base": "88031d42a315f3f83c5c1ccf2dfd475979a1c9017ae43e798621a47d4e3cbcae"
+      }
+    }
+  },
+  "flow_layout": {
+    "@root": {
+      "call.1": {
+        "x": 420.0,
+        "y": 70.0
+      },
+      "done": {
+        "x": 420.0,
+        "y": 300.0
+      },
+      "entry": {
+        "x": 80.0,
+        "y": 70.0
+      }
+    },
+    "component.1": {
+      "a": {
+        "x": 420.0,
+        "y": 252.0
+      },
+      "b": {
+        "x": 760.0,
+        "y": 252.0
+      },
+      "c": {
+        "x": 80.0,
+        "y": 482.0
+      },
+      "entry.1": {
+        "x": 420.0,
+        "y": 70.0
+      },
+      "outcome.1": {
+        "x": 80.0,
+        "y": 664.0
+      }
+    }
+  }
+}

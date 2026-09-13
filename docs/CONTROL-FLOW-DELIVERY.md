@@ -1,5 +1,8 @@
 # Control Flow delivery record
 
+The subsequent [F1–F3 corrective pass](CONTROL-FLOW-REVIEW-FOLLOWUP.md) records
+extraction layout, distinct-route and handoff-preview fixes with updated evidence.
+
 Implemented in the ordinary native `system-designer` executable on
 `work/add-logic-diagramming`, through the existing Designer, Project and Store.
 This is the main-app feature, not a standalone example, viewer or webview.

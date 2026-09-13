@@ -1,0 +1,44 @@
+   Compiling system-designer v0.2.0 (/home/luke/projects/System-Designer)
+warning: unused import: `BTreeSet`
+ --> tests/behavior_layout.rs:2:34
+  |
+2 | use std::collections::{BTreeMap, BTreeSet};
+  |                                  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `edit::Store`
+ --> tests/behavior_layout.rs:3:36
+  |
+3 | use system_designer::{behavior::*, edit::Store, model::*};
+  |                                    ^^^^^^^^^^^
+
+warning: `system-designer` (test "behavior_layout") generated 2 warnings (run `cargo fix --test "behavior_layout" -p system-designer` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.71s
+     Running tests/behavior_layout.rs (target/debug/deps/behavior_layout-f563f62af7bb18ff)
+
+running 2 tests
+test f1_review_parent_keeps_nonoverlapping_positions ... FAILED
+test f1_review_child_markers_do_not_overlap_moved_work ... FAILED
+
+failures:
+
+---- f1_review_parent_keeps_nonoverlapping_positions stdout ----
+
+thread 'f1_review_parent_keeps_nonoverlapping_positions' (3995536) panicked at tests/behavior_layout.rs:22:13:
+@root: entry at Position { x: 80.0, y: 70.0 } overlaps call.1 at Position { x: 80.0, y: 70.0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- f1_review_child_markers_do_not_overlap_moved_work stdout ----
+
+thread 'f1_review_child_markers_do_not_overlap_moved_work' (3995535) panicked at tests/behavior_layout.rs:22:13:
+component.1: a at Position { x: 420.0, y: 230.0 } overlaps outcome.1 at Position { x: 420.0, y: 300.0 }
+
+
+failures:
+    f1_review_child_markers_do_not_overlap_moved_work
+    f1_review_parent_keeps_nonoverlapping_positions
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test behavior_layout`

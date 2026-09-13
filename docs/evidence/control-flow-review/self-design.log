@@ -1,0 +1,3 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running `target/debug/designer-check design/system-designer.project.json`
+Valid project: 8 systems, 38 components, 15 contracts
