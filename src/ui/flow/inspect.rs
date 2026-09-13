@@ -5,7 +5,7 @@ impl Designer {
         let p = self.store.snapshot();
         let owner = self.owner.clone();
         ui.heading(behavior::name(&p, &owner));
-        ui.small("Describe behavior → Extract responsibilities → Define information");
+        ui.small("Describe behavior -> Extract responsibilities -> Define information");
         ui.small("Revisit any step. Purpose and information review stay human decisions.");
         ui.separator();
         let Some(f) = p.behavior.get(&owner) else {
@@ -51,7 +51,7 @@ impl Designer {
                 {
                     if ui
                         .small_button(format!(
-                            "{} → {} [{}]",
+                            "{} -> {} [{}]",
                             f.step(&t.from).map(|s| s.name.as_str()).unwrap_or(&t.from),
                             f.step(&t.to).map(|s| s.name.as_str()).unwrap_or(&t.to),
                             t.id
@@ -106,7 +106,7 @@ impl Designer {
                             .map(|s| s.name.as_str())
                             .unwrap_or("Scope boundary")
                     };
-                    ui.small(format!("{} → {}", end(&d.from), end(&d.to)));
+                    ui.small(format!("{} -> {}", end(&d.from), end(&d.to)));
                     ui.monospace(
                         d.contract
                             .as_ref()
@@ -213,9 +213,9 @@ impl Designer {
                     ui.label(format!(
                         "{}  {}  · {}",
                         if r.direction == Direction::In {
-                            "→"
+                            "->"
                         } else {
-                            "←"
+                            "<-"
                         },
                         r.name,
                         r.contract

@@ -67,20 +67,29 @@ fn text_position(output: &egui::FullOutput, label: &str) -> Option<Pos2> {
             _ => None,
         }
     }
-    output
-        .shapes
-        .iter()
-        .find_map(|s| find(&s.shape, label))
-
+    output.shapes.iter().find_map(|s| find(&s.shape, label))
 }
 fn button(a: &mut Designer, ctx: &egui::Context, label: &str) {
-    frame(a,ctx,vec![],true);
+    frame(a, ctx, vec![], true);
     for _ in 0..6 {
-        let output = frame(a,ctx,vec![],true);
-        if let Some(pos) = text_position(&output,label) {
-            click(a,ctx,pos,Modifiers::NONE,true);return;
+        let output = frame(a, ctx, vec![], true);
+        if let Some(pos) = text_position(&output, label) {
+            click(a, ctx, pos, Modifiers::NONE, true);
+            return;
         }
-        frame(a,ctx,vec![Event::PointerMoved(egui::pos2(750.0,500.0)),Event::MouseWheel{unit:egui::MouseWheelUnit::Point,delta:vec2(0.0,-350.0),modifiers:Modifiers::NONE}],true);
+        frame(
+            a,
+            ctx,
+            vec![
+                Event::PointerMoved(egui::pos2(750.0, 500.0)),
+                Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Point,
+                    delta: vec2(0.0, -350.0),
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+            true,
+        );
     }
     panic!("No visible text {label}");
 }
@@ -304,4 +313,123 @@ fn stale_plan_and_visual_camera_motion_preserve_store_history() {
     assert!(a.error.is_some());
     assert_eq!(a.store.project(), &before);
     assert_eq!(a.store.generation, generation);
+}
+
+#[test]
+fn raw_information_review_cancel_and_apply_reconcile_both_layers() {
+    let ctx = egui::Context::default();
+    let mut a = app();
+    let link = DataLink {
+        id: "input".into(),
+        name: "Input record".into(),
+        from: DataEnd {
+            step: None,
+            port: None,
+        },
+        to: DataEnd {
+            step: Some("action".into()),
+            port: None,
+        },
+        contract: None,
+        exchange: None,
+    };
+    let (p, _) =
+        behavior::information_candidate(a.store.project(), ROOT, link, None).expect("information");
+    let plan = behavior::preview(
+        &p,
+        ROOT,
+        &BTreeSet::from(["action".into()]),
+        "Worker",
+        "One duty",
+    )
+    .expect("plan");
+    a.store = Store::new(behavior::apply(&p, &plan).expect("extraction")).expect("store");
+    let original = a.store.project().clone();
+    a.open_port_refinement(&plan.requirements[0].id);
+    if let Some(Dialog::Flow(FlowDialog::Port(d))) = &mut a.dialog {
+        d.define_new = true;
+        d.definition = Contract::draft("Input".into());
+    }
+    button(&mut a, &ctx, "Review complete edit");
+    button(&mut a, &ctx, "Cancel — discard draft");
+    assert_eq!(a.store.project(), &original);
+    assert_eq!(a.store.generation, 0);
+    a.open_port_refinement(&plan.requirements[0].id);
+    if let Some(Dialog::Flow(FlowDialog::Port(d))) = &mut a.dialog {
+        d.define_new = true;
+        d.definition = Contract::draft("Input".into());
+    }
+    button(&mut a, &ctx, "Review complete edit");
+    button(&mut a, &ctx, "Apply contract refinement");
+    assert!(a.dialog.is_none(), "{:?}", a.error);
+    assert_eq!(a.store.generation, 1);
+    assert!(a.store.project().behavior[ROOT].data[0].contract.is_some());
+    assert_eq!(
+        a.store.project().behavior[ROOT].data[0].contract,
+        a.store.project().behavior[&plan.component].data[0].contract
+    );
+}
+#[test]
+fn raw_multiselect_and_explicit_start_promotion_are_undoable() {
+    let ctx = egui::Context::default();
+    let mut a = Designer::blank();
+    let original = a.store.project().clone();
+    a.dialog = Some(Dialog::Flow(FlowDialog::Start));
+    button(&mut a, &ctx, "Start flow");
+    assert_eq!(a.store.project().version, 2);
+    frame(&mut a, &ctx, vec![], false);
+    let action = a.flow.rects["action"].center();
+    click(&mut a, &ctx, action, Modifiers::NONE, false);
+    let done = a.flow.rects["done"].center();
+    click(&mut a, &ctx, done, Modifiers::SHIFT, false);
+    assert_eq!(a.flow.selection.steps.len(), 2);
+    a.store.undo();
+    a.normalize_selection();
+    assert_eq!(a.store.project(), &original);
+    assert!(a.flow.selection.steps.is_empty());
+}
+#[test]
+fn document_load_resets_scope_and_layer_state_and_preserves_v1() {
+    let ctx = egui::Context::default();
+    let mut a = app();
+    let dir = tempfile::tempdir().expect("dir");
+    let path = dir.path().join("legacy.json");
+    let p = Project::blank();
+    storage::save_project(&path, &p, None).expect("save");
+    a.flow.selection.step("action".into(), false);
+    a.go_scope(ROOT.into(), Layer::Interfaces);
+    a.load(LoadAction::Open(path), &ctx);
+    assert_eq!(a.layer, Layer::Interfaces);
+    assert!(!a.can_go_back());
+    assert_eq!(a.store.project().version, 1);
+    assert!(!a.dirty());
+    a.go_scope(ROOT.into(), Layer::Flow);
+    assert!(!a.dirty());
+    assert_eq!(a.store.project().version, 1);
+}
+
+#[test]
+fn full_workspace_modal_resizes_after_short_start_dialog() {
+    let ctx = egui::Context::default();
+    let mut a = app();
+    let draw = |a: &mut Designer| {
+        ctx.run(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(1500.0, 1000.0))),
+                focused: true,
+                ..Default::default()
+            },
+            |ctx| a.draw(ctx),
+        )
+    };
+    a.dialog = Some(Dialog::Flow(FlowDialog::Start));
+    draw(&mut a);
+    draw(&mut a);
+    a.dialog = Some(Dialog::Flow(FlowDialog::Step(
+        a.store.project().behavior[ROOT].steps[1].clone(),
+    )));
+    draw(&mut a);
+    let out = draw(&mut a);
+    assert!(text_position(&out, "Save step").is_some());
+    assert!(text_position(&out, "Cancel — discard draft").is_some());
 }

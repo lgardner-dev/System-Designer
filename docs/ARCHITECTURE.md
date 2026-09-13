@@ -62,3 +62,16 @@ Recovery uses isolated per-session files and restores an unsaved copy. It covers
 ## Evidence and limits
 
 See [CANVAS-INTEGRATION.md](CANVAS-INTEGRATION.md) for executed checks and runtime limitations. Structural tests do not prove good design, full native accessibility or a measured readability improvement. Arrangement is a heuristic, not a complete obstacle router. There is no approval engine, multi-user merge system, universal workflow execution, live activity feed, semantic edge taxonomy or persistent custom-view format.
+
+## Guided control flow integration
+
+The same seven responsibilities now also describe behavior in the native v2
+self-design. Root calls and Interfaces reference the same existing Nodes; two
+Canvas occurrences demonstrate shared identity. No new architecture modules were
+invented. `ui/scope.rs` maps arbitrary behavior owners to optional interface
+systems. `ui/flow/` renders the guided forms and control canvas; its drawing uses
+the existing sampled Path and motion functions. `behavior/edit.rs` and
+`edit/connection.rs` own validated edits and exact contract reconciliation;
+`behavior/extract.rs` owns bounded extraction. Both formats enter the existing
+Handoff and Store lifecycle. See CONTROL-FLOW-WORKFLOW.md for the algorithm,
+conservative context policy and remaining limitations.

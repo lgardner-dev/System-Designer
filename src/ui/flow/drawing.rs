@@ -157,7 +157,7 @@ impl Designer {
             }
             ui.checkbox(&mut self.flow.focus, "Focus selection");
             lights = Motion::controls(ui);
-            ui.small("Drag ○ out → ○ in, or reverse. Ctrl/Shift-click selects a region.");
+            ui.small("Drag ○ out -> ○ in, or reverse. Ctrl/Shift-click selects a region.");
         });
         if let Some((scope, component)) = self
             .flow

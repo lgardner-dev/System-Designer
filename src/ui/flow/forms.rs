@@ -161,7 +161,7 @@ impl Designer {
         match dialog {
             FlowDialog::Start => {
                 ui.heading("Start a flow");
-                ui.label("Create an editable Begin → Action → Complete flow for this scope. Saving will use project version 2, which older readers may not support. This change is undoable.");
+                ui.label("Create an editable Begin -> Action -> Complete flow for this scope. Saving will use project version 2, which older readers may not support. This change is undoable.");
                 if ui.button("Start flow").clicked() {
                     self.publish(
                         "Start flow (version 2)",
@@ -595,9 +595,9 @@ impl Designer {
         egui::CollapsingHeader::new("3 · Review the boundary").default_open(true).show(ui,|ui| {
             if let Some(error) = &d.problem {ui.colored_label(egui::Color32::LIGHT_RED,error);}
             if let Some(plan) = &d.plan {
-                ui.label(format!("Parent call {} → shared component {}",plan.call,plan.component));
+                ui.label(format!("Parent call {} -> shared component {}",plan.call,plan.component));
                 ui.label(format!("Child contains {} selected steps; entry {}",plan.region.members.len(),plan.region.entry));
-                for t in &plan.region.exits {ui.label(format!("Distinct outcome: {} → {} [{}]",if t.condition.is_empty(){"Continue"}else{&t.condition},f.step(&t.to).map(|s|s.name.as_str()).unwrap_or(&t.to),t.id));}
+                for t in &plan.region.exits {ui.label(format!("Distinct outcome: {} -> {} [{}]",if t.condition.is_empty(){"Continue"}else{&t.condition},f.step(&t.to).map(|s|s.name.as_str()).unwrap_or(&t.to),t.id));}
                 if plan.requirements.is_empty() {ui.label("No information requirements declared yet");}
                 for r in &plan.requirements {ui.label(format!("{} · {} · {}",r.direction.label(),r.name,r.contract.as_ref().map(ToString::to_string).unwrap_or_else(||"Unassigned".into())));}
                 ui.label(format!("{} local information uses still need human review",plan.unreviewed));

@@ -121,3 +121,13 @@ Containment has no fixed node-count or depth limit. Deeply nested field schemas 
 ## License
 
 MIT — see [LICENSE](LICENSE). Dependency licensing and security review belong in the release process; no audit is claimed here.
+
+## Guided Control Flow
+
+The normal native app now supports **Control Flow | Interfaces** for the root and
+any component, including leaves. Start a flow explicitly, describe steps and
+alternatives, declare information, then preview a human-reviewed extraction into
+one shared component. Refine public contracts across exact interface and behavior
+bindings in one undoable edit. Both layers save together; no AI connection is
+required. See [the guided workflow, algorithm and limits](docs/CONTROL-FLOW-WORKFLOW.md)
+and [executed delivery evidence](docs/CONTROL-FLOW-DELIVERY.md).

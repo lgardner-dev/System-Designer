@@ -315,41 +315,54 @@ fn extraction_preserves_each_explicit_outcome_path() {
 #[test]
 fn r1_missing_flow_is_not_clear() {
     let p = fixture();
-    let mut packet = export(&p, ROOT).unwrap();
-    packet.as_object_mut().unwrap().remove("flow");
+    let mut packet = export(&p, ROOT).expect("regression fixture");
+    packet
+        .as_object_mut()
+        .expect("regression fixture")
+        .remove("flow");
     assert!(replace(&p, &packet, ROOT).is_err());
 }
 #[test]
 fn r2_reserve_crossing_transition_identity() {
     let mut p = fixture();
-    p.behavior.get_mut(ROOT).unwrap().transitions[1].id = "transition.1".into();
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    validate(&apply(&p, &plan).unwrap()).unwrap();
+    p.behavior
+        .get_mut(ROOT)
+        .expect("regression fixture")
+        .transitions[1]
+        .id = "transition.1".into();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    validate(&apply(&p, &plan).expect("regression fixture")).expect("regression fixture");
 }
 #[test]
 fn r3_connection_refines_extracted_information_atomically() {
     let mut p = fixture();
-    p.behavior.get_mut(ROOT).unwrap().data.push(DataLink {
-        id: "input".into(),
-        name: "Input".into(),
-        from: DataEnd {
-            step: None,
-            port: None,
-        },
-        to: DataEnd {
-            step: Some("action".into()),
-            port: None,
-        },
-        contract: None,
-        exchange: None,
-    });
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let q = apply(&p, &plan).unwrap();
-    let (q, source) = edit::add_node(&q, &q.root).unwrap();
-    let q = edit::add_port(&q, &source, Direction::Out).unwrap();
+    p.behavior
+        .get_mut(ROOT)
+        .expect("regression fixture")
+        .data
+        .push(DataLink {
+            id: "input".into(),
+            name: "Input".into(),
+            from: DataEnd {
+                step: None,
+                port: None,
+            },
+            to: DataEnd {
+                step: Some("action".into()),
+                port: None,
+            },
+            contract: None,
+            exchange: None,
+        });
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let q = apply(&p, &plan).expect("regression fixture");
+    let (q, source) = edit::add_node(&q, &q.root).expect("regression fixture");
+    let q = edit::add_port(&q, &source, Direction::Out).expect("regression fixture");
     let from = Endpoint {
         node: Some(source.clone()),
-        port: q.node(&source).unwrap().1.ports[0].id.clone(),
+        port: q.node(&source).expect("regression fixture").1.ports[0]
+            .id
+            .clone(),
     };
     let to = Endpoint {
         node: Some(plan.component.clone()),
@@ -370,33 +383,33 @@ fn r3_connection_refines_extracted_information_atomically() {
             consent: true,
         },
     )
-    .unwrap();
+    .expect("regression fixture");
     assert_eq!(q.behavior[ROOT].data[0].contract, Some(r.clone()));
     assert_eq!(q.behavior[&plan.component].data[0].contract, Some(r));
 }
 #[test]
 fn r4_missing_and_duplicate_returns_are_draft_issues() {
     let p = fixture();
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let mut q = apply(&p, &plan).unwrap();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let mut q = apply(&p, &plan).expect("regression fixture");
     q.behavior
         .get_mut(&plan.component)
-        .unwrap()
+        .expect("regression fixture")
         .steps
         .push(Step::new("rejection", StepKind::Outcome, "Rejected"));
     let mut duplicate = q.behavior[ROOT]
         .transitions
         .iter()
         .find(|t| t.from == plan.call)
-        .unwrap()
+        .expect("regression fixture")
         .clone();
     duplicate.id = "duplicate".into();
     q.behavior
         .get_mut(ROOT)
-        .unwrap()
+        .expect("regression fixture")
         .transitions
         .push(duplicate);
-    validate(&q).unwrap();
+    validate(&q).expect("regression fixture");
     let messages = issues(&q, ROOT).join("\n");
     assert!(messages.contains("unhandled outcome"), "{messages}");
     assert!(messages.contains("duplicate unguarded"), "{messages}");
@@ -405,31 +418,34 @@ fn r4_missing_and_duplicate_returns_are_draft_issues() {
 #[test]
 fn explicit_clear_empty_and_rejected_packets_preserve_history() {
     let p = fixture();
-    let mut store = Store::new(p.clone()).unwrap();
-    let mut packet = export(&p, ROOT).unwrap();
+    let mut store = Store::new(p.clone()).expect("regression fixture");
+    let mut packet = export(&p, ROOT).expect("regression fixture");
     packet["flow"] = serde_json::Value::Null;
-    let q = replace(&p, &packet, ROOT).unwrap();
+    let q = replace(&p, &packet, ROOT).expect("regression fixture");
     assert!(q.behavior.is_empty());
     assert_eq!(q.version, 2);
-    store.publish("Clear", q).unwrap();
+    store.publish("Clear", q).expect("regression fixture");
     store.undo();
     let generation = store.generation;
     let redo = store.redo_label().map(str::to_owned);
-    packet.as_object_mut().unwrap().remove("flow");
+    packet
+        .as_object_mut()
+        .expect("regression fixture")
+        .remove("flow");
     assert!(replace(store.project(), &packet, ROOT).is_err());
     assert_eq!(store.project(), &p);
     assert_eq!(store.generation, generation);
     assert_eq!(store.redo_label(), redo.as_deref());
-    packet["flow"] = serde_json::to_value(Flow::default()).unwrap();
+    packet["flow"] = serde_json::to_value(Flow::default()).expect("regression fixture");
     assert!(
         replace(&p, &packet, ROOT)
-            .unwrap()
+            .expect("regression fixture")
             .behavior
             .contains_key(ROOT)
     );
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let q = apply(&p, &plan).unwrap();
-    let mut packet = export(&q, &plan.component).unwrap();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let q = apply(&p, &plan).expect("regression fixture");
+    let mut packet = export(&q, &plan.component).expect("regression fixture");
     packet["flow"] = serde_json::Value::Null;
     assert!(replace(&q, &packet, &plan.component).is_err());
 }
@@ -437,7 +453,7 @@ fn explicit_clear_empty_and_rejected_packets_preserve_history() {
 /// Expand only this bounded local-region transform, retaining original stable IDs.
 /// Compare alternatives, descriptive labels and declared data uses, not execution.
 fn assert_expansion(p: &Project, owner: &str, plan: &Extraction) {
-    let q = apply(p, plan).unwrap();
+    let q = apply(p, plan).expect("regression fixture");
     let original = &p.behavior[owner];
     let parent = &q.behavior[owner];
     let child = &q.behavior[&plan.component];
@@ -458,8 +474,8 @@ fn assert_expansion(p: &Project, owner: &str, plan: &Extraction) {
             let inner = child
                 .transitions
                 .iter()
-                .find(|x| x.to == *t.outcome.as_ref().unwrap())
-                .unwrap();
+                .find(|x| x.to == *t.outcome.as_ref().expect("regression fixture"))
+                .expect("regression fixture");
             t.from = inner.from.clone();
             t.condition = inner.condition.clone();
             t.outcome = inner.outcome.clone();
@@ -480,12 +496,18 @@ fn assert_expansion(p: &Project, owner: &str, plan: &Extraction) {
                 .data
                 .iter()
                 .find(|x| x.id == d.id)
-                .unwrap()
+                .expect("regression fixture")
                 .from
                 .clone();
         }
         if d.to.step.as_ref() == Some(&plan.call) {
-            d.to = child.data.iter().find(|x| x.id == d.id).unwrap().to.clone();
+            d.to = child
+                .data
+                .iter()
+                .find(|x| x.id == d.id)
+                .expect("regression fixture")
+                .to
+                .clone();
         }
     }
     expanded.data.extend(
@@ -518,7 +540,7 @@ fn assert_expansion(p: &Project, owner: &str, plan: &Extraction) {
 fn extraction_expansion_covers_loops_alternatives_merges_and_data_collisions() {
     for data_id in ["entry.1", "transition.1", "outcome.1"] {
         let mut p = fixture();
-        let f = p.behavior.get_mut(ROOT).unwrap();
+        let f = p.behavior.get_mut(ROOT).expect("regression fixture");
         f.steps[1].kind = StepKind::Decision;
         f.steps.extend([
             Step::new("retry", StepKind::Action, "Retry"),
@@ -567,13 +589,14 @@ fn extraction_expansion_covers_loops_alternatives_merges_and_data_collisions() {
             "Validation",
             "Validate with bounded retries",
         )
-        .unwrap();
+        .expect("regression fixture");
         assert_eq!(plan.region.exits.len(), 2);
         assert_expansion(&p, ROOT, &plan);
-        let q = apply(&p, &plan).unwrap();
-        let nested = preview(&q, &plan.component, &members, "Inner", "Review input").unwrap();
+        let q = apply(&p, &plan).expect("regression fixture");
+        let nested = preview(&q, &plan.component, &members, "Inner", "Review input")
+            .expect("regression fixture");
         assert_expansion(&q, &plan.component, &nested);
-        let f = p.behavior.get_mut(ROOT).unwrap();
+        let f = p.behavior.get_mut(ROOT).expect("regression fixture");
         f.transitions.push(Transition {
             id: "side".into(),
             from: "entry".into(),
@@ -597,10 +620,10 @@ fn extraction_expansion_covers_loops_alternatives_merges_and_data_collisions() {
 #[test]
 fn review_is_invalidated_by_meaning_and_incident_data_edits() {
     let mut p = fixture();
-    p.behavior.get_mut(ROOT).unwrap().steps[1].information_reviewed = true;
+    p.behavior.get_mut(ROOT).expect("regression fixture").steps[1].information_reviewed = true;
     let mut step = p.behavior[ROOT].steps[1].clone();
     step.name = "Other work".into();
-    let q = save_step(&p, ROOT, step).unwrap();
+    let q = save_step(&p, ROOT, step).expect("regression fixture");
     assert!(!q.behavior[ROOT].steps[1].information_reviewed);
     let (q, _) = information_candidate(
         &p,
@@ -621,7 +644,7 @@ fn review_is_invalidated_by_meaning_and_incident_data_edits() {
         },
         None,
     )
-    .unwrap();
+    .expect("regression fixture");
     assert!(!q.behavior[ROOT].steps[1].information_reviewed);
 }
 #[test]
@@ -641,18 +664,22 @@ fn exact_refinement_preserves_unrelated_same_named_channels_and_cancel() {
         contract: None,
         exchange: None,
     };
-    p.behavior.get_mut(ROOT).unwrap().data.push(link.clone());
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let mut p = apply(&p, &plan).unwrap();
+    p.behavior
+        .get_mut(ROOT)
+        .expect("regression fixture")
+        .data
+        .push(link.clone());
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let mut p = apply(&p, &plan).expect("regression fixture");
     let mut unrelated = link;
     unrelated.id = "unrelated".into();
     unrelated.to.step = Some("done".into());
     p.behavior
         .get_mut(ROOT)
-        .unwrap()
+        .expect("regression fixture")
         .data
         .push(unrelated.clone());
-    let store = Store::new(p.clone()).unwrap();
+    let store = Store::new(p.clone()).expect("regression fixture");
     let c = Contract::draft("Record".into());
     let impact = edit::binding_impact(
         &p,
@@ -662,7 +689,8 @@ fn exact_refinement_preserves_unrelated_same_named_channels_and_cancel() {
         None,
     );
     assert_eq!(impact.data.len(), 2);
-    let q = edit::refine_port(&p, &plan.requirements[0].id, Some(c.reference()), Some(c)).unwrap();
+    let q = edit::refine_port(&p, &plan.requirements[0].id, Some(c.reference()), Some(c))
+        .expect("regression fixture");
     assert_eq!(
         q.behavior[ROOT].data.iter().find(|d| d.id == "unrelated"),
         Some(&unrelated)
@@ -670,4 +698,173 @@ fn exact_refinement_preserves_unrelated_same_named_channels_and_cancel() {
     assert_eq!(store.project(), &p);
     assert_eq!(store.generation, 0);
     assert!(store.undo_label().is_none());
+}
+
+#[test]
+fn behavior_packets_keep_conservative_context_policy_and_ignore_layout() {
+    let p = fixture();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let mut p = apply(&p, &plan).expect("regression fixture");
+    let (q, sibling) = edit::add_node(&p, &p.root).expect("regression fixture");
+    p = q;
+    p = set(&p, &sibling, Flow::starter()).expect("regression fixture");
+    let packet = export(&p, &plan.component).expect("regression fixture");
+    let bytes = serde_json::to_vec(&packet)
+        .expect("regression fixture")
+        .len();
+    println!("Behavior context policy 1: extracted-child packet {bytes} bytes");
+    assert_eq!(packet["version"], 1);
+    assert!(
+        !serde_json::to_string(&packet)
+            .expect("regression fixture")
+            .contains("flow_layout")
+    );
+    let mut q = p.clone();
+    q.flow_layout
+        .get_mut(&plan.component)
+        .expect("regression fixture")
+        .get_mut("action")
+        .expect("regression fixture")
+        .x += 10.0;
+    assert_eq!(
+        export(&q, &plan.component).expect("regression fixture"),
+        packet
+    );
+    q.behavior
+        .get_mut(&sibling)
+        .expect("regression fixture")
+        .steps[1]
+        .name = "Unrelated sibling work".into();
+    assert!(replace(&q, &packet, &plan.component).is_ok());
+    q.contracts.push(Contract::draft("Unrelated".into()));
+    assert!(
+        replace(&q, &packet, &plan.component).is_err(),
+        "Full catalog intentionally stales policy 1"
+    );
+    let mut related = p.clone();
+    related
+        .behavior
+        .get_mut(ROOT)
+        .expect("regression fixture")
+        .steps
+        .iter_mut()
+        .find(|s| s.id == plan.call)
+        .expect("regression fixture")
+        .name = "Changed caller".into();
+    assert!(replace(&related, &packet, &plan.component).is_err());
+}
+#[test]
+fn exact_format_dispatch_rejects_wrong_scopes_and_unknown_formats() {
+    let p = fixture();
+    let packet = export(&p, ROOT).expect("regression fixture");
+    assert_eq!(
+        exchange::replace_packet(&p, &packet, &p.root, ROOT).expect("regression fixture"),
+        p
+    );
+    assert!(exchange::replace_packet(&p, &packet, &p.root, "missing").is_err());
+    let mut wrong = packet;
+    wrong["format"] = "system-designer-behavior-scope-v2".into();
+    assert!(exchange::replace_packet(&p, &wrong, &p.root, ROOT).is_err());
+    wrong["format"] = "system-designer-scope".into();
+    assert!(exchange::replace_packet(&p, &wrong, &p.root, ROOT).is_err());
+}
+#[test]
+fn both_layers_and_layouts_survive_save_backup_and_recovery() {
+    use system_designer::storage;
+    let p = fixture();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let mut p = apply(&p, &plan).expect("regression fixture");
+    p.layout
+        .entry(p.root.clone())
+        .or_default()
+        .insert(plan.component.clone(), Position { x: 123.0, y: 234.0 });
+    let dir = tempfile::tempdir().expect("regression fixture");
+    let file = dir.path().join("both.project.json");
+    let stamp = storage::save_project(&file, &p, None).expect("regression fixture");
+    assert_eq!(
+        storage::read_project(&file).expect("regression fixture").0,
+        p
+    );
+    let mut q = p.clone();
+    q.behavior
+        .get_mut(&plan.component)
+        .expect("regression fixture")
+        .primitive = "A bounded local validation operation".into();
+    storage::save_project(&file, &q, Some(&stamp)).expect("regression fixture");
+    assert_eq!(
+        storage::read_project(&file).expect("regression fixture").0,
+        q
+    );
+    let recovery = dir.path().join("recovery.json");
+    storage::write_recovery(&recovery, &q, Some(&file)).expect("regression fixture");
+    assert_eq!(
+        storage::read_recovery(&recovery)
+            .expect("regression fixture")
+            .project,
+        q
+    );
+}
+#[test]
+fn command_line_validates_both_packet_formats_without_writing() {
+    let p = fixture();
+    let dir = tempfile::tempdir().expect("regression fixture");
+    let project = dir.path().join("project.json");
+    let scope = dir.path().join("scope.json");
+    let bytes = serde_json::to_vec_pretty(&p).expect("regression fixture");
+    std::fs::write(&project, &bytes).expect("regression fixture");
+    for packet in [
+        export(&p, ROOT).expect("regression fixture"),
+        exchange::export(&p, &p.root, exchange::Scope::Level, None).expect("regression fixture"),
+    ] {
+        let packet_bytes = serde_json::to_vec_pretty(&packet).expect("regression fixture");
+        std::fs::write(&scope, &packet_bytes).expect("regression fixture");
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_designer-check"))
+            .arg(&project)
+            .arg(&scope)
+            .output()
+            .expect("regression fixture");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(std::fs::read(&project).expect("regression fixture"), bytes);
+        assert_eq!(
+            std::fs::read(&scope).expect("regression fixture"),
+            packet_bytes
+        );
+    }
+    std::fs::write(&scope, r#"{"format":"unknown"}"#).expect("regression fixture");
+    assert!(
+        !std::process::Command::new(env!("CARGO_BIN_EXE_designer-check"))
+            .arg(&project)
+            .arg(&scope)
+            .output()
+            .expect("regression fixture")
+            .status
+            .success()
+    );
+}
+#[test]
+fn removing_occurrence_preserves_shared_definition_and_other_uses() {
+    let p = fixture();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").expect("regression fixture");
+    let p = apply(&p, &plan).expect("regression fixture");
+    let mut call = p.behavior[ROOT]
+        .step(&plan.call)
+        .expect("regression fixture")
+        .clone();
+    call.id = "another.use".into();
+    let p = save_step(&p, ROOT, call).expect("regression fixture");
+    let q = delete_step(&p, ROOT, &plan.call).expect("regression fixture");
+    assert!(q.node(&plan.component).is_some());
+    assert_eq!(
+        q.behavior[ROOT]
+            .step("another.use")
+            .expect("regression fixture")
+            .target
+            .as_ref(),
+        Some(&plan.component)
+    );
+    assert_eq!(q.behavior[&plan.component], p.behavior[&plan.component]);
 }

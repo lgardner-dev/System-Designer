@@ -305,7 +305,7 @@ pub fn issues(p: &Project, owner: &str) -> Vec<String> {
     }
     if f.steps
         .iter()
-        .filter(|s| !matches!(s.kind, StepKind::Entry | StepKind::Outcome))
+        .filter(|s| matches!(s.kind, StepKind::Action | StepKind::Decision))
         .count()
         > 8
     {

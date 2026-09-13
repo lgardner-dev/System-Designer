@@ -131,3 +131,109 @@ Port side is chosen by the renderer and is not a semantic direction or an extra 
 CANVAS PRESENTATION DOES NOT CHANGE THE DESIGN
 View (Detail/Overview), Focus, trace navigation and direction lights are session presentation only. Counted arrows retain exact member connections. Neither a pulse nor a left-to-right arrangement establishes live execution, prerequisites, throughput or a valid process scenario. A port can attach on any side while retaining its recorded direction. Cross-level trace navigation follows the same owner-port identity and does not introduce cross-level edges or infer a leaf's input-to-output causality.
 AI exports contain the entire requested component, level or subtree scope according to the version-1 protocol, even when parts of the drawing are compact or muted. Never omit connections because a screenshot hides them, and never serialize summary objects, focus state, pulses or new undocumented fields into project or replacement JSON. The existing layout field remains visual only; scoped base hashes do not include it.
+
+CONTROL-FLOW-FIRST AUTHORING (NATIVE PROJECT VERSION 2)
+
+The two layers are Control Flow and Interfaces. Both edit the same Project and
+component identities. Root behavior owner is @root. Every component may own a
+flow, including a leaf with no child system. An internal interface system ID is
+not its behavior owner. Switching layers never promotes, dirties or rewrites a
+project. Start a flow is an explicit undoable promotion to version 2; preserve v1
+projects until the human chooses that action. Version 2 adds optional behavior
+and flow_layout maps alongside the existing systems and layout.
+
+Use revisitable guidance: Describe behavior -> Extract responsibilities -> Define
+information. Keep local actions and decisions in their owner until the human
+justifies a single responsibility. Entry/outcome markers are not components.
+Around eight local work/decision steps prompts review, not mandatory grouping.
+A primitive explanation can justify stopping. Structural candidates are computed
+on demand; they do not establish single responsibility or automatic SRP detection.
+
+A Flow is exactly:
+{"steps":[],"transitions":[],"data":[],"primitive":"Stopping criteria","extraction":null}
+A Step is exactly:
+{"id":"local-step","name":"What happens?","kind":"action","purpose":"Local purpose","target":null,"information_reviewed":false}
+Supported step kinds: entry, action, decision, merge, outcome, call. Use rectangles
+for actions, diamonds for decisions, predefined-process shapes for calls and
+terminators for entry/outcomes. merge combines alternatives, not synchronization.
+A call's target is the exact ID of an existing immediate-child component. Other
+kinds have null targets. Occurrence names remain independent of the canonical
+shared component name. Multiple occurrences never duplicate the component.
+A Transition is exactly:
+{"id":"next","from":"local-step","to":"other-step","condition":"When does this branch apply?","outcome":null}
+An outcome on a call return names an exact outcome step in its child's flow.
+Use one continuation per child outcome, with further branching in an explicit
+parent decision. Conditions are descriptive and never evaluated. Control cannot
+leave an outcome or enter an entry marker. Each flow has at most one entry.
+A DataLink is exactly:
+{"id":"need","name":"What information is needed?","from":{"step":null,"port":null},"to":{"step":"local-step","port":null},"contract":null,"exchange":null}
+Null step is the scope boundary. A port is an optional exact public-port ID on
+that boundary or the targeted component of a call occurrence. Local actions have
+no public ports. Contract references use the same exact id/version structure as
+Interfaces. exchange optionally names an exact local interface edge; its endpoints
+must match both exact occurrence/boundary port bindings. Multiple declarations
+may refer to the same edge; unassociated declarations stay explicitly unresolved.
+No control arrow creates a data channel. Step/transition/DataLink IDs share one
+namespace per flow. Normal authoring uses pickers and structured forms, not IDs
+or JSON typing. Required DataLink endpoint/contract/exchange values should always
+be present; null represents an honest unassigned binding.
+
+Flow primitive is a descriptive stopping explanation. Flow extraction is optional
+historical provenance, not executable metadata:
+{"rule_version":1,"parent":"@root","source_steps":["local-step"],"responsibility":"One purpose","base":"historical-project-stamp"}
+Preserve existing provenance unless the requested edit deliberately replaces it.
+Flow layout is {"owner-id":{"step-id":{"x":80,"y":70}}}; coordinates are finite
+and nonnegative. Behavior packets exclude layouts and keep retained geometry.
+
+EXACT BEHAVIOR HANDOFF
+
+{"format":"system-designer-behavior-scope","version":1,"project_id":"project-id","owner":"@root","base":"exported-digest","context":{},"flow":{"steps":[],"transitions":[],"data":[],"primitive":""}}
+The packet version is the context policy version, distinct from project version 2.
+Return every original envelope field. Only flow is writable; keep format, version,
+project_id, owner, base and the entire supplied context byte-semantically intact.
+Missing flow is an error. Explicit flow:null requests deleting only this owner's
+flow and its flow layout. The app previews and requires confirmation of that
+clear, and rejects it if callers reference removed outcomes. An empty flow object
+is an incomplete draft, not absence. Interfaces and other owners remain preserved.
+Validate without publication, then revalidate on Apply. Wrong scope/format, stale
+base, modified context or broken merged references must be rejected.
+
+Context policy 1 includes project intent, the owner boundary, immediate-child
+signatures/outcomes, local interface exchanges, caller references and the complete
+contract catalog. It also repeats some child structure. It is conservative, not
+minimal context: unrelated catalog changes can stale a packet. Interface v2
+packets may include sibling interiors as preserved behavior context. Do not request
+a whole-project transfer by default, fabricate a smaller context or recompute base.
+The existing interface packet formats, version-1 golden hashes and preservation
+rules above remain valid. designer-check dispatches by exact scope format and
+validates only; it never writes the candidate or executes project behavior.
+
+Extraction supports selected local Action/Decision/Merge regions only: a single
+outside entry step, internally reachable members, fully labeled decision exits,
+nonambiguous ordinary successors, and at least one return. Loops and distinct
+explicit outcomes are preserved. Existing calls and affected exact exchange
+associations are rejected with correction guidance. Suggestions enumerate bounded
+structural regions (80 steps, at most 24 results); manual extraction allows up to
+512 selected members. This is not RPST and carries no unique/linear-time guarantee.
+A preview presents membership, entry, distinct outgoing alternatives, canonical
+name, single purpose, declared inputs/outputs and unreviewed information uses.
+Create component rechecks the complete candidate and publishes once. Its stale
+stamp includes saved layouts; pan/zoom and selection do not mutate it. Cancel
+never creates partial components, ports or contracts.
+
+Refining a bound public port or information requirement uses the normal atomic
+contract operation. Review every affected exact port, interface edge and DataLink
+in both parent and child flows. New definitions and assignments belong in one
+candidate. Never propagate by matching names or equal old contracts. Scoped flow
+replacement cannot rewrite its read-only catalog or ports: request a deliberate
+normal-app contract refinement or the appropriate interface scope instead.
+
+Unspecified behavior, unassigned contracts, missing alternatives and unreviewed
+information uses are honest drafts and may be saved. Dangling IDs, bad ownership,
+invalid types or broken exact associations are hard errors. Human information-use
+review is invalidated by material meaning or incident requirement changes; it is
+not proof of dependency completeness. No declarations prove absence of side
+effects, aliasing, conditional availability or runtime scheduling constraints.
+Say "No information requirements declared yet", never "Requires no information".
+This milestone has no runtime, concurrency, fork/join, state-machine semantics,
+code generation, general scripting or automatic architecture regeneration.

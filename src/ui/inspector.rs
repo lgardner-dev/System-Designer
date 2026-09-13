@@ -115,6 +115,29 @@ impl Designer {
                             .unwrap_or_default(),
                     );
                     ui.label(edge.label.as_deref().unwrap_or(""));
+                    for (owner, flow) in &p.behavior {
+                        for d in flow
+                            .data
+                            .iter()
+                            .filter(|d| d.exchange.as_ref() == Some(&edge.id))
+                        {
+                            if ui
+                                .button(format!(
+                                    "Information use: {} / {} [{}]",
+                                    crate::behavior::name(&p, owner),
+                                    d.name,
+                                    d.id
+                                ))
+                                .clicked()
+                            {
+                                self.go_scope(owner.clone(), Layer::Flow);
+                                self.flow.selection = flow::FlowSelection {
+                                    data: Some(d.id.clone()),
+                                    ..Default::default()
+                                };
+                            }
+                        }
+                    }
                     if ui.button("Change contract / endpoints").clicked() {
                         self.canvas_session.view = canvas::View::Detail;
                         self.canvas.cancel();
@@ -220,8 +243,14 @@ impl Designer {
         let mut keep = true;
         let mut next = None;
         egui::Modal::new(egui::Id::new("designer_modal")).show(ctx,|ui|{
-            ui.set_width((ctx.available_rect().width()-80.0).clamp(440.0,800.0));
-            egui::ScrollArea::vertical().max_height((ctx.available_rect().height()-110.0).max(260.0)).show(ui,|ui|{
+            // A reused Modal area remembers its previous small size. Give the
+            // scrolling form a viewport based on the whole window, independently
+            // of the last dialog and the workspace panels drawn before it.
+            let size = ctx.content_rect().size();
+            ui.set_width((size.x-80.0).clamp(440.0,800.0));
+            let height = (size.y-140.0).clamp(300.0,820.0);
+            ui.set_height(height);
+            egui::ScrollArea::vertical().max_height(height).auto_shrink([false,false]).show(ui,|ui|{
                 match &mut dialog{
                     Dialog::Flow(d) => { keep = !self.flow_form(ui,d); }
                     Dialog::Project{
@@ -379,6 +408,25 @@ impl Designer {
                     =>{
                         ui.heading("Confirm change");
                         ui.label(message.as_str());
+                        let deleting_node = matches!(action,ConfirmAction::Node(_));
+                        let ids: Vec<String> = match action {
+                            ConfirmAction::Node(id) | ConfirmAction::Child(id) => {
+                                let p = self.store.project();
+                                let mut ids = if deleting_node {vec![id.clone()]} else {vec![]};
+                                if let Some((_,n)) = p.node(id) {
+                                    if let Some(child) = &n.child {
+                                        let systems = p.descendants(child);
+                                        ids.extend(p.systems.iter().filter(|s|systems.contains(&s.id)).flat_map(|s|s.nodes.iter().map(|n|n.id.clone())));
+                                    }
+                                }
+                                ids
+                            },
+                            ConfirmAction::Port(_,id) | ConfirmAction::Edge(id) => vec![id.clone()],
+                            ConfirmAction::Contract(_) => vec![],
+                        };
+                        for id in ids { for reference in crate::behavior::references(self.store.project(),&id) {
+                            ui.colored_label(egui::Color32::LIGHT_RED,format!("Reconcile first: {reference}"));
+                        }}
                         ui.horizontal(|ui|{
                             if ui.button("Apply change").clicked(){
                                 let p=self.store.project();
@@ -458,6 +506,9 @@ impl Designer {
                         });
                         ui.label("A local editor for recursive components, typed ports, and parent-owned connections. It does not execute workflows or call AI services.");
                         ui.separator();
+                        ui.strong("Control Flow workflow");
+                        ui.label("Start a flow explicitly, describe local work and alternatives, then review a responsibility boundary before extraction. Structural extractability does not establish a single purpose. Define information through exact bindings; unassigned requirements remain honest drafts. Calls and Interfaces share one component identity.");
+                        ui.hyperlink_to("Control Flow workflow and limitations", "https://github.com/lgardner-dev/System-Designer/blob/work/add-logic-diagramming/docs/CONTROL-FLOW-WORKFLOW.md");
                         ui.strong("Design");
                         ui.label("Add a component, name its purpose, and add input/output ports. Drag a wire in either direction. Choose or define its contract explicitly. Double-click a wire to edit it; double-click a component to enter its internals. Middle-drag or background-drag pans. Scroll zooms; Fit frames the current level.");
                         ui.strong("Keep work");

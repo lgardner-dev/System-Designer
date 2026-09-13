@@ -89,7 +89,7 @@ pub(super) enum FlowDialog {
     Step(Step),
     Transition(Transition),
     Primitive(String),
-    Extract(ExtractDialog),
+    Extract(Box<ExtractDialog>),
     Information(InformationDialog),
     Port(PortDialog),
     Delete(FlowSelection),
@@ -181,14 +181,14 @@ impl Designer {
         } else {
             (vec![], None)
         };
-        self.dialog = Some(Dialog::Flow(FlowDialog::Extract(ExtractDialog {
+        self.dialog = Some(Dialog::Flow(FlowDialog::Extract(Box::new(ExtractDialog {
             members: self.flow.selection.steps.clone(),
             name: String::new(),
             purpose: String::new(),
             plan: None,
             problem,
             suggestions,
-        })));
+        }))));
     }
     fn information_dialog(&mut self, existing: Option<&DataLink>) {
         let Some(f) = self.store.project().behavior.get(&self.owner) else {

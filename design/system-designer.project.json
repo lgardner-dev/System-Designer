@@ -1,8 +1,8 @@
 {
   "format": "system-designer-project",
-  "version": 1,
+  "version": 2,
   "id": "project.system-designer-native",
-  "name": "System Designer — native Rust",
+  "name": "System Designer \u2014 native Rust",
   "purpose": "Native desktop System Designer. No webview, HTML, JavaScript, CSS, backend, or AI connection. Preserve recursive typed design, explicit contract dialogs, scoped AI exchange, and local project files. Start blank; expose this self-design as an optional built-in example. The initialization prompt and this JSON are compiled into the executable.\n\nThis model includes the unified View / Focus / Arrange canvas integration. Verification and limitations are recorded in docs/CANVAS-INTEGRATION.md. The self-design is not a claim of full native runtime or platform qualification.\n\nDesign convention: roughly eight or fewer immediate components per level, justified by independent responsibilities, not a hard validator limit. This tree has seven top-level components and at most eight beneath each. Parent systems own all local edges; public ports are projected into child boundaries.\n\nIMPORTANT: Edges below describe responsibility-level interfaces and return paths, NOT a deployed message bus. Some schemas use JSON projections of typed in-process values because the editor's shape language cannot express Rust references or recursive type definitions. These are explanatory contracts, not generated runtime ABI declarations. Source paths in node purposes map the design to the implementation. The application itself keeps direct Rust calls and one Store.",
   "root": "root",
   "contracts": [
@@ -629,7 +629,7 @@
         {
           "id": "workspace",
           "name": "Workspace",
-          "purpose": "Own the native window and document lifecycle; compose tree, canvas, inspector and dialogs. Keep unsaved-change guards and view state here, not in the project schema.\n\nSource: src/main.rs; src/ui/mod.rs; src/ui/workspace.rs",
+          "purpose": "Compose the native app and one document lifecycle. Map @root/component behavior owners to optional interface systems; remember each layer camera and selection. Leaf behavior needs no structural child. Source: src/ui/mod.rs, scope.rs, workspace.rs.",
           "kind": "component",
           "ports": [
             {
@@ -701,7 +701,7 @@
         {
           "id": "canvas",
           "name": "Canvas",
-          "purpose": "Render only the selected parent-local graph. Project owner ports onto child frames; derive external labels. Convert drag/click gestures to requests, never direct semantic mutations.\n\nSource: src/ui/canvas.rs",
+          "purpose": "Render and select interface geometry and explicit control-flow shapes. Reuse the sampled Path for picking, arrows and direction lights; control lights do not simulate execution. Source: src/ui/canvas/ and src/ui/flow/drawing.rs. Flow arrangement remains manual.",
           "kind": "component",
           "ports": [
             {
@@ -737,7 +737,7 @@
         {
           "id": "inspectors",
           "name": "Authoring forms",
-          "purpose": "Inspect and edit components, ports and structured contract definitions. Require an explicit contract choice and consent for changes to shared connected ports.\n\nSource: src/ui/inspector.rs; src/ui/contracts.rs",
+          "purpose": "Draft component, flow-step, transition, information and contract edits; guide region membership, purpose and boundary review before a single extraction. Source: src/ui/inspector.rs, contracts.rs, flow/forms.rs and flow/inspect.rs.",
           "kind": "component",
           "ports": [
             {
@@ -773,7 +773,7 @@
         {
           "id": "transactions",
           "name": "Edits and history",
-          "purpose": "Construct complete candidates, apply consistent connection typing, validate before publication, and own current Project plus bounded undo/redo snapshots.\n\nSource: src/edit/",
+          "purpose": "Build and publish complete candidates through Store. Extract supported local regions and reconcile exact port/edge/DataLink contract bindings atomically. Preserve stale-plan rejection and one-step undo. Source: src/edit/ and src/behavior/edit.rs, extract.rs.",
           "kind": "component",
           "ports": [
             {
@@ -845,7 +845,7 @@
         {
           "id": "model",
           "name": "Design model",
-          "purpose": "Define typed normalized Project, System, Node, Port, Edge and Contract values; validate structural invariants and provide derived hierarchy/interface queries. No renderer or file I/O.\n\nSource: src/model/",
+          "purpose": "Validate one authoritative v1/v2 Project, structural IDs/types and behavior ownership. Derive draft diagnostics and bounded graph complexity; no predicate interpreter or proof of dependency completeness. Source: src/model/ and src/behavior/model.rs, validate.rs.",
           "kind": "component",
           "ports": [
             {
@@ -890,7 +890,7 @@
         {
           "id": "collaboration",
           "name": "AI handoff",
-          "purpose": "Embed initialization instructions; export only the requested component, level, or subtree. Validate complete returned scope packets, preserve outside context, and reject stale/shared-definition changes. No API or model connection.\n\nSource: src/ui/handoff.rs; src/exchange/; assets/initialization.txt",
+          "purpose": "Export and validate explicit Interfaces or current-owner Control Flow packets; preserve hidden content and recheck before applying. Embedded prompt documents the exact protocols. Context v1 remains conservative: full catalog in behavior packets, some sibling interiors in interface packets. Source: src/ui/handoff.rs, src/exchange/, src/behavior/exchange.rs.",
           "kind": "component",
           "ports": [
             {
@@ -917,7 +917,7 @@
         {
           "id": "files",
           "name": "Local files",
-          "purpose": "Read and validate project files, detect normal external-file changes, save with previous-version backup and same-directory replacement, and manage isolated recovery copies.\n\nSource: src/storage.rs",
+          "purpose": "Save/reopen both layers and saved layouts; protect unsaved documents, retain backups and recover published edits. Native OS dialog/platform qualification remains separate from model tests. Source: src/storage.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1019,7 +1019,7 @@
             "node": "inspectors",
             "port": "inspectors.connection_request"
           },
-          "label": "uncommitted wire gesture → explicit contract dialog"
+          "label": "uncommitted wire gesture \u2192 explicit contract dialog"
         },
         {
           "id": "root.edge.6",
@@ -1255,7 +1255,7 @@
         {
           "id": "workspace.navigation",
           "name": "Tree and breadcrumbs",
-          "purpose": "Navigate arbitrary normalized containment iteratively; expose inherited context while keeping local canvas scope.\n\nSource: src/ui/workspace.rs::tree; src/ui/mod.rs::navigate",
+          "purpose": "Map semantic owners and optional interface systems; retain separate scope/layer cameras, selections and Back targets, pruning invalid state after edits and loads. src/ui/scope.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1333,7 +1333,7 @@
             "node": null,
             "port": "workspace.canvas_view"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "workspace.internal.edge.2",
@@ -1345,7 +1345,7 @@
             "node": null,
             "port": "workspace.inspector_view"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "workspace.internal.edge.3",
@@ -1357,7 +1357,7 @@
             "node": null,
             "port": "workspace.handoff_view"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "workspace.internal.edge.4",
@@ -1369,7 +1369,7 @@
             "node": "workspace.document",
             "port": "workspace.document.public_current"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "workspace.internal.edge.5",
@@ -1381,7 +1381,7 @@
             "node": "workspace.document",
             "port": "workspace.document.public_edit_status"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "workspace.internal.edge.6",
@@ -1393,7 +1393,7 @@
             "node": null,
             "port": "workspace.file_request"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "workspace.internal.edge.7",
@@ -1405,7 +1405,7 @@
             "node": "workspace.document",
             "port": "workspace.document.public_loaded"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "workspace.internal.edge.8",
@@ -1463,7 +1463,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Measure Detail cards and one anchor per physical port on any side. Derive owner boundaries, external labels and direction-correct paths. Freeze side/order choices during gestures. Source: src/ui/canvas/geometry.rs; Scene, Path.",
+          "purpose": "Derive four-sided interface geometry and shape-perimeter control attachments; share exact sampled cubic Path geometry. src/ui/canvas/geometry.rs and src/ui/flow/drawing.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1603,7 +1603,7 @@
         {
           "id": "canvas.gestures",
           "name": "Gesture and control dispatch",
-          "purpose": "Preserve drag/click explicit contract selection. Freeze attachment decisions, cancel on changed projects and publish only validated completed edits. View, Focus and Lights never publish. Source: src/ui/canvas.rs.",
+          "purpose": "Handle interface wires and flow transitions in either drag direction, local step movement, region selection and cancellation. Publish only completed validated edits; forms provide a keyboard alternative.",
           "kind": "component",
           "ports": [
             {
@@ -1761,7 +1761,7 @@
             "node": "canvas.projection",
             "port": "canvas.projection.public_view"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "canvas.internal.edge.2",
@@ -1773,7 +1773,7 @@
             "node": null,
             "port": "canvas.edit"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "canvas.internal.edge.3",
@@ -1785,7 +1785,7 @@
             "node": null,
             "port": "canvas.connection_request"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "canvas.internal.edge.4",
@@ -1951,7 +1951,7 @@
         {
           "id": "inspectors.details",
           "name": "Context inspector",
-          "purpose": "Show selected node/edge/boundary, derived connections, inherited context and focused actions.\n\nSource: src/ui/inspector.rs::inspector",
+          "purpose": "Expose exact identity, local ownership, shared call references, draft issues, information needs and deliberate navigation between layers.",
           "kind": "component",
           "ports": [
             {
@@ -1995,7 +1995,7 @@
         {
           "id": "inspectors.component",
           "name": "Component form",
-          "purpose": "Edit name, purpose, visual hint and compatible public ports; connected retyping goes through the connection dialog.\n\nSource: src/ui/inspector.rs::show_dialog",
+          "purpose": "Edit canonical component identity, local steps, transitions, stopping explanations and human-reviewed extraction drafts. Cancel publishes nothing.",
           "kind": "component",
           "ports": [
             {
@@ -2030,7 +2030,7 @@
         {
           "id": "inspectors.connection",
           "name": "Connection dialog",
-          "purpose": "Require chosen/new contract; show shared port and edge impact, collect consent, construct one transaction.\n\nSource: src/ui/contracts.rs::connection_form",
+          "purpose": "Review exact public ports, interface wires and behavior DataLinks before atomic contract refinement, including a new structured definition.",
           "kind": "component",
           "ports": [
             {
@@ -2189,7 +2189,7 @@
             "node": "inspectors.details",
             "port": "inspectors.details.public_view"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "inspectors.internal.edge.2",
@@ -2201,7 +2201,7 @@
             "node": "inspectors.connection",
             "port": "inspectors.connection.public_connection_request"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "inspectors.internal.edge.3",
@@ -2213,7 +2213,7 @@
             "node": null,
             "port": "inspectors.edit"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "inspectors.internal.edge.4",
@@ -2343,7 +2343,7 @@
         {
           "id": "model.types",
           "name": "Typed records",
-          "purpose": "Serialize the version-1 format with explicit draft null bindings and absent leaf-child fields. Reject unknown properties.\n\nSource: src/model/types.rs",
+          "purpose": "Persist supported behavior steps, descriptive alternatives, exact data bindings, primitive criteria and both independent layouts in native project version 2.",
           "kind": "component",
           "ports": [
             {
@@ -2369,7 +2369,7 @@
         {
           "id": "model.validation",
           "name": "Structural validation",
-          "purpose": "Check IDs, contract definitions, ownership, reachability, direction, exact port types, locality and layout. Allow process cycles and large levels.\n\nSource: src/model/validation.rs",
+          "purpose": "Separate saveable draft gaps from hard identity/type errors. Diagnose missing child outcomes, duplicate unguarded returns and unreviewed local information use.",
           "kind": "component",
           "ports": [
             {
@@ -2422,7 +2422,7 @@
         {
           "id": "model.queries",
           "name": "Derived views",
-          "purpose": "Resolve owners, endpoints, ancestors, descendants, external boundary labels, IDs and deterministic default layout. Do not store duplicate public boundaries.\n\nSource: src/model/query.rs",
+          "purpose": "Derive scope ownership, public boundaries, call uses, draft issues and bounded normalized graph metrics; no runtime or inferred causal dependencies.",
           "kind": "component",
           "ports": [
             {
@@ -2448,7 +2448,7 @@
             "node": "model.validation",
             "port": "model.validation.public_edit_candidate"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "model.internal.edge.2",
@@ -2460,7 +2460,7 @@
             "node": null,
             "port": "model.edit_result"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "model.internal.edge.3",
@@ -2472,7 +2472,7 @@
             "node": "model.validation",
             "port": "model.validation.public_file_candidate"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "model.internal.edge.4",
@@ -2484,7 +2484,7 @@
             "node": null,
             "port": "model.file_result"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "model.internal.edge.5",
@@ -2518,7 +2518,7 @@
         {
           "id": "transactions.operations",
           "name": "Bounded edits",
-          "purpose": "Create, modify and remove components, ports, systems and catalog entries with complete candidate validation. Clean dependent edges and layout on deletion.\n\nSource: src/edit/operations.rs",
+          "purpose": "Build validated structural and flow edits and bounded local-region extraction; preserve crossing IDs and explicit alternatives; explain unsupported crossings.",
           "kind": "component",
           "ports": [
             {
@@ -2562,7 +2562,7 @@
         {
           "id": "transactions.connection",
           "name": "Connection consistency",
-          "purpose": "Find the connected physical-port equality group across mirrored boundaries; require consent and atomically create/retype the complete channel.\n\nSource: src/edit/connection.rs",
+          "purpose": "Follow exact shared port, interface-edge and DataLink constraints to preview and reconcile contract assignments in one candidate. Names or equal old types do not imply coupling.",
           "kind": "component",
           "ports": [
             {
@@ -2668,7 +2668,7 @@
             "node": "transactions.operations",
             "port": "transactions.operations.public_gesture"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "transactions.internal.edge.2",
@@ -2680,7 +2680,7 @@
             "node": "transactions.operations",
             "port": "transactions.operations.public_form"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "transactions.internal.edge.3",
@@ -2692,7 +2692,7 @@
             "node": "transactions.history",
             "port": "transactions.history.public_scope"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "transactions.internal.edge.4",
@@ -2704,7 +2704,7 @@
             "node": null,
             "port": "transactions.current"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "transactions.internal.edge.5",
@@ -2716,7 +2716,7 @@
             "node": null,
             "port": "transactions.status"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "transactions.internal.edge.6",
@@ -2728,7 +2728,7 @@
             "node": null,
             "port": "transactions.validate"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "transactions.internal.edge.7",
@@ -2740,7 +2740,7 @@
             "node": "transactions.history",
             "port": "transactions.history.public_validation"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "transactions.internal.edge.8",
@@ -2865,7 +2865,7 @@
         {
           "id": "collaboration.export",
           "name": "Scope projection",
-          "purpose": "Export compact context, referenced definitions and source hash; omit unrelated branches and visual positions.\n\nSource: src/exchange/packet.rs; src/exchange/canonical.rs",
+          "purpose": "Preserve existing version-1 hashes and behavior context-policy version 1. Export exact local exchanges, child signatures, caller references and the full behavior contract catalog; minimal context remains a gap.",
           "kind": "component",
           "ports": [
             {
@@ -2891,7 +2891,7 @@
         {
           "id": "collaboration.replace",
           "name": "Scoped replacement",
-          "purpose": "Verify base/context, preserve hidden children and outside identities, merge only new contract versions, then validate the whole merged project.\n\nSource: src/exchange/replace.rs",
+          "purpose": "Dispatch exact packet formats, reject missing flow, preview explicit null clearing, recheck scope/base/context, then validate the merged project before Store publication.",
           "kind": "component",
           "ports": [
             {
@@ -2935,7 +2935,7 @@
             "node": "collaboration.panel",
             "port": "collaboration.panel.public_view"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "collaboration.internal.edge.2",
@@ -2947,7 +2947,7 @@
             "node": null,
             "port": "collaboration.candidate"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "collaboration.internal.edge.3",
@@ -3158,7 +3158,7 @@
             "node": "files.read",
             "port": "files.read.public_request"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "files.internal.edge.2",
@@ -3170,7 +3170,7 @@
             "node": null,
             "port": "files.loaded"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "files.internal.edge.3",
@@ -3182,7 +3182,7 @@
             "node": null,
             "port": "files.validate"
           },
-          "label": "responsible child → public output"
+          "label": "responsible child \u2192 public output"
         },
         {
           "id": "files.internal.edge.4",
@@ -3194,7 +3194,7 @@
             "node": "files.read",
             "port": "files.read.public_validation"
           },
-          "label": "public input → responsible child"
+          "label": "public input \u2192 responsible child"
         },
         {
           "id": "files.internal.edge.5",
@@ -3294,5 +3294,752 @@
         }
       ]
     }
-  ]
+  ],
+  "behavior": {
+    "workspace": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "call",
+          "name": "Choose semantic scope",
+          "purpose": "",
+          "target": "workspace.navigation"
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": "complete"
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "canvas": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Render the chosen design scope",
+          "purpose": "Render and select interface geometry and explicit control-flow shapes. Reuse the sampled Path for picking, arrows and direction lights; control lights do not simulate execution. Source: src/ui/canvas/ and src/ui/flow/drawing.rs. Flow arrangement remains manual."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "inspectors": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "call",
+          "name": "Describe the work",
+          "purpose": "",
+          "target": "inspectors.component"
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": "complete"
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "model": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Check IDs, types and behavior references",
+          "purpose": "Validate one authoritative v1/v2 Project, structural IDs/types and behavior ownership. Derive draft diagnostics and bounded graph complexity; no predicate interpreter or proof of dependency completeness. Source: src/model/ and src/behavior/model.rs, validate.rs."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "transactions": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "call",
+          "name": "Build the candidate",
+          "purpose": "",
+          "target": "transactions.operations"
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": "complete"
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "collaboration": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "call",
+          "name": "Validate a returned packet",
+          "purpose": "",
+          "target": "collaboration.replace"
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": "complete"
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "files": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Persist the validated document",
+          "purpose": "Save/reopen both layers and saved layouts; protect unsaved documents, retain backups and recover published edits. Native OS dialog/platform qualification remains separate from model tests. Source: src/storage.rs."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": ""
+    },
+    "@root": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin design session",
+          "purpose": ""
+        },
+        {
+          "id": "choose",
+          "kind": "call",
+          "name": "Choose the scope",
+          "purpose": "",
+          "target": "workspace"
+        },
+        {
+          "id": "initial_view",
+          "kind": "call",
+          "name": "Inspect current design",
+          "purpose": "",
+          "target": "canvas"
+        },
+        {
+          "id": "draft",
+          "kind": "call",
+          "name": "Describe and review an edit",
+          "purpose": "",
+          "target": "inspectors"
+        },
+        {
+          "id": "publish",
+          "kind": "call",
+          "name": "Publish a validated candidate",
+          "purpose": "",
+          "target": "transactions"
+        },
+        {
+          "id": "updated_view",
+          "kind": "call",
+          "name": "Inspect the changed design",
+          "purpose": "",
+          "target": "canvas"
+        },
+        {
+          "id": "save",
+          "kind": "call",
+          "name": "Save the complete project",
+          "purpose": "",
+          "target": "files"
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Design saved",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "sequence.0",
+          "from": "begin",
+          "to": "choose",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "sequence.1",
+          "from": "choose",
+          "to": "initial_view",
+          "condition": "",
+          "outcome": "complete"
+        },
+        {
+          "id": "sequence.2",
+          "from": "initial_view",
+          "to": "draft",
+          "condition": "",
+          "outcome": "complete"
+        },
+        {
+          "id": "sequence.3",
+          "from": "draft",
+          "to": "publish",
+          "condition": "",
+          "outcome": "complete"
+        },
+        {
+          "id": "sequence.4",
+          "from": "publish",
+          "to": "updated_view",
+          "condition": "",
+          "outcome": "complete"
+        },
+        {
+          "id": "sequence.5",
+          "from": "updated_view",
+          "to": "save",
+          "condition": "",
+          "outcome": "complete"
+        },
+        {
+          "id": "sequence.6",
+          "from": "save",
+          "to": "complete",
+          "condition": "",
+          "outcome": "complete"
+        }
+      ],
+      "data": [],
+      "primitive": "This diagram describes the manual editing path. It is not a runtime scheduler. Handoff is an optional route under AI handoff; no network client is implied."
+    },
+    "workspace.navigation": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Choose semantic scope",
+          "purpose": "Map semantic owners and optional interface systems; retain separate scope/layer cameras, selections and Back targets, pruning invalid state after edits and loads. src/ui/scope.rs."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "Stop at this bounded native operation. Further decomposition is an implementation detail unless a distinct responsibility is justified."
+    },
+    "transactions.operations": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Build the candidate",
+          "purpose": "Build validated structural and flow edits and bounded local-region extraction; preserve crossing IDs and explicit alternatives; explain unsupported crossings."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "Stop at this bounded native operation. Further decomposition is an implementation detail unless a distinct responsibility is justified."
+    },
+    "inspectors.component": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Describe the work",
+          "purpose": "Edit canonical component identity, local steps, transitions, stopping explanations and human-reviewed extraction drafts. Cancel publishes nothing."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "Stop at this bounded native operation. Further decomposition is an implementation detail unless a distinct responsibility is justified."
+    },
+    "collaboration.replace": {
+      "steps": [
+        {
+          "id": "begin",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": ""
+        },
+        {
+          "id": "work",
+          "kind": "action",
+          "name": "Validate a returned packet",
+          "purpose": "Dispatch exact packet formats, reject missing flow, preview explicit null clearing, recheck scope/base/context, then validate the merged project before Store publication."
+        },
+        {
+          "id": "complete",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": ""
+        }
+      ],
+      "transitions": [
+        {
+          "id": "start",
+          "from": "begin",
+          "to": "work",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "finish",
+          "from": "work",
+          "to": "complete",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "Stop at this bounded native operation. Further decomposition is an implementation detail unless a distinct responsibility is justified."
+    }
+  },
+  "flow_layout": {
+    "workspace": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "canvas": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "inspectors": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "model": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "transactions": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "collaboration": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "files": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "@root": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "choose": {
+        "x": 420,
+        "y": 70
+      },
+      "initial_view": {
+        "x": 760,
+        "y": 70
+      },
+      "draft": {
+        "x": 80,
+        "y": 300
+      },
+      "publish": {
+        "x": 420,
+        "y": 300
+      },
+      "updated_view": {
+        "x": 760,
+        "y": 300
+      },
+      "save": {
+        "x": 80,
+        "y": 530
+      },
+      "complete": {
+        "x": 420,
+        "y": 530
+      }
+    },
+    "workspace.navigation": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "transactions.operations": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "inspectors.component": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    },
+    "collaboration.replace": {
+      "begin": {
+        "x": 80,
+        "y": 70
+      },
+      "work": {
+        "x": 420,
+        "y": 70
+      },
+      "complete": {
+        "x": 760,
+        "y": 70
+      }
+    }
+  }
 }

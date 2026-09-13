@@ -157,7 +157,7 @@ impl Designer {
                 });
                 ui.horizontal_wrapped(|ui| {
                     if ui
-                        .add_enabled(self.can_go_back(), egui::Button::new("← Back"))
+                        .add_enabled(self.can_go_back(), egui::Button::new("<- Back"))
                         .clicked()
                     {
                         self.back_scope();

@@ -204,3 +204,14 @@ stamp conservatively includes both saved layouts; viewport and selection are
 session state and do not enter that stamp. Behavior exchange hashes continue to
 exclude saved layouts. The first context policy still includes the full contract
 catalog, so unrelated catalog edits conservatively stale behavior packets.
+
+
+The ordinary Handoff dialog now exposes both exact scope formats. Validate
+constructs the merged project without publication; Apply reconstructs it against
+the then-current Project. Explicit behavior clearing is shown in its preview and
+requires a clear checkbox. `designer-check PROJECT [PACKET]` dispatches strictly
+by `format` and validates only. Unknown formats and whole projects used as scope
+packets are errors. Context-policy versions and canonical hashes are unchanged.
+Owner/layer navigation, cameras, selection, lights and dialogs are session state;
+they do not appear in persisted JSON. Document reopen uses Fit on the persisted
+destination geometry. `flow_layout` and `layout` both survive all file operations.
