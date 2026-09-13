@@ -364,12 +364,11 @@ pub fn preview(
             matches!(s.kind, StepKind::Action | StepKind::Decision) && !s.information_reviewed
         })
         .count();
-    // Preserve positions of retained steps. Move selected geometry to child, normalize its origin.
-    let original = p
-        .flow_layout
-        .get(owner)
-        .cloned()
-        .unwrap_or_else(|| positions(f));
+    // Freeze the effective original scene before removing/reordering membership.
+    let original = effective_positions(f, p.flow_layout.get(owner));
+    // The Call fits inside the replaced entry's footprint (including a decision).
+    // Independent minimum X/Y can describe an occupied, unselected parent corner.
+    let call_position = original[&region.entry];
     let x = members
         .iter()
         .filter_map(|id| original.get(id))
@@ -380,25 +379,55 @@ pub fn preview(
         .filter_map(|id| original.get(id))
         .map(|v| v.y)
         .fold(f64::INFINITY, f64::min);
-    let origin = Position {
-        x: if x.is_finite() { x } else { 80.0 },
-        y: if y.is_finite() { y } else { 80.0 },
-    };
-    let mut child_layout = positions(&child);
+    let gap = 70.0;
+    let work_top = 70.0 + footprint(StepKind::Entry).1 + gap;
+    let mut child_layout = std::collections::BTreeMap::new();
     for id in members {
-        if let Some(pos) = original.get(id) {
-            child_layout.insert(
-                id.clone(),
-                Position {
-                    x: pos.x - origin.x + 80.0,
-                    y: pos.y - origin.y + 230.0,
-                },
-            );
-        }
+        let pos = original[id];
+        child_layout.insert(
+            id.clone(),
+            Position {
+                x: pos.x - x + 80.0,
+                y: pos.y - y + work_top,
+            },
+        );
+    }
+    let bottom = child
+        .steps
+        .iter()
+        .filter(|s| members.contains(&s.id))
+        .map(|s| child_layout[&s.id].y + footprint(s.kind).1)
+        .fold(work_top, f64::max);
+    let entry_x = child_layout[&region.entry].x;
+    // Synthetic markers have their own rows outside all moved work. Outcome
+    // identity order is deterministic and leaves room between marker footprints.
+    let mut outcomes: Vec<_> = child
+        .steps
+        .iter()
+        .filter(|s| s.kind == StepKind::Outcome)
+        .collect();
+    outcomes.sort_by(|a, b| a.id.cmp(&b.id));
+    for (i, s) in outcomes.iter().enumerate() {
+        child_layout.insert(
+            s.id.clone(),
+            Position {
+                x: 80.0 + i as f64 * (footprint(s.kind).0 + gap),
+                y: bottom + gap,
+            },
+        );
+    }
+    for s in child.steps.iter().filter(|s| s.kind == StepKind::Entry) {
+        child_layout.insert(
+            s.id.clone(),
+            Position {
+                x: entry_x,
+                y: 70.0,
+            },
+        );
     }
     let mut parent_layout = original;
     parent_layout.retain(|id, _| !members.contains(id));
-    parent_layout.insert(call.clone(), origin);
+    parent_layout.insert(call.clone(), call_position);
     q.behavior.insert(owner.into(), parent);
     q.behavior.insert(component.clone(), child);
     q.flow_layout.insert(owner.into(), parent_layout);

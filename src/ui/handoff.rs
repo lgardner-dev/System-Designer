@@ -1,4 +1,5 @@
 use super::*;
+use crate::behavior::BehaviorChanges;
 use crate::exchange::{self, Scope};
 use egui::{TextEdit, Ui};
 #[derive(Clone, Copy, PartialEq)]
@@ -19,6 +20,16 @@ pub(super) struct HandoffDialog {
     incoming: String,
     validated: Option<String>,
     summary: String,
+    changes: Option<BehaviorChanges>,
+}
+impl HandoffDialog {
+    fn reset_preview(&mut self) {
+        self.validated = None;
+        self.summary.clear();
+        self.changes = None;
+        self.clear = false;
+        self.clear_confirmed = false;
+    }
 }
 impl Designer {
     pub(super) fn open_handoff(&mut self) {
@@ -55,7 +66,73 @@ impl Designer {
             incoming: String::new(),
             validated: None,
             summary: String::new(),
+            changes: None,
         }));
+    }
+    fn validate_handoff(&mut self, d: &mut HandoffDialog) {
+        d.reset_preview();
+        let result = serde_json::from_str::<serde_json::Value>(&d.incoming)
+            .map_err(ModelError::one)
+            .and_then(|packet| {
+                exchange::replace_packet(
+                    self.store.project(),
+                    &packet,
+                    &d.interface_system,
+                    &self.owner,
+                )
+            });
+        match result {
+            Ok(p) => {
+                let changes = BehaviorChanges::between(self.store.project(), &p);
+                d.clear = !changes.clears.is_empty();
+                d.summary = format!(
+                    "{}\nValid merged project: {} systems, {} components, {} behavior scopes. No changes applied yet.",
+                    changes.summary(),
+                    p.systems.len(),
+                    p.systems.iter().map(|s| s.nodes.len()).sum::<usize>(),
+                    p.behavior.len()
+                );
+                d.changes = Some(changes);
+                d.validated = Some(d.incoming.clone());
+                self.error = None;
+            }
+            Err(e) => self.error = Some(e.to_string()),
+        }
+    }
+    fn apply_handoff(&mut self, d: &mut HandoffDialog) {
+        // Reconstruct and revalidate, then verify the reviewed semantic changes.
+        let result = serde_json::from_str::<serde_json::Value>(&d.incoming)
+            .map_err(ModelError::one)
+            .and_then(|packet| {
+                exchange::replace_packet(
+                    self.store.project(),
+                    &packet,
+                    &d.interface_system,
+                    &self.owner,
+                )
+            })
+            .and_then(|p| {
+                let changes = BehaviorChanges::between(self.store.project(), &p);
+                if d.validated.as_ref() != Some(&d.incoming) || d.changes.as_ref() != Some(&changes)
+                {
+                    return Err(ModelError::one(
+                        "Scope changes differ from the preview; validate again.",
+                    ));
+                }
+                if !changes.clears.is_empty() && !d.clear_confirmed {
+                    return Err(ModelError::one(
+                        "Confirm the control flow removals before applying.",
+                    ));
+                }
+                Ok(p)
+            });
+        self.publish("Apply scoped replacement", result);
+        if self.error.is_none() {
+            d.reset_preview();
+            d.summary = "Applied as one undoable edit. Outside scope preserved.".into();
+            d.exported.clear();
+            self.canvas.fit_requested = true;
+        }
     }
     fn export_text(&mut self, text: &str, name: &str) {
         let Some(path) = rfd::FileDialog::new().set_file_name(name).save_file() else {
@@ -238,9 +315,7 @@ impl Designer {
                         match std::fs::read_to_string(path) {
                             Ok(text) => {
                                 d.incoming = text;
-                                d.validated = None;
-                                d.clear = false;
-                                d.clear_confirmed = false;
+                                d.reset_preview();
                             }
                             Err(e) => self.error = Some(e.to_string()),
                         }
@@ -261,55 +336,58 @@ impl Designer {
                         )
                     });
                 if response.inner.changed() {
-                    d.validated = None;
-                    d.summary.clear();
-                    d.clear = false;
-                    d.clear_confirmed = false;
+                    d.reset_preview();
                 }
-                if d.clear {
-                    ui.checkbox(
-                        &mut d.clear_confirmed,
-                        "Clear this component’s entire control flow and its saved flow layout",
-                    );
-                }
-                ui.horizontal(|ui|{
-                    if ui.button("Validate candidate").clicked(){
-                        let result=serde_json::from_str::<serde_json::Value>(&d.incoming).map_err(ModelError::one).and_then(|packet|exchange::replace_packet(self.store.project(),&packet,&d.interface_system,&self.owner));
-                        match result{
-                            Ok(p)=>{
-                                d.validated=Some(d.incoming.clone());
-                                d.clear = self.store.project().behavior.contains_key(&self.owner) && !p.behavior.contains_key(&self.owner);
-                                d.clear_confirmed = false;
-                                d.summary = if d.clear { format!("Explicit clear: remove the control flow and saved flow layout of {}. Interfaces and other owners remain intact. No changes applied yet.",self.owner) }
-                                    else { format!("Valid merged project: {} systems, {} components, {} behavior scopes. No changes applied yet.",p.systems.len(),p.systems.iter().map(|s|s.nodes.len()).sum::<usize>(),p.behavior.len()) };
-                                if let Some(next) = p.behavior.get(&self.owner) {
-                                    for step in &next.steps {
-                                        if let Some(old) = self.store.project().behavior.get(&self.owner).and_then(|f|f.step(&step.id)) {
-                                            if old != step {d.summary.push_str(&format!("\nStep {}: {} → {}",step.id,old.name,step.name));}
-                                        } else {d.summary.push_str(&format!("\nAdd step {}: {}",step.id,step.name));}
-                                    }
-                                }
-                                self.error=None;
-                            },
-                            Err(e)=>{
-                                d.validated=None;
-                                self.error=Some(e.to_string());
-                            }
-                        }
+                ui.horizontal(|ui| {
+                    if ui.button("Validate candidate").clicked() {
+                        self.validate_handoff(d);
                     }
-                    if ui.add_enabled(d.validated.as_ref()==Some(&d.incoming) && (!d.clear || d.clear_confirmed),egui::Button::new("Apply validated changes")).clicked(){
-                        // Deliberately reconstruct and revalidate; never trust a cached candidate.
-                        let result=serde_json::from_str::<serde_json::Value>(&d.incoming).map_err(ModelError::one).and_then(|packet|exchange::replace_packet(self.store.project(),&packet,&d.interface_system,&self.owner));
-                        self.publish("Apply scoped replacement",result);
-                        if self.error.is_none(){
-                            d.summary="Applied as one undoable edit. Outside scope preserved.".into();
-                            d.validated=None;
-                            d.exported.clear();
-                            self.canvas.fit_requested=true;
-                        }
+                    if ui
+                        .add_enabled(
+                            d.validated.as_ref() == Some(&d.incoming)
+                                && (!d.clear || d.clear_confirmed),
+                            egui::Button::new("Apply validated changes"),
+                        )
+                        .clicked()
+                    {
+                        self.apply_handoff(d);
                     }
                 });
                 ui.label(&d.summary);
+                if let Some(changes) = &d.changes {
+                    for clear in &changes.clears {
+                        ui.colored_label(egui::Color32::YELLOW, clear);
+                    }
+                    if d.clear {
+                        ui.checkbox(
+                            &mut d.clear_confirmed,
+                            "Confirm the control flow removals listed above",
+                        );
+                    }
+                    if !changes.details.is_empty() {
+                        ui.collapsing(
+                            format!("Exact behavior changes ({})", changes.details.len()),
+                            |ui| {
+                                egui::ScrollArea::vertical()
+                                    .id_salt("behavior_changes")
+                                    .max_height(180.0)
+                                    .show(ui, |ui| {
+                                        for detail in &changes.details {
+                                            ui.label(detail);
+                                        }
+                                    });
+                            },
+                        );
+                    }
+                    if !changes.new_issues.is_empty() {
+                        egui::CollapsingHeader::new(format!("New draft issues ({})", changes.new_issues.len())).default_open(true).show(ui, |ui| {
+                            ui.small("These are saveable incomplete drafts, not validation failures or execution results.");
+                            egui::ScrollArea::vertical().id_salt("new_behavior_issues").max_height(110.0).show(ui, |ui| {
+                                for issue in &changes.new_issues { ui.label(issue); }
+                            });
+                        });
+                    }
+                }
             }
         }
         ui.separator();
@@ -374,6 +452,145 @@ mod tests {
         }
     }
     #[test]
+    fn f3_review_removed_transition_is_disclosed_before_apply() {
+        let ctx = egui::Context::default();
+        let mut a = Designer::blank();
+        let p = parse(include_str!(
+            "../../tests/fixtures/control-flow-review/after-extraction.project.json"
+        ))
+        .expect("review fixture");
+        a.current = p.root.clone();
+        a.store = Store::new(p.clone()).expect("store");
+        let packet = serde_json::from_str(include_str!(
+            "../../tests/fixtures/control-flow-review/returned-delete-transition.behavior.json"
+        ))
+        .expect("returned fixture");
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        assert!(a.error.is_none(), "{:?}", a.error);
+        assert_eq!(a.store.project(), &p);
+        assert_eq!(a.store.generation, 0);
+        assert!(
+            matches!(&a.dialog, Some(Dialog::Handoff(d)) if d.summary.contains("1 removed")),
+            "removed return must be disclosed"
+        );
+        let detail = match &a.dialog {
+            Some(Dialog::Handoff(d)) => d.changes.as_ref().expect("changes").details[0].clone(),
+            _ => panic!("handoff"),
+        };
+        assert!(detail.contains("Removed transition t3: call.1 → done"));
+        click(&mut a, &ctx, "Exact behavior changes (1)");
+        let out = frame(&mut a, &ctx, vec![]);
+        assert!(
+            out.shapes
+                .iter()
+                .any(|s| locate(&s.shape, &detail).is_some())
+        );
+        assert!(
+            out.shapes
+                .iter()
+                .any(|s| locate(&s.shape, "New draft issues (3)").is_some())
+        );
+        click(&mut a, &ctx, "Apply validated changes");
+        assert!(a.error.is_none(), "{:?}", a.error);
+        assert!(
+            !a.store.project().behavior[ROOT]
+                .transitions
+                .iter()
+                .any(|t| t.id == "t3")
+        );
+        assert_eq!(a.store.generation, 1);
+        a.store.undo();
+        assert_eq!(a.store.project(), &p);
+    }
+    #[test]
+    fn f3_empty_contents_need_confirmation_and_empty_creation_does_not() {
+        let ctx = egui::Context::default();
+        let mut a = Designer::blank();
+        let p = behavior::set(a.store.project(), ROOT, Flow::starter()).expect("flow");
+        a.store = Store::new(p.clone()).expect("store");
+        let mut packet = behavior::export(&p, ROOT).expect("export");
+        packet["flow"] = serde_json::to_value(Flow::default()).expect("empty");
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        assert!(
+            matches!(&a.dialog, Some(Dialog::Handoff(d)) if d.clear && d.changes.as_ref().expect("changes").clears[0].contains("empty draft flow object"))
+        );
+        click(&mut a, &ctx, "Apply validated changes");
+        assert_eq!(a.store.project(), &p);
+        assert_eq!(a.store.generation, 0);
+        click(
+            &mut a,
+            &ctx,
+            "Confirm the control flow removals listed above",
+        );
+        click(&mut a, &ctx, "Apply validated changes");
+        assert!(a.error.is_none(), "{:?}", a.error);
+        assert_eq!(a.store.project().behavior[ROOT], Flow::default());
+        assert_eq!(a.store.generation, 1);
+        a.store.undo();
+        assert_eq!(a.store.project(), &p);
+
+        let mut a = Designer::blank();
+        let mut packet = behavior::export(a.store.project(), ROOT).expect("absent");
+        packet["flow"] = serde_json::to_value(Flow::default()).expect("empty");
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        assert!(matches!(&a.dialog, Some(Dialog::Handoff(d)) if !d.clear));
+        click(&mut a, &ctx, "Apply validated changes");
+        assert!(a.error.is_none(), "{:?}", a.error);
+        assert_eq!(a.store.project().behavior[ROOT], Flow::default());
+    }
+    #[test]
+    fn f3_cancel_invalid_and_stale_reviews_preserve_history_and_generation() {
+        let ctx = egui::Context::default();
+        let mut a = Designer::blank();
+        let p = behavior::set(a.store.project(), ROOT, Flow::starter()).expect("flow");
+        a.store = Store::new(p.clone()).expect("store");
+        let mut changed = p.clone();
+        changed.behavior.get_mut(ROOT).expect("flow").primitive = "Temporary edit".into();
+        a.store
+            .publish("Temporary", changed.clone())
+            .expect("publish");
+        a.store.undo();
+        let generation = a.store.generation;
+        let mut packet = behavior::export(&p, ROOT).expect("export");
+        packet["flow"]["transitions"] = serde_json::json!([]);
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        click(&mut a, &ctx, "Close");
+        assert!(a.dialog.is_none());
+        assert_eq!(a.store.project(), &p);
+        assert_eq!(a.store.generation, generation);
+        assert_eq!(a.store.undo_label(), None);
+        assert_eq!(a.store.redo_label(), Some("Temporary"));
+
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        if let Some(Dialog::Handoff(d)) = &mut a.dialog {
+            d.incoming = "{}".into();
+        }
+        click(&mut a, &ctx, "Validate candidate");
+        assert!(a.error.is_some());
+        assert!(
+            matches!(&a.dialog, Some(Dialog::Handoff(d)) if d.changes.is_none() && d.summary.is_empty() && d.validated.is_none() && !d.clear_confirmed)
+        );
+        assert_eq!(a.store.project(), &p);
+        assert_eq!(a.store.generation, generation);
+        assert_eq!(a.store.redo_label(), Some("Temporary"));
+
+        open(&mut a, &packet);
+        click(&mut a, &ctx, "Validate candidate");
+        a.store.redo();
+        let generation = a.store.generation;
+        click(&mut a, &ctx, "Apply validated changes");
+        assert!(a.error.as_ref().is_some_and(|s| s.contains("Stale")));
+        assert_eq!(a.store.project(), &changed);
+        assert_eq!(a.store.generation, generation);
+        assert_eq!(a.store.undo_label(), Some("Temporary"));
+        assert_eq!(a.store.redo_label(), None);
+    }
+    #[test]
     fn full_workspace_handoff_requires_explicit_clear_and_rechecks_stale_input() {
         let ctx = egui::Context::default();
         let mut a = Designer::blank();
@@ -394,7 +611,7 @@ mod tests {
         click(
             &mut a,
             &ctx,
-            "Clear this component’s entire control flow and its saved flow layout",
+            "Confirm the control flow removals listed above",
         );
         click(&mut a, &ctx, "Apply validated changes");
         assert!(a.store.project().behavior.is_empty());

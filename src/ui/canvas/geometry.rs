@@ -480,6 +480,13 @@ impl Path {
         let distance = (a.distance(b) * 0.4).clamp(20.0, 180.0);
         let controls = [a, a + a_normal * distance, b + b_normal * distance, b];
         let samples = (a.distance(b) / 12.0).ceil().clamp(24.0, 128.0) as usize;
+        Self::sample_cubic(controls, samples)
+    }
+    pub fn cubic(controls: [Pos2; 4]) -> Self {
+        let length: f32 = controls.windows(2).map(|w| w[0].distance(w[1])).sum();
+        Self::sample_cubic(controls, (length / 12.0).ceil().clamp(24.0, 256.0) as usize)
+    }
+    fn sample_cubic(controls: [Pos2; 4], samples: usize) -> Self {
         Self::new(
             (0..=samples)
                 .map(|i| {

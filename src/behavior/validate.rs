@@ -223,42 +223,90 @@ fn reachable(f: &Flow, start: &str, reverse: bool) -> BTreeSet<String> {
 }
 /// Draft diagnostics are visible guidance, not structural publication errors.
 pub fn issues(p: &Project, owner: &str) -> Vec<String> {
+    let mut seen = BTreeSet::new();
+    issue_details(p, owner)
+        .into_iter()
+        .filter_map(|(key, message)| {
+            let aggregate = matches!(
+                key[0].as_str(),
+                "unreachable" | "information_review" | "unassigned_contract"
+            );
+            (!aggregate || seen.insert(key[0].clone())).then_some(message)
+        })
+        .collect()
+}
+/// Stable category/identity keys distinguish new draft issues from renamed text.
+/// Aggregate guidance retains one display message while tracking affected IDs.
+pub(super) fn issue_details(p: &Project, owner: &str) -> Vec<(Vec<String>, String)> {
     let Some(f) = p.behavior.get(owner) else {
-        return vec![
+        return vec![(
+            vec!["unspecified".into()],
             "Control flow is not specified. Start a flow; interfaces stay unchanged.".into(),
-        ];
+        )];
     };
     let mut out = vec![];
+    let mut issue = |category: &str, ids: &[&str], message: String| {
+        out.push((
+            std::iter::once(category)
+                .chain(ids.iter().copied())
+                .map(str::to_owned)
+                .collect(),
+            message,
+        ));
+    };
     if let Some(entry) = f.steps.iter().find(|s| s.kind == StepKind::Entry) {
         let seen = reachable(f, &entry.id, false);
-        if seen.len() != f.steps.len() {
-            out.push("Some steps are not reachable from the entry.".into());
+        for s in f.steps.iter().filter(|s| !seen.contains(&s.id)) {
+            issue(
+                "unreachable",
+                &[&s.id],
+                "Some steps are not reachable from the entry.".into(),
+            );
         }
     } else {
-        out.push("Add an entry marker.".into());
+        issue("missing_entry", &[], "Add an entry marker.".into());
     }
     if !f.steps.iter().any(|s| s.kind == StepKind::Outcome) {
-        out.push("Add at least one explicit outcome.".into());
+        issue(
+            "missing_outcome",
+            &[],
+            "Add at least one explicit outcome.".into(),
+        );
     }
     for s in &f.steps {
         let edges: Vec<_> = f.transitions.iter().filter(|t| t.from == s.id).collect();
         if s.kind != StepKind::Outcome && edges.is_empty() {
-            out.push(format!("{} has no next step.", s.name));
+            issue("no_next", &[&s.id], format!("{} has no next step.", s.name));
         }
         if s.kind == StepKind::Decision
             && (edges.len() < 2 || edges.iter().any(|t| t.condition.trim().is_empty()))
         {
-            out.push(format!("{} needs labeled alternatives.", s.name));
+            issue(
+                "alternatives",
+                &[&s.id],
+                format!("{} needs labeled alternatives.", s.name),
+            );
         }
         if !matches!(
             s.kind,
             StepKind::Decision | StepKind::Call | StepKind::Outcome
         ) && edges.len() > 1
         {
-            out.push(format!("{} has ambiguous multiple successors; insert a decision. This editor does not infer parallel execution.",s.name));
+            issue(
+                "ambiguous",
+                &[&s.id],
+                format!(
+                    "{} has ambiguous multiple successors; insert a decision. This editor does not infer parallel execution.",
+                    s.name
+                ),
+            );
         }
         if s.kind == StepKind::Call && edges.iter().any(|t| t.outcome.is_none()) {
-            out.push(format!("{} has an unresolved return outcome.", s.name));
+            issue(
+                "unresolved_return",
+                &[&s.id],
+                format!("{} has an unresolved return outcome.", s.name),
+            );
         }
         if s.kind == StepKind::Call
             && let Some(child) = s.target.as_ref().and_then(|id| p.behavior.get(id))
@@ -269,10 +317,18 @@ pub fn issues(p: &Project, owner: &str) -> Vec<String> {
                     .filter(|t| t.outcome.as_ref() == Some(&outcome.id))
                     .collect();
                 if handlers.is_empty() {
-                    out.push(format!(
-                        "{} [{}] has an unhandled outcome: {} [{}].",
-                        s.name, s.id, outcome.name, outcome.id
-                    ));
+                    issue(
+                        "unhandled_outcome",
+                        &[
+                            &s.id,
+                            s.target.as_deref().expect("call target"),
+                            &outcome.id,
+                        ],
+                        format!(
+                            "{} [{}] has an unhandled outcome: {} [{}].",
+                            s.name, s.id, outcome.name, outcome.id
+                        ),
+                    );
                 }
                 if handlers
                     .iter()
@@ -280,28 +336,46 @@ pub fn issues(p: &Project, owner: &str) -> Vec<String> {
                     .count()
                     > 1
                 {
-                    out.push(format!("{} [{}] has duplicate unguarded returns for {} [{}]; use one continuation and an explicit parent decision.", s.name, s.id, outcome.name, outcome.id));
+                    issue(
+                        "duplicate_return",
+                        &[
+                            &s.id,
+                            s.target.as_deref().expect("call target"),
+                            &outcome.id,
+                        ],
+                        format!(
+                            "{} [{}] has duplicate unguarded returns for {} [{}]; use one continuation and an explicit parent decision.",
+                            s.name, s.id, outcome.name, outcome.id
+                        ),
+                    );
                 }
             }
         }
     }
-    let n = f
+    let unreviewed: Vec<_> = f
         .steps
         .iter()
         .filter(|s| {
             matches!(s.kind, StepKind::Action | StepKind::Decision) && !s.information_reviewed
         })
-        .count();
-    if n > 0 {
-        out.push(format!(
-            "{n} action/decision steps still need an information-use review."
-        ));
+        .collect();
+    for s in &unreviewed {
+        issue(
+            "information_review",
+            &[&s.id],
+            format!(
+                "{} action/decision steps still need an information-use review.",
+                unreviewed.len()
+            ),
+        );
     }
     let n = f.data.iter().filter(|d| d.contract.is_none()).count();
-    if n > 0 {
-        out.push(format!(
-            "{n} information requirements have unassigned contracts."
-        ));
+    for d in f.data.iter().filter(|d| d.contract.is_none()) {
+        issue(
+            "unassigned_contract",
+            &[&d.id],
+            format!("{n} information requirements have unassigned contracts."),
+        );
     }
     if f.steps
         .iter()
@@ -309,7 +383,7 @@ pub fn issues(p: &Project, owner: &str) -> Vec<String> {
         .count()
         > 8
     {
-        out.push("More than eight local steps: consider a meaningful extraction, not arbitrary groups of eight.".into());
+        issue("scope_size", &[], "More than eight local steps: consider a meaningful extraction, not arbitrary groups of eight.".into());
     }
     out
 }

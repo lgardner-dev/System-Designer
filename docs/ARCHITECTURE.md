@@ -75,3 +75,9 @@ the existing sampled Path and motion functions. `behavior/edit.rs` and
 `behavior/extract.rs` owns bounded extraction. Both formats enter the existing
 Handoff and Store lifecycle. See CONTROL-FLOW-WORKFLOW.md for the algorithm,
 conservative context policy and remaining limitations.
+
+`behavior/layout.rs` shares small renderer-independent flow footprints and
+effective-position resolution with extraction and the native canvas.
+`behavior/changes.rs` compares validated candidates by identity for Handoff review;
+draft diagnostics retain stable identity keys for distinguishing new issues from
+renamed text. Neither helper adds a publication path or an exchange protocol.

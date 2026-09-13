@@ -215,3 +215,16 @@ packets are errors. Context-policy versions and canonical hashes are unchanged.
 Owner/layer navigation, cameras, selection, lights and dialogs are session state;
 they do not appear in persisted JSON. Document reopen uses Fit on the persisted
 destination geometry. `flow_layout` and `layout` both survive all file operations.
+
+Handoff also requires confirmation when a replacement removes all contents of an
+existing flow while retaining an empty Flow object. Creating a new empty draft
+does not require destructive-clear confirmation. The preview counts and lists
+identity-based semantic changes and newly introduced draft issues; Apply rebuilds
+and revalidates the candidate and checks that those reviewed changes still match.
+These are presentation/confirmation rules, not new protocol fields or rejection
+of structurally valid incomplete drafts.
+
+Extraction resolves defaults plus sparse saved coordinates before changing step
+membership. It preserves unselected effective parent positions, places the Call
+at the region entry's position, and reserves child marker rows outside the moved
+work's bounds. The whole layout change is part of the same undoable candidate.

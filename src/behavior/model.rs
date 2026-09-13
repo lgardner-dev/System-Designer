@@ -1,4 +1,4 @@
-use crate::model::{ContractRef, ModelError, Position, Project, Result, System};
+use crate::model::{ContractRef, ModelError, Project, Result, System};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 pub const ROOT: &str = "@root";
@@ -165,22 +165,6 @@ pub fn name<'a>(p: &'a Project, owner: &str) -> &'a str {
             .map(|(_, n)| n.name.as_str())
             .unwrap_or("Missing component")
     }
-}
-pub fn positions(flow: &Flow) -> BTreeMap<String, Position> {
-    // Stable initial placement only. Editing or switching layers never relayouts.
-    flow.steps
-        .iter()
-        .enumerate()
-        .map(|(i, s)| {
-            (
-                s.id.clone(),
-                Position {
-                    x: 80.0 + (i % 3) as f64 * 340.0,
-                    y: 70.0 + (i / 3) as f64 * 230.0,
-                },
-            )
-        })
-        .collect()
 }
 pub fn set(p: &Project, owner: &str, flow: Flow) -> Result<Project> {
     if !exists(p, owner) {

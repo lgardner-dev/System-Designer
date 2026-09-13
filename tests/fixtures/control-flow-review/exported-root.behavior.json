@@ -1,0 +1,98 @@
+{
+  "base": "37bbc847750c295cb58ad40b8abfb1a58bc18afd48449769de711bf510f2fb3e",
+  "context": {
+    "callers": [],
+    "children": [
+      {
+        "component": {
+          "id": "component.1",
+          "kind": "component",
+          "name": "Import record",
+          "ports": [],
+          "purpose": "Prepare one record"
+        },
+        "outcomes": [
+          {
+            "id": "outcome.1",
+            "information_reviewed": false,
+            "kind": "outcome",
+            "name": "Complete",
+            "purpose": "",
+            "target": null
+          }
+        ]
+      }
+    ],
+    "component": null,
+    "contracts": [],
+    "interfaces": {
+      "edges": [],
+      "id": "root",
+      "nodes": [
+        {
+          "id": "component.1",
+          "kind": "component",
+          "name": "Import record",
+          "ports": [],
+          "purpose": "Prepare one record"
+        }
+      ]
+    },
+    "project": {
+      "id": "project.review",
+      "name": "Review fixture - three action extraction",
+      "purpose": "A review-only fixture, not a user design."
+    }
+  },
+  "flow": {
+    "data": [],
+    "extraction": null,
+    "primitive": "",
+    "steps": [
+      {
+        "id": "entry",
+        "information_reviewed": false,
+        "kind": "entry",
+        "name": "Begin",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "done",
+        "information_reviewed": false,
+        "kind": "outcome",
+        "name": "Complete",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "call.1",
+        "information_reviewed": false,
+        "kind": "call",
+        "name": "Import record",
+        "purpose": "Prepare one record",
+        "target": "component.1"
+      }
+    ],
+    "transitions": [
+      {
+        "condition": "",
+        "from": "entry",
+        "id": "t0",
+        "outcome": null,
+        "to": "call.1"
+      },
+      {
+        "condition": "",
+        "from": "call.1",
+        "id": "t3",
+        "outcome": "outcome.1",
+        "to": "done"
+      }
+    ]
+  },
+  "format": "system-designer-behavior-scope",
+  "owner": "@root",
+  "project_id": "project.review",
+  "version": 1
+}

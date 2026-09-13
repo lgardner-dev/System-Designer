@@ -1,0 +1,177 @@
+{
+  "format": "system-designer-project",
+  "version": 2,
+  "id": "project.parallel-review",
+  "name": "Review fixture - distinct return paths",
+  "purpose": "Review fixture: both explicit outcomes continue to cleanup.",
+  "root": "root",
+  "contracts": [],
+  "systems": [
+    {
+      "id": "root",
+      "nodes": [
+        {
+          "id": "worker",
+          "name": "Check request",
+          "purpose": "Assess the request.",
+          "kind": "component",
+          "ports": []
+        }
+      ],
+      "edges": []
+    }
+  ],
+  "behavior": {
+    "@root": {
+      "steps": [
+        {
+          "id": "entry",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "call",
+          "kind": "call",
+          "name": "Check request",
+          "purpose": "",
+          "target": "worker",
+          "information_reviewed": false
+        },
+        {
+          "id": "merge",
+          "kind": "merge",
+          "name": "Record result",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "done",
+          "kind": "outcome",
+          "name": "Complete",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "t0",
+          "from": "entry",
+          "to": "call",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "accepted",
+          "from": "call",
+          "to": "merge",
+          "condition": "",
+          "outcome": "success"
+        },
+        {
+          "id": "rejected",
+          "from": "call",
+          "to": "merge",
+          "condition": "",
+          "outcome": "failure"
+        },
+        {
+          "id": "finish",
+          "from": "merge",
+          "to": "done",
+          "condition": "",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "",
+      "extraction": null
+    },
+    "worker": {
+      "steps": [
+        {
+          "id": "entry",
+          "kind": "entry",
+          "name": "Begin",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "q",
+          "kind": "decision",
+          "name": "Request accepted?",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "success",
+          "kind": "outcome",
+          "name": "Accepted",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        },
+        {
+          "id": "failure",
+          "kind": "outcome",
+          "name": "Rejected",
+          "purpose": "",
+          "target": null,
+          "information_reviewed": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "go",
+          "from": "entry",
+          "to": "q",
+          "condition": "",
+          "outcome": null
+        },
+        {
+          "id": "yes",
+          "from": "q",
+          "to": "success",
+          "condition": "yes",
+          "outcome": null
+        },
+        {
+          "id": "no",
+          "from": "q",
+          "to": "failure",
+          "condition": "no",
+          "outcome": null
+        }
+      ],
+      "data": [],
+      "primitive": "",
+      "extraction": null
+    }
+  },
+  "flow_layout": {
+    "@root": {
+      "entry": {
+        "x": 100,
+        "y": 30
+      },
+      "call": {
+        "x": 100,
+        "y": 260
+      },
+      "merge": {
+        "x": 540,
+        "y": 260
+      },
+      "done": {
+        "x": 540,
+        "y": 490
+      }
+    }
+  }
+}

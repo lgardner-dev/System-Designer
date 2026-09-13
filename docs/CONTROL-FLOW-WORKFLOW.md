@@ -50,8 +50,12 @@ lives in `src/ui/`, not a standalone example, viewer or execution engine.
    **Interfaces** (component, level or subtree) or **Control Flow — current
    component**. Validate returned content without publication, inspect the
    preview, and Apply to revalidate and publish once. Explicit `flow: null`
-   clearing is identified and requires the visible clear checkbox. An omitted
-   `flow` is an error. Full-project JSON uses the separate Open lifecycle.
+   clearing is identified and requires the visible confirmation checkbox. Removing
+   all contents of an existing flow also requires confirmation when an empty Flow
+   object remains. Creating a new empty draft does not. The compact change counts
+   expand into exact additions/removals and field edits; newly introduced draft
+   issues are shown separately and remain saveable. An omitted `flow` is an error.
+   Full-project JSON uses the separate Open lifecycle.
 
 ## Ownership and geometry
 
@@ -71,6 +75,14 @@ merges are explicitly labeled, with no synchronization semantics. Direction is
 independent of attachment side. Lights persist across navigation in egui session
 state; only visible active paths animate, with Focus taking precedence. These
 lights are direction illustrations, not execution, timing or concurrent traffic.
+
+Transitions sharing an unordered endpoint pair (including opposite directions)
+receive separate smooth lanes ordered by transition ID. Endpoint IDs fix the lane
+orientation; names and JSON array order do not choose routes. Repeated self-loops
+use separate perimeter attachments and increasing curved reach. Each final sampled
+path drives labels, picking, static arrows and lights. Adding/removing a sibling
+can redistribute that group's lanes. This is bounded local separation, not global
+obstacle routing or a guarantee against all label collisions in dense diagrams.
 
 ## Actual extraction algorithm
 
@@ -100,6 +112,14 @@ IDs remain stable within their respective scopes. Historical provenance records
 the source member IDs and purpose. Selection and camera never alter the preview
 stamp; saved-layout changes conservatively stale it. Apply revalidates the full
 candidate and Store publishes once.
+
+Extraction first overlays sparse saved positions on the complete original default
+layout. It freezes unselected parent positions and puts the Call at the selected
+region entry's position. Moved work keeps its relative geometry; synthetic child
+entry/outcomes occupy reserved rows outside the work's measured bounds. The core
+and native canvas share small renderer-independent footprint measurements. These
+rules avoid introducing marker/card overlaps in initially nonoverlapping scenes;
+they do not automatically repair overlaps in previously saved projects.
 
 Regression helpers expand supported extractions and compare original steps,
 control alternatives and declared data endpoints modulo the synthetic boundary
@@ -156,6 +176,17 @@ The CLI dispatches exactly `system-designer-scope` and
 candidates without writing any file or running behavior. The embedded prompt
 contains both schemas, readonly boundaries, explicit clear semantics, human
 responsibility review and these transfer limits.
+
+Handoff's semantic diff is ordered by owner and object identity. Its counts cover
+changed records and scope metadata; exact details show step meaning/target/review,
+control endpoints/conditions/outcomes, information endpoints and exact port,
+contract and wire associations, primitive criteria and extraction provenance.
+New draft issues compare stable categories and identities, so renaming an existing
+problem does not present it as newly introduced. Null removal deletes the scope;
+removing all contents to an empty object retains a draft scope. Both destructive
+operations need the displayed confirmation. Apply reconstructs the candidate,
+rechecks the reviewed changes and validates through the same Store publication
+path. No exchange schema, version, canonical hash or context policy changed.
 
 ## Prior art and deliberate limits
 

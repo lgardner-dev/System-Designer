@@ -7,6 +7,223 @@ fn app() -> Designer {
     a.saved = Some(p);
     a
 }
+#[test]
+fn f2_review_distinct_return_labels_have_separate_canvas_routes() {
+    let mut a = app();
+    a.store = Store::new(
+        parse(include_str!(
+            "../../../tests/fixtures/control-flow-review/coincident-returns.project.json"
+        ))
+        .expect("review fixture"),
+    )
+    .expect("store");
+    let ctx = egui::Context::default();
+    let output = frame(&mut a, &ctx, vec![], false);
+    let accepted = text_position(&output, "Accepted").expect("accepted label");
+    let rejected = text_position(&output, "Rejected").expect("rejected label");
+    assert!(
+        accepted.distance(rejected) > 24.0,
+        "overlapping label positions: {accepted:?}, {rejected:?}"
+    );
+}
+#[test]
+fn f2_raw_canvas_selects_each_return_with_lights_off_and_static_arrows() {
+    let mut a = app();
+    a.store = Store::new(
+        parse(include_str!(
+            "../../../tests/fixtures/control-flow-review/coincident-returns.project.json"
+        ))
+        .expect("review fixture"),
+    )
+    .expect("store");
+    let ctx = egui::Context::default();
+    ctx.data_mut(|d| {
+        d.insert_temp(
+            egui::Id::new("system-designer.direction-lights"),
+            canvas::motion::Motion::Off,
+        )
+    });
+    let output = frame(&mut a, &ctx, vec![], false);
+    for id in ["accepted", "rejected"] {
+        let path = a.flow.paths[id].clone();
+        let tip = path.at(path.length).0;
+        assert!(output.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Path(p) if p.closed && p.points.len() == 3 && p.points[0].distance(tip) < 0.1)), "missing static arrow for {id}");
+        let at = path.at(path.length * 0.5).0;
+        click(&mut a, &ctx, at, Modifiers::NONE, false);
+        assert_eq!(a.flow.selection.transition.as_deref(), Some(id));
+    }
+    assert_eq!(a.store.generation, 0);
+}
+#[test]
+fn f2_raw_canvas_selects_three_siblings_reciprocals_and_two_self_loops() {
+    for case in ["three", "reciprocal", "loops"] {
+        let mut a = app();
+        let mut p = a.store.project().clone();
+        let f = p.behavior.get_mut(ROOT).expect("flow");
+        f.steps
+            .push(Step::new("other", StepKind::Action, "Other work"));
+        let count = if case == "three" { 3 } else { 2 };
+        for i in 0..count {
+            let (from, to) = if case == "loops" {
+                ("action", "action")
+            } else if case == "reciprocal" && i == 1 {
+                ("other", "action")
+            } else {
+                ("action", "other")
+            };
+            f.transitions.push(Transition {
+                id: format!("edge.{i}"),
+                from: from.into(),
+                to: to.into(),
+                condition: format!("Alternative {i}"),
+                outcome: None,
+            });
+        }
+        p.flow_layout.insert(
+            ROOT.into(),
+            std::collections::BTreeMap::from([
+                ("entry".into(), Position { x: 100.0, y: 30.0 }),
+                ("action".into(), Position { x: 100.0, y: 260.0 }),
+                ("other".into(), Position { x: 540.0, y: 260.0 }),
+                ("done".into(), Position { x: 540.0, y: 490.0 }),
+            ]),
+        );
+        a.store = Store::new(p).expect("valid draft");
+        let ctx = egui::Context::default();
+        frame(&mut a, &ctx, vec![], false);
+        for i in 0..count {
+            let id = format!("edge.{i}");
+            let path = &a.flow.paths[&id];
+            let at = path.at(path.length * 0.5).0;
+            click(&mut a, &ctx, at, Modifiers::NONE, false);
+            assert_eq!(
+                a.flow.selection.transition.as_deref(),
+                Some(id.as_str()),
+                "case {case}"
+            );
+        }
+        assert_eq!(a.store.generation, 0);
+    }
+}
+
+#[test]
+fn f2_geometry_parallel_reciprocal_and_loop_routes_are_stable_and_exact() {
+    use egui::pos2;
+    for (count, reverse, loops) in [
+        (2, false, false),
+        (3, false, false),
+        (2, true, false),
+        (2, false, true),
+    ] {
+        for kind in [
+            StepKind::Action,
+            StepKind::Decision,
+            StepKind::Entry,
+            StepKind::Outcome,
+            StepKind::Call,
+            StepKind::Merge,
+        ] {
+            let mut f = Flow {
+                steps: vec![
+                    Step::new("a", kind, "Same label"),
+                    Step::new("b", kind, "Same label"),
+                ],
+                ..Default::default()
+            };
+            for i in 0..count {
+                let (from, to) = if loops {
+                    ("a", "a")
+                } else if reverse && i == 1 {
+                    ("b", "a")
+                } else {
+                    ("a", "b")
+                };
+                f.transitions.push(Transition {
+                    id: format!("edge.{i}"),
+                    from: from.into(),
+                    to: to.into(),
+                    condition: "Same guard".into(),
+                    outcome: None,
+                });
+            }
+            let (_, height) = behavior::footprint(kind);
+            let rects = std::collections::BTreeMap::from([
+                (
+                    "a".into(),
+                    Rect::from_min_size(pos2(100.0, 300.0), vec2(260.0, height as f32)),
+                ),
+                (
+                    "b".into(),
+                    Rect::from_min_size(pos2(600.0, 340.0), vec2(260.0, height as f32)),
+                ),
+            ]);
+            let routes = drawing::routes(&f, &rects);
+            for (i, (t, path)) in routes.iter().enumerate() {
+                assert!(path.bounds.is_finite() && path.length.is_finite() && path.length > 1.0);
+                assert!(path.points.iter().all(|p| p.is_finite()));
+                let (from, direction) = path.at(0.0);
+                let (to, arriving) = path.at(path.length);
+                let (expected_from, outward) = drawing::perimeter(rects[&t.from], kind, from);
+                let (expected_to, target_normal) = drawing::perimeter(rects[&t.to], kind, to);
+                assert!(expected_from.distance(from) < 0.01 && expected_to.distance(to) < 0.01);
+                assert!(direction.dot(outward) > 0.85 && arriving.dot(-target_normal) > 0.85);
+                for (_, other) in &routes[i + 1..] {
+                    let middle = path.at(path.length * 0.5).0;
+                    assert!(
+                        other.distance(middle) > 15.0,
+                        "indistinguishable lane for {:?}, reverse={reverse}, loops={loops}",
+                        kind
+                    );
+                }
+            }
+            let original: std::collections::BTreeMap<_, _> = routes
+                .iter()
+                .map(|(t, p)| (t.id.clone(), p.points.clone()))
+                .collect();
+            f.transitions.reverse();
+            f.steps.reverse();
+            for t in &mut f.transitions {
+                t.condition = "Renamed guard".into();
+            }
+            for s in &mut f.steps {
+                s.name = "Renamed step".into();
+            }
+            let reordered: std::collections::BTreeMap<_, _> = drawing::routes(&f, &rects)
+                .into_iter()
+                .map(|(t, p)| (t.id.clone(), p.points))
+                .collect();
+            assert_eq!(original, reordered);
+        }
+    }
+}
+#[test]
+fn f1_extracted_parent_and_child_scenes_keep_cards_separate() {
+    let p = parse(include_str!(
+        "../../../tests/fixtures/control-flow-review/before-extraction.project.json"
+    ))
+    .expect("review fixture");
+    let plan = behavior::preview(
+        &p,
+        ROOT,
+        &BTreeSet::from(["a".into(), "b".into(), "c".into()]),
+        "Import record",
+        "Prepare one record",
+    )
+    .expect("preview");
+    let mut a = app();
+    a.store = Store::new(behavior::apply(&p, &plan).expect("apply")).expect("store");
+    let ctx = egui::Context::default();
+    for owner in [ROOT, plan.component.as_str()] {
+        a.go_scope(owner.into(), Layer::Flow);
+        frame(&mut a, &ctx, vec![], false);
+        let rects: Vec<_> = a.flow.rects.iter().collect();
+        for (i, (id, rect)) in rects.iter().enumerate() {
+            for (other, bounds) in &rects[i + 1..] {
+                assert!(!rect.intersects(**bounds), "{owner}: {id} overlaps {other}");
+            }
+        }
+    }
+}
 fn frame(
     a: &mut Designer,
     ctx: &egui::Context,

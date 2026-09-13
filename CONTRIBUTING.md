@@ -89,13 +89,14 @@ boundary.
 
 ## Tests
 
-The suite currently has 195 tests with all targets enabled, including 124 that
+The suite currently has 215 tests with all targets enabled, including 136 that
 run without the UI feature. The tests themselves run in seconds after compilation.
 
 | File | Covers |
 |---|---|
 | `tests/core.rs` | Parsing and round trips, required/null field strictness, identity and ownership rules, locality, direction, exact contract versions, schema forms, derived boundaries, safe deletion, history, a 2,048-level containment chain, and that more than eight nodes is valid |
 | `tests/behavior.rs` | Flow drafts and validation, bounded extraction and structural expansion, exact contract reconciliation, review invalidation, occurrence deletion, behavior packets and CLI dispatch |
+| `tests/behavior_layout.rs` and `tests/behavior_changes.rs` | Extraction geometry with sparse/manual layouts, history, exact semantic handoff differences, content removal policy and newly introduced draft issues |
 | `tests/exchange.rs` | Export bytes and hashes, Unicode, replacement and retyping outputs, stale base and ancestor state, read-only context and boundaries, preserved hidden internals, new versus rewritten shared types, wrong targets, missing definitions, layout exclusion, atomic connection creation |
 | `tests/storage.rs` | Save/open, prior-version backups, external modification, missing and damaged files, invalid candidates, recovery round trips, I/O failures |
 | `tests/self_design.rs` | The embedded application design, all three scopes, blank defaults, the embedded initialization prompt |

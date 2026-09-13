@@ -51,15 +51,75 @@ pub(super) fn perimeter(rect: Rect, kind: StepKind, toward: Pos2) -> (Pos2, Vec2
     };
     (rect.center() + v, normal)
 }
-fn route(a: Rect, ak: StepKind, b: Rect, bk: StepKind, same: bool) -> Path {
-    let (from, na, to, nb) = if same {
-        (a.right_center(), Vec2::X, a.center_top(), -Vec2::Y)
-    } else {
-        let (from, na) = perimeter(a, ak, b.center());
-        let (to, nb) = perimeter(b, bk, a.center());
-        (from, na, to, nb)
-    };
-    Path::between(from, na, to, nb)
+/// An unordered endpoint group includes reciprocal edges. Stable endpoint and
+/// transition IDs determine lanes, independently of labels and array order.
+pub(super) fn routes<'a>(
+    f: &'a Flow,
+    rects: &BTreeMap<String, Rect>,
+) -> Vec<(&'a Transition, Path)> {
+    let mut groups: BTreeMap<(&str, &str), Vec<&Transition>> = BTreeMap::new();
+    for t in &f.transitions {
+        let pair = if t.from <= t.to {
+            (t.from.as_str(), t.to.as_str())
+        } else {
+            (t.to.as_str(), t.from.as_str())
+        };
+        groups.entry(pair).or_default().push(t);
+    }
+    let mut result = Vec::new();
+    for ((first, last), mut siblings) in groups {
+        siblings.sort_by(|a, b| a.id.cmp(&b.id));
+        let (Some(a), Some(b)) = (rects.get(first), rects.get(last)) else {
+            continue;
+        };
+        let delta = b.center() - a.center();
+        let axis = if delta.length_sq() < 0.001 {
+            Vec2::X
+        } else {
+            delta.normalized()
+        };
+        let side = vec2(-axis.y, axis.x);
+        let count = siblings.len();
+        for (index, t) in siblings.into_iter().enumerate() {
+            let (a, b) = (rects[&t.from], rects[&t.to]);
+            let (ak, bk) = (
+                f.step(&t.from).expect("endpoint").kind,
+                f.step(&t.to).expect("endpoint").kind,
+            );
+            let path = if first == last {
+                // Nested smooth loops with distinct attachments and increasing reach.
+                let spread = (index + 1) as f32 / (count + 1) as f32 - 0.5;
+                let (from, na) =
+                    perimeter(a, ak, a.center() + vec2(a.width(), a.height() * spread));
+                let (to, nb) = perimeter(a, ak, a.center() + vec2(a.width() * spread, -a.height()));
+                let reach = a.width().max(a.height()) * 0.6 + index as f32 * 100.0;
+                Path::cubic([from, from + na * reach, to + nb * reach, to])
+            } else if count == 1 {
+                let (from, na) = perimeter(a, ak, b.center());
+                let (to, nb) = perimeter(b, bk, a.center());
+                Path::between(from, na, to, nb)
+            } else {
+                let offset = (index as f32 - (count - 1) as f32 * 0.5) * 100.0;
+                let middle = a.center().lerp(b.center(), 0.5) + side * offset;
+                let (from, na) = perimeter(a, ak, middle);
+                let (to, nb) = perimeter(b, bk, middle);
+                let forward = if t.from == first { axis } else { -axis };
+                let handle = (from.distance(to) * 0.2).clamp(16.0, 90.0);
+                // Two tangent-continuous cubics maintain outward endpoint normals
+                // while passing through a separate lane, even on rectangular cards.
+                let mut points =
+                    Path::cubic([from, from + na * handle, middle - forward * handle, middle])
+                        .points;
+                points.pop();
+                points.extend(
+                    Path::cubic([middle, middle + forward * handle, to + nb * handle, to]).points,
+                );
+                Path::new(points)
+            };
+            result.push((t, path));
+        }
+    }
+    result
 }
 fn shape(painter: &egui::Painter, r: Rect, kind: StepKind, fill: Color32, stroke: Stroke) {
     match kind {
@@ -190,10 +250,7 @@ impl Designer {
         );
         let painter = ui.painter_at(area);
         painter.rect_filled(area, 0.0, Color32::from_rgb(17, 22, 30));
-        let mut positions = behavior::positions(f);
-        if let Some(saved) = p.flow_layout.get(&owner) {
-            positions.extend(saved.iter().map(|(k, v)| (k.clone(), *v)));
-        }
+        let mut positions = behavior::effective_positions(f, p.flow_layout.get(&owner));
         if let Some(Gesture::Move { id, at, .. }) = &self.flow.gesture {
             positions.insert(id.clone(), *at);
         }
@@ -202,33 +259,15 @@ impl Designer {
             .iter()
             .map(|s| {
                 let pos = positions.get(&s.id).copied().unwrap_or_default();
-                let size = if s.kind == StepKind::Decision {
-                    vec2(260.0, 150.0)
-                } else {
-                    vec2(260.0, 112.0)
-                };
+                let (width, height) = behavior::footprint(s.kind);
+                let size = vec2(width as f32, height as f32);
                 (
                     s.id.clone(),
                     Rect::from_min_size(pos2(pos.x as f32, pos.y as f32), size),
                 )
             })
             .collect();
-        let paths: Vec<_> = f
-            .transitions
-            .iter()
-            .filter_map(|t| {
-                Some((
-                    t,
-                    route(
-                        *rects.get(&t.from)?,
-                        f.step(&t.from)?.kind,
-                        *rects.get(&t.to)?,
-                        f.step(&t.to)?.kind,
-                        t.from == t.to,
-                    ),
-                ))
-            })
-            .collect();
+        let paths = routes(f, &rects);
         let mut bounds = rects.values().fold(Rect::NOTHING, |r, c| r.union(*c));
         for (_, path) in &paths {
             bounds = bounds.union(path.bounds);
@@ -275,6 +314,13 @@ impl Designer {
             .iter()
             .map(|(t, path)| (*t, path.screen(area.min, pan, z)))
             .collect();
+        #[cfg(test)]
+        {
+            self.flow.paths = screen_paths
+                .iter()
+                .map(|(t, path)| (t.id.clone(), path.clone()))
+                .collect();
+        }
         let active = |t: &Transition| {
             !self.flow.focus
                 || (self.flow.selection.steps.is_empty()

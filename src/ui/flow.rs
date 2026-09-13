@@ -54,6 +54,8 @@ pub(super) struct FlowState {
     pub success: Option<(String, String)>,
     #[cfg(test)]
     pub rects: std::collections::BTreeMap<String, egui::Rect>,
+    #[cfg(test)]
+    pub paths: std::collections::BTreeMap<String, canvas::geometry::Path>,
 }
 impl FlowState {
     pub fn cancel(&mut self) {
