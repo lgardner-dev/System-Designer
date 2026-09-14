@@ -99,38 +99,49 @@ pub(super) fn header(
     error: Option<&str>,
 ) -> Actions {
     let mut actions = Actions::default();
-    // The action row wraps within logical viewport space; it is never in the body ScrollArea.
-    ui.horizontal(|ui| {
+    let estimated = (spec.title.chars().count()
+        + spec.primary.unwrap_or("").chars().count()
+        + spec.preview.unwrap_or("").chars().count()
+        + 6) as f32
+        * 8.0
+        + 80.0;
+    let mut buttons = |ui: &mut egui::Ui| {
+        if let Some(label) = spec.primary
+            && ui.button(label).clicked()
+        {
+            actions.intent = Some(Action::Primary);
+        }
+        if let Some(label) = spec.preview
+            && ui.button(label).clicked()
+        {
+            actions.intent = Some(if label == "Discard and continue" {
+                Action::Discard
+            } else {
+                Action::Preview
+            });
+        }
+        actions.cancel = ui
+            .button(if spec.primary.is_some() {
+                "Cancel"
+            } else {
+                "Close"
+            })
+            .clicked();
+    };
+    if estimated <= ui.available_width() {
+        ui.horizontal(|ui| {
+            ui.heading(spec.title);
+            ui.with_layout(Layout::right_to_left(Align::Center), &mut buttons);
+        });
+    } else {
         ui.heading(spec.title);
-    });
-    ui.horizontal_wrapped(|ui| {
-        ui.with_layout(
-            Layout::right_to_left(Align::Center).with_main_wrap(true),
-            |ui| {
-                if let Some(label) = spec.primary
-                    && ui.button(label).clicked()
-                {
-                    actions.intent = Some(Action::Primary);
-                }
-                if let Some(label) = spec.preview
-                    && ui.button(label).clicked()
-                {
-                    actions.intent = Some(if label == "Discard and continue" {
-                        Action::Discard
-                    } else {
-                        Action::Preview
-                    });
-                }
-                actions.cancel = ui
-                    .button(if spec.primary.is_some() {
-                        "Cancel"
-                    } else {
-                        "Close"
-                    })
-                    .clicked();
-            },
-        );
-    });
+        ui.horizontal_wrapped(|ui| {
+            ui.with_layout(
+                Layout::right_to_left(Align::Center).with_main_wrap(true),
+                &mut buttons,
+            );
+        });
+    }
     ui.small("Ctrl/Cmd+Enter: primary action · Escape: cancel · Save details changes the document; Ctrl/Cmd+S outside this form saves the file.");
     if let Some(error) = error {
         ui.colored_label(egui::Color32::LIGHT_RED, error);
