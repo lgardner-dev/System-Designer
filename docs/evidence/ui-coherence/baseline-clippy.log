@@ -1,0 +1,890 @@
+warning: this looks like you are trying to use `.. != ..`, but you really are doing `.. = (! ..)`
+   --> src/ui/inspector.rs:355:29
+    |
+355 |                         keep=!self.connection_form(ui,d);
+    |                             ^^
+    |
+    = note: to remove this lint, use either `!=` or `= !`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#suspicious_assignment_formatting
+    = note: `#[warn(clippy::suspicious_assignment_formatting)]` on by default
+
+warning: this looks like you are trying to use `.. != ..`, but you really are doing `.. = (! ..)`
+   --> src/ui/inspector.rs:399:29
+    |
+399 |                         keep=!self.contract_form(ui,d);
+    |                             ^^
+    |
+    = note: to remove this lint, use either `!=` or `= !`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#suspicious_assignment_formatting
+
+warning: this looks like you are trying to use `.. != ..`, but you really are doing `.. = (! ..)`
+   --> src/ui/inspector.rs:402:29
+    |
+402 |                         keep=!self.handoff_form(ui,d,ctx);
+    |                             ^^
+    |
+    = note: to remove this lint, use either `!=` or `= !`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#suspicious_assignment_formatting
+
+warning: this `if` statement can be collapsed
+  --> src/edit/connection.rs:51:5
+   |
+51 | /     if let Some(id) = editing {
+52 | |         if !s.edges.iter().any(|e| e.id == id) {
+53 | |             return Err(ModelError::one("missing connection to edit"));
+54 | |         }
+55 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+   = note: `#[warn(clippy::collapsible_if)]` on by default
+help: collapse nested if block
+   |
+51 ~     if let Some(id) = editing
+52 ~         && !s.edges.iter().any(|e| e.id == id) {
+53 |             return Err(ModelError::one("missing connection to edit"));
+54 ~         }
+   |
+
+warning: this `if` statement can be collapsed
+  --> src/exchange/replace.rs:25:9
+   |
+25 | /         if let Some(r) = &p.contract {
+26 | |             if !seen.contains(r) {
+27 | |                 return Err(ModelError::one(format!(
+28 | |                     "scope is missing definition for {r}"
+...  |
+31 | |         }
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+   |
+25 ~         if let Some(r) = &p.contract
+26 ~             && !seen.contains(r) {
+27 |                 return Err(ModelError::one(format!(
+28 |                     "scope is missing definition for {r}"
+29 |                 )));
+30 ~             }
+   |
+
+warning: this `if` statement can be collapsed
+   --> src/model/validation.rs:223:13
+    |
+223 | /             if let (Some(a), Some(b)) = (a, b) {
+224 | |                 if a.contract.is_none() || a.contract != b.contract {
+225 | |                     issue(
+226 | |                         &mut errors,
+...   |
+231 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+223 ~             if let (Some(a), Some(b)) = (a, b)
+224 ~                 && (a.contract.is_none() || a.contract != b.contract) {
+225 |                     issue(
+...
+229 |                     );
+230 ~                 }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas/focus.rs:318:5
+    |
+318 | /     if let Some(ep) = &exact_port {
+319 | |         if let Some(port) = p.port(&sid, ep) {
+320 | |             ui.label(endpoint_name(&p, &sid, ep));
+321 | |             ui.monospace(&port.id);
+...   |
+361 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+318 ~     if let Some(ep) = &exact_port
+319 ~         && let Some(port) = p.port(&sid, ep) {
+320 |             ui.label(endpoint_name(&p, &sid, ep));
+...
+359 |             }
+360 ~         }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas/focus.rs:334:13
+    |
+334 | /             if let Some(reference) = &port.contract {
+335 | |                 if ui.button("Inspect type").clicked() {
+336 | |                     if let Some(c) = p.contract(reference) {
+337 | |                         app.dialog = Some(Dialog::Contract(ContractDialog::edit(c)));
+...   |
+340 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+334 ~             if let Some(reference) = &port.contract
+335 ~                 && ui.button("Inspect type").clicked() {
+336 |                     if let Some(c) = p.contract(reference) {
+337 |                         app.dialog = Some(Dialog::Contract(ContractDialog::edit(c)));
+338 |                     }
+339 ~                 }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas/focus.rs:335:17
+    |
+335 | /                 if ui.button("Inspect type").clicked() {
+336 | |                     if let Some(c) = p.contract(reference) {
+337 | |                         app.dialog = Some(Dialog::Contract(ContractDialog::edit(c)));
+338 | |                     }
+339 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+335 ~                 if ui.button("Inspect type").clicked()
+336 ~                     && let Some(c) = p.contract(reference) {
+337 |                         app.dialog = Some(Dialog::Contract(ContractDialog::edit(c)));
+338 ~                     }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas/focus.rs:355:13
+    |
+355 | /             if let Some(id) = &ep.node {
+356 | |                 if ui.button("Whole component").clicked() {
+357 | |                     visit = Some((sid.clone(), Selection::Node(id.clone())));
+358 | |                 }
+359 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+355 ~             if let Some(id) = &ep.node
+356 ~                 && ui.button("Whole component").clicked() {
+357 |                     visit = Some((sid.clone(), Selection::Node(id.clone())));
+358 ~                 }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas/focus.rs:362:5
+    |
+362 | /     if let Selection::Node(id) = &selection {
+363 | |         if let Some((_, node)) = p.node(id) {
+364 | |             egui::ComboBox::from_id_salt("trace-port-picker")
+365 | |                 .selected_text("Inspect a specific port…")
+...   |
+386 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+362 ~     if let Selection::Node(id) = &selection
+363 ~         && let Some((_, node)) = p.node(id) {
+364 |             egui::ComboBox::from_id_salt("trace-port-picker")
+...
+384 |                 });
+385 ~         }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas/geometry.rs:442:9
+    |
+442 | /         if let Some(id) = &from.node {
+443 | |             if to.node.as_ref() == Some(id) {
+444 | |                 let rect = self.cards.iter().find(|c| c.id == *id)?.rect;
+445 | |                 return Some(Path::loop_around(a, b, rect, 36.0 + lane as f32 * 9.0));
+446 | |             }
+447 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+442 ~         if let Some(id) = &from.node
+443 ~             && to.node.as_ref() == Some(id) {
+444 |                 let rect = self.cards.iter().find(|c| c.id == *id)?.rect;
+445 |                 return Some(Path::loop_around(a, b, rect, 36.0 + lane as f32 * 9.0));
+446 ~             }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas.rs:201:13
+    |
+201 | /             if scroll.abs() > 0.01 {
+202 | |                 if let Some(cursor) = pointer {
+203 | |                     let world = (cursor - area.min - self.canvas.pan) / self.canvas.zoom;
+204 | |                     self.canvas.zoom = (self.canvas.zoom * (scroll * 0.002).exp()).clamp(0.2, 2.5);
+...   |
+207 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+201 ~             if scroll.abs() > 0.01
+202 ~                 && let Some(cursor) = pointer {
+203 |                     let world = (cursor - area.min - self.canvas.pan) / self.canvas.zoom;
+204 |                     self.canvas.zoom = (self.canvas.zoom * (scroll * 0.002).exp()).clamp(0.2, 2.5);
+205 |                     self.canvas.pan = cursor - area.min - world * self.canvas.zoom;
+206 ~                 }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas.rs:453:9
+    |
+453 | /         if let (Some(from), Some(cursor)) = (dragging.as_ref(), pointer) {
+454 | |             if let Some(start) = scene.port(from) {
+455 | |                 let end_normal = hovered_port.map(|p| p.normal).unwrap_or(-start.normal);
+456 | |                 let end = hovered_port.map(|p| screen(p.point)).unwrap_or(cursor);
+...   |
+464 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+453 ~         if let (Some(from), Some(cursor)) = (dragging.as_ref(), pointer)
+454 ~             && let Some(start) = scene.port(from) {
+455 |                 let end_normal = hovered_port.map(|p| p.normal).unwrap_or(-start.normal);
+...
+462 |                 painter.add(egui::Shape::line(path.points, Stroke::new(2.5_f32, ACCENT)));
+463 ~             }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/canvas.rs:490:9
+    |
+490 | /         if ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary)) {
+491 | |             if let Some(port) = hovered_port {
+492 | |                 self.trace_visit(
+493 | |                     sid.clone(),
+...   |
+501 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+490 ~         if ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary))
+491 ~             && let Some(port) = hovered_port {
+492 |                 self.trace_visit(
+...
+499 |                 );
+500 ~             }
+    |
+
+warning: this `if` can be collapsed into the outer `match`
+   --> src/ui/canvas.rs:630:21
+    |
+630 | /                     if ui.input(|i| i.pointer.button_double_clicked(PointerButton::Primary)) {
+631 | |                         self.show_exact(&id, true);
+632 | |                     }
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_match
+    = note: `#[warn(clippy::collapsible_match)]` on by default
+help: collapse nested if block
+    |
+629 ~                 Some(Gesture::Edge(Selection::Edge(id)))
+630 ~                     if ui.input(|i| i.pointer.button_double_clicked(PointerButton::Primary)) => {
+631 |                         self.show_exact(&id, true);
+632 ~                     }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/contracts.rs:339:13
+    |
+339 | /             if ui
+340 | |                 .add_enabled(
+341 | |                     ready,
+342 | |                     egui::Button::new(if d.id.is_some() {
+...   |
+369 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+348 ~                 .clicked()
+349 ~                 && let (Some(from), Some(to), Some(contract)) =
+350 |                     (d.from.clone(), d.to.clone(), chosen.clone())
+...
+366 |                     close = self.error.is_none();
+367 ~                 }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/handoff.rs:310:17
+    |
+310 | /                 if ui.button("Read scope file…").clicked() {
+311 | |                     if let Some(path) = rfd::FileDialog::new()
+312 | |                         .add_filter("Scope JSON", &["json"])
+313 | |                         .pick_file()
+...   |
+323 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+310 ~                 if ui.button("Read scope file…").clicked()
+311 ~                     && let Some(path) = rfd::FileDialog::new()
+312 |                         .add_filter("Scope JSON", &["json"])
+...
+321 |                         }
+322 ~                     }
+    |
+
+warning: this `if` statement can be collapsed
+  --> src/ui/inspector.rs:49:37
+   |
+49 | / ...                   if let Some(reference)=&r.contract{
+50 | | ...                       if ui.small_button("Inspect type").clicked(){
+51 | | ...                           if let Some(c)=p.contract(reference){
+52 | | ...                               self.dialog=Some(Dialog::Contract(ContractDialog::edit(c)));
+...  |
+55 | | ...                   }
+   | |_______________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+   |
+49 ~                                     if let Some(reference)=&r.contract
+50 ~                                         && ui.small_button("Inspect type").clicked(){
+51 |                                             if let Some(c)=p.contract(reference){
+52 |                                                 self.dialog=Some(Dialog::Contract(ContractDialog::edit(c)));
+53 |                                             }
+54 ~                                         }
+   |
+
+warning: this `if` statement can be collapsed
+  --> src/ui/inspector.rs:50:41
+   |
+50 | / ...                   if ui.small_button("Inspect type").clicked(){
+51 | | ...                       if let Some(c)=p.contract(reference){
+52 | | ...                           self.dialog=Some(Dialog::Contract(ContractDialog::edit(c)));
+53 | | ...                       }
+54 | | ...                   }
+   | |_______________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+   |
+50 ~                                         if ui.small_button("Inspect type").clicked()
+51 ~                                             && let Some(c)=p.contract(reference){
+52 |                                                 self.dialog=Some(Dialog::Contract(ContractDialog::edit(c)));
+53 ~                                             }
+   |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/inspector.rs:416:33
+    |
+416 | / ...   if let Some((_,n)) = p.node(id) {
+417 | | ...       if let Some(child) = &n.child {
+418 | | ...           let systems = p.descendants(child);
+419 | | ...           ids.extend(p.systems.iter().filter(|s|systems.contains(&s.id)).flat_map(|s|s.nodes.iter().map(|n|n.id.clone())));
+420 | | ...       }
+421 | | ...   }
+    | |_______^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+416 ~                                 if let Some((_,n)) = p.node(id)
+417 ~                                     && let Some(child) = &n.child {
+418 |                                         let systems = p.descendants(child);
+419 |                                         ids.extend(p.systems.iter().filter(|s|systems.contains(&s.id)).flat_map(|s|s.nodes.iter().map(|n|n.id.clone())));
+420 ~                                     }
+    |
+
+warning: this `if` statement can be collapsed
+  --> src/ui/workspace.rs:12:9
+   |
+12 | /         if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::O)) {
+13 | |             if let Some(p) = rfd::FileDialog::new()
+14 | |                 .add_filter("System Designer project", &["json"])
+15 | |                 .pick_file()
+...  |
+19 | |         }
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+   |
+12 ~         if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::O))
+13 ~             && let Some(p) = rfd::FileDialog::new()
+14 |                 .add_filter("System Designer project", &["json"])
+...
+17 |                 self.request_load(LoadAction::Open(p), ctx);
+18 ~             }
+   |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/workspace.rs:322:17
+    |
+322 | /                 if !self.collapsed.contains(&node.id) {
+323 | |                     if let Some(child) = node.child.as_ref().and_then(|id| p.system(id)) {
+324 | |                         for n in child.nodes.iter().rev() {
+325 | |                             pending.push((child, n, depth + 1));
+...   |
+328 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+322 ~                 if !self.collapsed.contains(&node.id)
+323 ~                     && let Some(child) = node.child.as_ref().and_then(|id| p.system(id)) {
+324 |                         for n in child.nodes.iter().rev() {
+325 |                             pending.push((child, n, depth + 1));
+326 |                         }
+327 ~                     }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/mod.rs:189:9
+    |
+189 | /         if let Some(path) = &self.recovery {
+190 | |             if let Err(e) = std::fs::remove_file(path) {
+191 | |                 if e.kind() != std::io::ErrorKind::NotFound {
+192 | |                     self.error = Some(format!("Could not remove recovery copy: {e}"));
+...   |
+195 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+189 ~         if let Some(path) = &self.recovery
+190 ~             && let Err(e) = std::fs::remove_file(path) {
+191 |                 if e.kind() != std::io::ErrorKind::NotFound {
+192 |                     self.error = Some(format!("Could not remove recovery copy: {e}"));
+193 |                 }
+194 ~             }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/ui/mod.rs:190:13
+    |
+190 | /             if let Err(e) = std::fs::remove_file(path) {
+191 | |                 if e.kind() != std::io::ErrorKind::NotFound {
+192 | |                     self.error = Some(format!("Could not remove recovery copy: {e}"));
+193 | |                 }
+194 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+190 ~             if let Err(e) = std::fs::remove_file(path)
+191 ~                 && e.kind() != std::io::ErrorKind::NotFound {
+192 |                     self.error = Some(format!("Could not remove recovery copy: {e}"));
+193 ~                 }
+    |
+
+warning: using `chunks_exact` with a constant chunk size
+  --> src/ui/branding.rs:47:27
+   |
+47 |         assert!(icon.rgba.chunks_exact(4).any(|p| p[3] > 0));
+   |                           ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0.iter()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#chunks_exact_to_as_chunks
+   = note: `#[warn(clippy::chunks_exact_to_as_chunks)]` on by default
+
+warning: `system-designer` (lib) generated 25 warnings (run `cargo clippy --fix --lib -p system-designer -- ` to apply 22 suggestions)
+warning: `system-designer` (lib test) generated 26 warnings (25 duplicates) (run `cargo clippy --fix --lib -p system-designer --tests -- ` to apply 1 suggestion)
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:10:5
+   |
+10 |     set(&Project::blank(), ROOT, Flow::starter()).unwrap()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+   = note: requested on the command line with `-W clippy::unwrap-used`
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:19:16
+   |
+19 |     let text = serde_json::to_string(&p).unwrap();
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:21:16
+   |
+21 |     assert_eq!(parse(&text).unwrap(), p);
+   |                ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:27:16
+   |
+27 |     assert_eq!(parse(&serde_json::to_string(&p).unwrap()).unwrap(), p);
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:27:23
+   |
+27 |     assert_eq!(parse(&serde_json::to_string(&p).unwrap()).unwrap(), p);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> tests/behavior.rs:38:5
+   |
+38 |     p.behavior.get_mut(ROOT).unwrap().steps[1].kind = StepKind::Decision;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:39:5
+   |
+39 |     validate(&p).unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> tests/behavior.rs:45:5
+   |
+45 |     p.behavior.get_mut(ROOT).unwrap().transitions[0].to = "missing".into();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:51:16
+   |
+51 |       let plan = preview(
+   |  ________________^
+52 | |         &p,
+53 | |         ROOT,
+54 | |         &selected(),
+...  |
+58 | |     .unwrap();
+   | |_____________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:59:13
+   |
+59 |     let q = apply(&p, &plan).unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> tests/behavior.rs:60:16
+   |
+60 |     assert_eq!(q.system(&q.root).unwrap().nodes.len(), 1);
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> tests/behavior.rs:62:9
+   |
+62 |         q.behavior[ROOT].step(&plan.call).unwrap().target.as_ref(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+  --> tests/behavior.rs:67:13
+   |
+67 |     assert!(q.node(&plan.component).unwrap().1.child.is_none());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:76:13
+   |
+76 |     let a = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:77:13
+   |
+77 |     let b = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:78:16
+   |
+78 |     assert_eq!(apply(&p, &a).unwrap(), apply(&p, &b).unwrap());
+   |                ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:78:40
+   |
+78 |     assert_eq!(apply(&p, &a).unwrap(), apply(&p, &b).unwrap());
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:83:16
+   |
+83 |     let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+  --> tests/behavior.rs:94:17
+   |
+94 |     let store = Store::new(p.clone()).unwrap();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:110:16
+    |
+110 |     let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:111:13
+    |
+111 |     let q = apply(&p, &plan).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:112:21
+    |
+112 |     let mut store = Store::new(p.clone()).unwrap();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:113:5
+    |
+113 |     store.publish("Extract", q.clone()).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:122:13
+    |
+122 |     let a = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:123:13
+    |
+123 |     let q = apply(&p, &a).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:124:13
+    |
+124 |       let b = preview(
+    |  _____________^
+125 | |         &q,
+126 | |         &a.component,
+127 | |         &selected(),
+...   |
+131 | |     .unwrap();
+    | |_____________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:132:13
+    |
+132 |     let r = apply(&q, &b).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> tests/behavior.rs:135:9
+    |
+135 | /         r.behavior[&a.component]
+136 | |             .step(&b.call)
+137 | |             .unwrap()
+    | |_____________________^
+    |
+    = note: if this value is `None`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> tests/behavior.rs:146:5
+    |
+146 |     p.behavior.get_mut(ROOT).unwrap().data.push(DataLink {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:160:16
+    |
+160 |     let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:161:13
+    |
+161 |     let q = apply(&p, &plan).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> tests/behavior.rs:162:17
+    |
+162 |     let port = &q.node(&plan.component).unwrap().1.ports[0];
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:174:22
+    |
+174 |     let mut packet = export(&p, ROOT).unwrap();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:176:13
+    |
+176 |     let q = replace(&p, &packet, ROOT).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:184:18
+    |
+184 |     let packet = export(&p, ROOT).unwrap();
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on an `Option` value
+   --> tests/behavior.rs:186:5
+    |
+186 |     q.behavior.get_mut(ROOT).unwrap().steps[1].name = "Another edit".into();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: used `unwrap()` on a `Result` value
+   --> tests/behavior.rs:192:22
+    |
+192 |     let mut packet = export(&p, ROOT).unwrap();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: consider using `expect()` to provide a better panic message
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+
+warning: `system-designer` (test "behavior") generated 37 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.49s

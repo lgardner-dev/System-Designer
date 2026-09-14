@@ -1,0 +1,29 @@
+   Compiling system-designer v0.2.0 (/home/luke/projects/System-Designer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running tests/signed_layout.rs (target/debug/deps/signed_layout-457b3c6829a8703a)
+
+running 2 tests
+test signed_flow_and_behavior_edits_preserve_version ... FAILED
+test signed_layout_is_explicitly_versioned ... FAILED
+
+failures:
+
+---- signed_flow_and_behavior_edits_preserve_version stdout ----
+
+thread 'signed_flow_and_behavior_edits_preserve_version' (27958) panicked at tests/signed_layout.rs:26:18:
+signed flow: ModelError([Problem { path: "version", message: "unsupported project version" }])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- signed_layout_is_explicitly_versioned stdout ----
+
+thread 'signed_layout_is_explicitly_versioned' (27959) panicked at tests/signed_layout.rs:13:18:
+v3 supports signed interface positions without creating behavior: ModelError([Problem { path: "version", message: "unsupported project version" }, Problem { path: "layout", message: "coordinates must be finite and nonnegative" }])
+
+
+failures:
+    signed_flow_and_behavior_edits_preserve_version
+    signed_layout_is_explicitly_versioned
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test signed_layout`
