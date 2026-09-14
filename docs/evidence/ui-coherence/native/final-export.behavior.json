@@ -1,0 +1,232 @@
+{
+  "base": "238540661db489a0eef9942f8a84b7757716d8c4e76a48da58375baea864b8f4",
+  "context": {
+    "callers": [
+      {
+        "data": [
+          {
+            "contract": {
+              "id": "Contract.208835fe-3b16-48d5-8607-a7ad1d006385",
+              "version": 1
+            },
+            "exchange": null,
+            "from": {
+              "port": null,
+              "step": null
+            },
+            "id": "information.1",
+            "name": "Source record",
+            "to": {
+              "port": "port.1",
+              "step": "call.1"
+            }
+          },
+          {
+            "contract": null,
+            "exchange": null,
+            "from": {
+              "port": "port.2",
+              "step": "call.1"
+            },
+            "id": "information.2",
+            "name": "Stored receipt",
+            "to": {
+              "port": null,
+              "step": null
+            }
+          }
+        ],
+        "owner": "@root",
+        "returns": [
+          {
+            "condition": "",
+            "from": "call.1",
+            "id": "t3",
+            "outcome": "outcome.1",
+            "to": "done"
+          }
+        ],
+        "step": {
+          "id": "call.1",
+          "information_reviewed": false,
+          "kind": "call",
+          "name": "Ingest record",
+          "purpose": "Prepare and persist one source record, returning its receipt.",
+          "target": "component.1"
+        }
+      }
+    ],
+    "children": [],
+    "component": {
+      "id": "component.1",
+      "kind": "component",
+      "name": "Record intake",
+      "ports": [
+        {
+          "contract": {
+            "id": "Contract.208835fe-3b16-48d5-8607-a7ad1d006385",
+            "version": 1
+          },
+          "direction": "in",
+          "id": "port.1",
+          "name": "Source record"
+        },
+        {
+          "contract": null,
+          "direction": "out",
+          "id": "port.2",
+          "name": "Stored receipt"
+        }
+      ],
+      "purpose": "Prepare and persist one source record, returning its receipt."
+    },
+    "contracts": [
+      {
+        "definition": {
+          "fields": [],
+          "type": "object"
+        },
+        "id": "Contract.208835fe-3b16-48d5-8607-a7ad1d006385",
+        "name": "Source record",
+        "purpose": "A source record supplied to the intake responsibility.",
+        "version": 1
+      }
+    ],
+    "interfaces": null,
+    "project": {
+      "id": "project.review",
+      "name": "Review fixture - three action extraction",
+      "purpose": "UI qualification fixture, not an accepted Foundry Method design.\nParagraph 1: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 2: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 3: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 4: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 5: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 6: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 7: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 8: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 9: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 10: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 11: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 12: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 13: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 14: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 15: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 16: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 17: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 18: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 19: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 20: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 21: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 22: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 23: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 24: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 25: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 26: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 27: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 28: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 29: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 30: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 31: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 32: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 33: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 34: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 35: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 36: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 37: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 38: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 39: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 40: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 41: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 42: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 43: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 44: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 45: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 46: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 47: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 48: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 49: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 50: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 51: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 52: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 53: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 54: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 55: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 56: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 57: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 58: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 59: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 60: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 61: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 62: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 63: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 64: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 65: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 66: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 67: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 68: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 69: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 70: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 71: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 72: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 73: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 74: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 75: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 76: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 77: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 78: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 79: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 80: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 81: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 82: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 83: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 84: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 85: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 86: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 87: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 88: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 89: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nParagraph 90: Clarify document intent, preserve exact outcomes and information contracts, and keep every editing action reversible.\nFinal character: z"
+    }
+  },
+  "flow": {
+    "data": [
+      {
+        "contract": {
+          "id": "Contract.208835fe-3b16-48d5-8607-a7ad1d006385",
+          "version": 1
+        },
+        "exchange": null,
+        "from": {
+          "port": "port.1",
+          "step": null
+        },
+        "id": "information.1",
+        "name": "Source record",
+        "to": {
+          "port": null,
+          "step": "a"
+        }
+      },
+      {
+        "contract": null,
+        "exchange": null,
+        "from": {
+          "port": null,
+          "step": "c"
+        },
+        "id": "information.2",
+        "name": "Stored receipt",
+        "to": {
+          "port": "port.2",
+          "step": null
+        }
+      }
+    ],
+    "extraction": {
+      "base": "639fc7b67c0d895564f60b92413c7f04446d5619d7deb1696213dc47962fcc73",
+      "parent": "@root",
+      "responsibility": "Prepare and persist one source record, returning its receipt.",
+      "rule_version": 1,
+      "source_steps": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    "primitive": "",
+    "steps": [
+      {
+        "id": "a",
+        "information_reviewed": false,
+        "kind": "action",
+        "name": "Validate source record",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "b",
+        "information_reviewed": false,
+        "kind": "action",
+        "name": "Normalize",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "c",
+        "information_reviewed": false,
+        "kind": "action",
+        "name": "Store",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "entry.1",
+        "information_reviewed": false,
+        "kind": "entry",
+        "name": "Begin",
+        "purpose": "",
+        "target": null
+      },
+      {
+        "id": "outcome.1",
+        "information_reviewed": false,
+        "kind": "outcome",
+        "name": "Complete",
+        "purpose": "",
+        "target": null
+      }
+    ],
+    "transitions": [
+      {
+        "condition": "",
+        "from": "a",
+        "id": "t1",
+        "outcome": null,
+        "to": "b"
+      },
+      {
+        "condition": "",
+        "from": "b",
+        "id": "t2",
+        "outcome": null,
+        "to": "c"
+      },
+      {
+        "condition": "",
+        "from": "entry.1",
+        "id": "transition.1",
+        "outcome": null,
+        "to": "a"
+      },
+      {
+        "condition": "",
+        "from": "c",
+        "id": "t3",
+        "outcome": null,
+        "to": "outcome.1"
+      },
+      {
+        "condition": "manual review",
+        "from": "entry.1",
+        "id": "transition.2",
+        "outcome": null,
+        "to": "a"
+      }
+    ]
+  },
+  "format": "system-designer-behavior-scope",
+  "owner": "component.1",
+  "project_id": "project.review",
+  "version": 1
+}

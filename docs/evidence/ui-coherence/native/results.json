@@ -1,0 +1,93 @@
+{
+  "source": "a0bd918613b03fb13eece9bfe4b701448d70b02d",
+  "binary_sha256": "8dc848ba2dac5ddfb3c6f07cbcd0be0cefb8d6e64c0ea77cb65701aef8c59239",
+  "environment": {
+    "os": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+    "desktop": "GNOME Wayland; X11 app via Xwayland; native Wayland app via nested Weston 13 kiosk shell on X11",
+    "renderer": "LIBGL_ALWAYS_SOFTWARE=1; Mesa 25.2.8 llvmpipe, see renderer.log",
+    "ui_scale": "100% and 150% via Ctrl+=; separate from canvas zoom",
+    "input": "XTEST into actual native client; Wayland forwarded through Weston; explicit focus/raise and frame-relative pointer coordinates",
+    "native_client_sizes": [
+      [
+        1280,
+        720
+      ],
+      [
+        1440,
+        900
+      ],
+      [
+        1600,
+        960
+      ],
+      [
+        1920,
+        1080
+      ]
+    ]
+  },
+  "assertions": "All saved-file assertions passed: signed coordinates, exact rename/call identity, linked contract refinement, unassigned output preserved, rejected proposal unchanged, save/reopen equality, unchanged returns fixture. Undo/Redo and Shift+Arrow were asserted during OS tasks.",
+  "journey_flow_layout": {
+    "@root": {
+      "call.1": {
+        "x": 138.64608764648438,
+        "y": -150.1900177001953
+      },
+      "done": {
+        "x": 420.0,
+        "y": 300.0
+      },
+      "entry": {
+        "x": -42.327789306640625,
+        "y": -52.327789306640625
+      }
+    },
+    "component.1": {
+      "a": {
+        "x": 138.64608764648438,
+        "y": 252.0
+      },
+      "b": {
+        "x": 760.0,
+        "y": 472.1900177001953
+      },
+      "c": {
+        "x": 80.0,
+        "y": 702.1900177001953
+      },
+      "entry.1": {
+        "x": -71.30845642089844,
+        "y": -25.313636779785156
+      },
+      "outcome.1": {
+        "x": 80.0,
+        "y": 884.1900177001953
+      }
+    }
+  },
+  "journey_interface_layout": {
+    "root": {
+      "component.1": {
+        "x": -115.0,
+        "y": -70.0
+      }
+    }
+  },
+  "wayland_interface_layout": {
+    "root": {
+      "component.1": {
+        "x": -405.0,
+        "y": -290.0
+      }
+    }
+  },
+  "nested_interface_layout": {
+    "a": {
+      "X": {
+        "x": -130.4512939453125,
+        "y": -229.1448974609375
+      }
+    }
+  },
+  "human_acceptance": "Pending owner walkthrough; Windows/macOS GUI and assistive technology qualification not performed."
+}

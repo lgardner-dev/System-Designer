@@ -1,0 +1,16 @@
+   Compiling system-designer v0.2.0 (/tmp/sd-ux-gate)
+error: used `unwrap()` on an `Option` value
+  --> src/lib.rs:14:53
+   |
+14 | pub fn clippy_gate_probe(value: Option<u8>) -> u8 { value.unwrap() }
+   |                                                     ^^^^^^^^^^^^^^
+   |
+   = note: if this value is `None`, it will panic
+   = help: consider using `expect()` to provide a better panic message
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unwrap_used
+   = note: `-D clippy::unwrap-used` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unwrap_used)]`
+
+error: could not compile `system-designer` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `system-designer` (lib) due to 1 previous error

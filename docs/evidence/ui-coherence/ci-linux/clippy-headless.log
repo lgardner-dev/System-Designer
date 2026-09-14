@@ -1,0 +1,10 @@
+[1m[92m    Checking[0m linux-raw-sys v0.12.1
+[1m[92m   Compiling[0m system-designer v0.2.0 (/home/runner/work/System-Designer/System-Designer)
+[1m[92m    Checking[0m memchr v2.8.3
+[1m[92m    Checking[0m once_cell v1.21.4
+[1m[92m    Checking[0m serde v1.0.229
+[1m[92m    Checking[0m uuid v1.26.1
+[1m[92m    Checking[0m rustix v1.1.4
+[1m[92m    Checking[0m serde_json v1.0.151
+[1m[92m    Checking[0m tempfile v3.27.0
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 2.42s

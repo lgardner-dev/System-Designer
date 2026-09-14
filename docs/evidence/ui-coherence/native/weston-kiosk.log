@@ -1,0 +1,33 @@
+Date: 2026-09-13 EDT
+[23:01:42.092] weston 13.0.0
+               https://wayland.freedesktop.org
+               Bug reports to: https://gitlab.freedesktop.org/wayland/weston/issues/
+               Build: 13.0.0
+[23:01:42.092] Command line: /tmp/sd-ux-assignment/packages/root/usr/bin/weston --backend=x11 --shell=/tmp/sd-ux-assignment/packages/root/usr/lib/x86_64-linux-gnu/weston/kiosk-shell.so --width=1600 --height=960 --socket=sd-ux-wayland --idle-time=0 --renderer=pixman --log=/tmp/sd-ux-assignment/weston-kiosk.log
+[23:01:42.092] OS: Linux, 7.0.0-31-generic, #31~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Aug 10 09:38:02 UTC 2, x86_64
+[23:01:42.092] Flight recorder: enabled
+[23:01:42.092] Starting with no config file.
+[23:01:42.092] Output repaint window is 7 ms maximum.
+[23:01:42.092] Loading module '/tmp/sd-ux-assignment/packages/root/usr/lib/x86_64-linux-gnu/libweston-13/x11-backend.so'
+[23:01:42.094] Using Pixman renderer
+[23:01:42.099] Registered plugin API 'weston_windowed_output_api_v2' of size 16
+[23:01:42.099] Color manager: no-op
+[23:01:42.099] Output 'screen0' attempts EOTF mode: SDR
+[23:01:42.099] Output 'screen0' using color profile: stock sRGB color profile
+[23:01:42.099] Found visual, bits per value: 8, red_mask: 00ff0000, green_mask: 0000ff00, blue_mask: 000000ff
+[23:01:42.099] Visual depth is 24
+[23:01:42.099] Found format for depth 24, bpp: 32
+[23:01:42.099] Will use x8r8g8b8 format for SHM surfaces
+[23:01:42.099] x11 output 1600x960, window id 20971525
+[23:01:42.099] Output 'screen0' enabled with head(s) screen0
+[23:01:42.099] Compositor capabilities:
+               arbitrary surface rotation: yes
+               screen capture uses y-flip: no
+               cursor planes: no
+               arbitrary resolutions: no
+               view mask clipping: yes
+               explicit sync: no
+               color operations: no
+               presentation clock: CLOCK_MONOTONIC_RAW, id 4
+               presentation clock resolution: 0.000000001 s
+[23:01:42.099] Loading module '/tmp/sd-ux-assignment/packages/root/usr/lib/x86_64-linux-gnu/weston/kiosk-shell.so'
