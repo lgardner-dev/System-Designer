@@ -67,7 +67,7 @@ entry fits destination geometry. Native files store each layer's layout; cameras
 are session-only and restart with Fit.
 
 Interface levels retain their Detail, Overview, Focus, arrangement, exact-wire
-editing and tracing controls. The flow canvas shares `geometry::Path` with them:
+editing and tracing controls. The flow canvas shares `diagram::routes::Path` with them:
 one sampled cubic path drives drawing, picking, static arrowheads and lights.
 Decisions use diamond perimeter intersections; terminators use ellipse perimeter
 intersections. Call cards have the conventional double side lines. Alternative

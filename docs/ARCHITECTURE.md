@@ -7,8 +7,8 @@ System Designer is one Rust crate producing a native editor and a headless valid
 | Root component | Owns | Main source locations |
 |---|---|---|
 | Workspace | Native composition, document lifecycle, navigation and unsaved-change decisions | `src/main.rs`, `src/ui/mod.rs`, `src/ui/workspace.rs` |
-| Canvas | Local projection, View/Focus/Arrange controls, drawing, picking, motion and gestures | `src/ui/canvas.rs`, `src/ui/canvas/` |
-| Authoring forms | Component and contract drafts, exact connection consent | `src/ui/inspector.rs`, `src/ui/contracts.rs` |
+| Canvas | Layer projections and controls composed with shared drawing, picking, motion and gesture mechanics | `src/ui/canvas.rs`, `src/ui/canvas/`, `src/ui/flow/`, `src/ui/diagram/` |
+| Authoring forms | Fixed modal shell, component/behavior/contract drafts, exact connection consent | `src/ui/dialogs/`, `src/ui/contracts.rs`, `src/ui/flow/forms.rs` |
 | Edits and history | Validated candidates, shared-port consistency, authoritative Store and undo/redo | `src/edit/` |
 | Design model | Typed records, structural validation and derived hierarchy queries | `src/model/` |
 | AI handoff | Embedded prompt, bounded exports and safe replacements | `src/ui/handoff.rs`, `src/exchange/`, `assets/initialization.txt` |
@@ -20,11 +20,11 @@ The model contains eight systems and 38 components. The root has seven component
 
 | Responsibility | Implementation |
 |---|---|
-| Geometry projection | `canvas/geometry.rs`: measured Detail cards, one anchor per physical port, derived boundaries, common Path geometry |
-| Viewport and navigation | `canvas.rs`, `canvas/focus.rs::Viewport`: pan/zoom, fit, remembered level cameras |
-| Drawing and direction lights | `canvas.rs`, `canvas/motion.rs`: exact or summary routes, static direction, illustrative pulses |
-| Exact hit testing | `canvas.rs`, `geometry::Path::distance`: select the displayed route or exact endpoint |
-| Gestures and controls | `canvas.rs`: frozen attachment choices, explicit contract dialogs, validated completed edits |
+| Geometry projection | `canvas/geometry.rs`, `flow/scene.rs`: measured cards/shapes and derived boundaries; shared `diagram/anchors.rs` and `diagram/routes.rs` resolve visible endpoints and paths |
+| Viewport and navigation | `diagram/viewport.rs`: pan/zoom and fit mathematics; `canvas/focus.rs::Viewport` and scope orchestration retain level cameras |
+| Drawing and direction lights | `diagram/paint.rs`, `diagram/motion.rs`: common exact/summary route style, static direction and illustrative pulses |
+| Exact hit testing | Both adapters consume `diagram/routes.rs::Path::distance` and the resolved visible endpoint positions |
+| Gestures and controls | Both adapters compose `diagram/interaction.rs` ownership/cancellation/displacement with frozen attachments and semantic forms; `edit/layout.rs` validates completed moves |
 | Overview projection | `canvas/overview.rs`: counted ordered-pair summaries retaining real edge IDs |
 | Focus and exact tracing | `canvas/focus.rs`: exact one-hop membership, physical boundary navigation and Back trace |
 | Connection-aware arrangement | `canvas/arrangement.rs`: temporary SCCs/layers, bounded Detail-size measurement, current-level position candidates |
@@ -91,9 +91,9 @@ route, painting/motion and input ownership mechanics used by both `flow/scene`
 and `canvas/geometry`. Model/edit/Store remain headless. `ui/dialogs` owns the
 fixed action shell and typed intents; forms retain validation and review gates.
 `edit/layout` is the common deliberate-move candidate boundary, including atomic
-v3 promotion. Project settings is a workspace command. Historical source paths
-above describe the earlier interface-only arrangement; shared Path and motion
-now live in diagram, and show_dialog lives in dialogs/show.rs.
+v3 promotion. Project settings is a workspace command. Shared Path and motion
+live in diagram, and show_dialog lives in dialogs/show.rs; the tables above
+describe the current production locations.
 
 Remaining coupling outside this assignment: recursive schema widgets and contract
 impact review remain in contracts.rs; tree rendering and native lifecycle remain
