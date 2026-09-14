@@ -285,3 +285,57 @@ fn lights_popup_does_not_clear_selection_or_capture_background() {
         assert_eq!(a.store.generation, 0);
     }
 }
+
+#[test]
+fn nudge_uses_the_key_event_chord_after_same_frame_modifier_release() {
+    for layer in [Layer::Flow, Layer::Interfaces] {
+        let mut a = app(layer);
+        let ctx = egui::Context::default();
+        let size = vec2(1600.0, 960.0);
+        for _ in 0..3 {
+            frame(&mut a, &ctx, size, vec![], true);
+        }
+        let (id, initial) = if layer == Layer::Flow {
+            a.flow.selection.steps.insert("action".into());
+            (
+                "action".to_owned(),
+                behavior::positions(&a.store.project().behavior[ROOT])["action"],
+            )
+        } else {
+            let id = a.store.project().systems[0].nodes[0].id.clone();
+            a.selected = Selection::Node(id.clone());
+            let initial = auto_layout(a.store.project(), &a.current)[&id];
+            (id, initial)
+        };
+        for (modifiers, expected, generation) in [
+            (Modifiers::SHIFT, 10.0, 1),
+            (Modifiers::NONE, 11.0, 2),
+            (Modifiers::CTRL, 11.0, 2),
+        ] {
+            let events = [true, false]
+                .into_iter()
+                .map(|pressed| Event::Key {
+                    key: egui::Key::ArrowRight,
+                    physical_key: None,
+                    pressed,
+                    repeat: false,
+                    modifiers: if pressed { modifiers } else { Modifiers::NONE },
+                })
+                .collect();
+            frame(&mut a, &ctx, size, events, true);
+            let position = if layer == Layer::Flow {
+                a.store.project().flow_layout[ROOT][&id]
+            } else {
+                a.store.project().layout[&a.current][&id]
+            };
+            assert_eq!(
+                position,
+                Position {
+                    x: initial.x + expected,
+                    y: initial.y
+                }
+            );
+            assert_eq!(a.store.generation, generation);
+        }
+    }
+}

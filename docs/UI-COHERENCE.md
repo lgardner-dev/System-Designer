@@ -132,3 +132,10 @@ runtimes and `punycode`/`url.parse()` in old setup/upload bundles. These were no
 waived. CI now uses the current upstream checkout v7.0.1, setup-python v7.0.0 and
 upload-artifact v7.0.1 releases (Node 24), verified against their release notes and
 action.yml on 2026-09-14. This updates CI tooling, not Cargo dependencies.
+
+Native qualification found that a fast Shift+Arrow chord could release Shift
+within the same rendered frame, causing a one-unit move. Nudging now reads the
+key event's own modifiers, preserves the ten-unit chord, and leaves Ctrl/Alt
+chords alone. A full-workspace regression covers both adapters and same-frame
+modifier release. The final count is 227 all-target tests (87 library/UI and
+140 integration/domain), with 140 tests in the headless configuration.

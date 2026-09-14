@@ -30,23 +30,33 @@ impl Designer {
             self.request_load(LoadAction::Open(p), ctx);
         }
         if !ctx.wants_keyboard_input() {
-            let step = if ctx.input(|i| i.modifiers.shift) {
-                10.0
-            } else {
-                1.0
-            };
-            let mut delta = Position::default();
-            for (key, x, y) in [
-                (Key::ArrowLeft, -step, 0.0),
-                (Key::ArrowRight, step, 0.0),
-                (Key::ArrowUp, 0.0, -step),
-                (Key::ArrowDown, 0.0, step),
-            ] {
-                if ctx.input(|i| i.key_pressed(key)) {
-                    delta.x += x;
-                    delta.y += y;
+            // A modifier can be released later in this frame. The key event
+            // owns its chord; the frame's final modifier state does not.
+            let delta = ctx.input(|i| {
+                let mut delta = Position::default();
+                for event in &i.events {
+                    if let egui::Event::Key {
+                        key,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } = event
+                        && !modifiers.command
+                        && !modifiers.ctrl
+                        && !modifiers.alt
+                    {
+                        let step = if modifiers.shift { 10.0 } else { 1.0 };
+                        match key {
+                            Key::ArrowLeft => delta.x -= step,
+                            Key::ArrowRight => delta.x += step,
+                            Key::ArrowUp => delta.y -= step,
+                            Key::ArrowDown => delta.y += step,
+                            _ => {}
+                        }
+                    }
                 }
-            }
+                delta
+            });
             if delta != Position::default()
                 && !self.canvas.has_gesture()
                 && !self.flow.has_gesture()
