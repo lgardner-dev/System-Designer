@@ -2,7 +2,7 @@
   "format": "system-designer-project",
   "version": 2,
   "id": "project.system-designer-native",
-  "name": "System Designer \u2014 native Rust",
+  "name": "System Designer — native Rust",
   "purpose": "Native desktop System Designer. No webview, HTML, JavaScript, CSS, backend, or AI connection. Preserve recursive typed design, explicit contract dialogs, scoped AI exchange, and local project files. Start blank; expose this self-design as an optional built-in example. The initialization prompt and this JSON are compiled into the executable.\n\nThis model includes the unified View / Focus / Arrange canvas integration. Verification and limitations are recorded in docs/CANVAS-INTEGRATION.md. The self-design is not a claim of full native runtime or platform qualification.\n\nDesign convention: roughly eight or fewer immediate components per level, justified by independent responsibilities, not a hard validator limit. This tree has seven top-level components and at most eight beneath each. Parent systems own all local edges; public ports are projected into child boundaries.\n\nIMPORTANT: Edges below describe responsibility-level interfaces and return paths, NOT a deployed message bus. Some schemas use JSON projections of typed in-process values because the editor's shape language cannot express Rust references or recursive type definitions. These are explanatory contracts, not generated runtime ABI declarations. Source paths in node purposes map the design to the implementation. The application itself keeps direct Rust calls and one Store.",
   "root": "root",
   "contracts": [
@@ -701,7 +701,7 @@
         {
           "id": "canvas",
           "name": "Canvas",
-          "purpose": "Render and select interface geometry and explicit control-flow shapes. Reuse the sampled Path for picking, arrows and direction lights; control lights do not simulate execution. Source: src/ui/canvas/ and src/ui/flow/drawing.rs. Flow arrangement remains manual.",
+          "purpose": "Compose distinct interface and control-flow adapters with shared ephemeral transforms, shape-aware visible anchors, curved routes, picking, styling, lights and capture mechanics. Preserve exact semantic identities and publish only validated deliberate edits. src/ui/diagram/, src/ui/canvas/, src/ui/flow/scene.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1019,7 +1019,7 @@
             "node": "inspectors",
             "port": "inspectors.connection_request"
           },
-          "label": "uncommitted wire gesture \u2192 explicit contract dialog"
+          "label": "uncommitted wire gesture → explicit contract dialog"
         },
         {
           "id": "root.edge.6",
@@ -1290,7 +1290,7 @@
         {
           "id": "workspace.controls",
           "name": "Application controls",
-          "purpose": "Expose file/edit commands, keyboard shortcuts, undo/redo and local complexity guidance.\n\nSource: src/ui/workspace.rs\n\nBranding: src/ui/branding.rs displays the embedded atom icon in the toolbar and Help; cached UI resources do not alter the design model or scoped exchange.",
+          "purpose": "Expose global Project settings, file/history/help and explicit layer/scope navigation. Layer-local toolbars create the appropriate components/ports or steps/transitions. src/ui/workspace.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1307,7 +1307,7 @@
         {
           "id": "workspace.dialogs",
           "name": "Dialog shell",
-          "purpose": "Block underlying editing while a modal draft is open. Support Save/Discard/Cancel and preserve failed candidate errors.\n\nSource: src/ui/inspector.rs::show_dialog",
+          "purpose": "Keep titles left and Cancel/operation-specific actions at top right outside a scrolling body. Collect typed action intents before processing form input; preserve preview/apply gates, focus ownership, drafts and persistent errors. src/ui/dialogs/.",
           "kind": "component",
           "ports": [
             {
@@ -1333,7 +1333,7 @@
             "node": null,
             "port": "workspace.canvas_view"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "workspace.internal.edge.2",
@@ -1345,7 +1345,7 @@
             "node": null,
             "port": "workspace.inspector_view"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "workspace.internal.edge.3",
@@ -1357,7 +1357,7 @@
             "node": null,
             "port": "workspace.handoff_view"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "workspace.internal.edge.4",
@@ -1369,7 +1369,7 @@
             "node": "workspace.document",
             "port": "workspace.document.public_current"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "workspace.internal.edge.5",
@@ -1381,7 +1381,7 @@
             "node": "workspace.document",
             "port": "workspace.document.public_edit_status"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "workspace.internal.edge.6",
@@ -1393,7 +1393,7 @@
             "node": null,
             "port": "workspace.file_request"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "workspace.internal.edge.7",
@@ -1405,7 +1405,7 @@
             "node": "workspace.document",
             "port": "workspace.document.public_loaded"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "workspace.internal.edge.8",
@@ -1463,7 +1463,7 @@
         {
           "id": "canvas.projection",
           "name": "Geometry projection",
-          "purpose": "Derive four-sided interface geometry and shape-perimeter control attachments; share exact sampled cubic Path geometry. src/ui/canvas/geometry.rs and src/ui/flow/drawing.rs.",
+          "purpose": "Project exact interface ports and derived step/ingress/egress handles to one visible anchor per endpoint. Score all neighbours on four sides; freeze presentation during gestures. Enclose negative-position children with derived owner boundaries. src/ui/canvas/geometry.rs, src/ui/flow/scene.rs, src/ui/diagram/anchors.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1507,7 +1507,7 @@
         {
           "id": "canvas.camera",
           "name": "Viewport and navigation",
-          "purpose": "Keep pan, zoom, fit and remembered level viewports separate from project positions. View switches preserve origins and camera. Source: src/ui/canvas.rs; src/ui/canvas/focus.rs::Viewport.",
+          "purpose": "Use a common invertible signed-world transform, explicit Fit and cursor-centred zoom. Keep pan/zoom and remembered scopes separate from document layout. src/ui/diagram/viewport.rs, src/ui/canvas/focus.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1533,7 +1533,7 @@
         {
           "id": "canvas.painting",
           "name": "Drawing and direction lights",
-          "purpose": "Paint the final exact or summarized route. Drawing, picking, arrowheads and lights share the same path; motion follows displayed arc length and is illustrative only. Focus suppresses muted lights. Source: src/ui/canvas.rs; src/ui/canvas/motion.rs.",
+          "purpose": "Use one sampled cubic route for connector painting, static arrowheads, labels, picking and optional arc-length lights. Separate exact parallel/reciprocal/loop routes between their visible handles. Honour Off, focus, modal, minimized and inactive states. src/ui/diagram/routes.rs, paint.rs, motion.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1568,7 +1568,7 @@
         {
           "id": "canvas.hit_test",
           "name": "Exact hit testing",
-          "purpose": "Pick actual ports, cards or presented relationships from their final display geometry. A multi-edge summary identifies an ordered pair, never an arbitrary editable member. Source: src/ui/canvas.rs; geometry::Path::distance.",
+          "purpose": "Pick final visible handles and routes with screen-sized targets and nearest-distance resolution. Preserve Overview as explicit noneditable aggregation. src/ui/diagram/routes.rs, src/ui/canvas.rs, src/ui/flow/drawing.rs.",
           "kind": "component",
           "ports": [
             {
@@ -1603,7 +1603,7 @@
         {
           "id": "canvas.gestures",
           "name": "Gesture and control dispatch",
-          "purpose": "Handle interface wires and flow transitions in either drag direction, local step movement, region selection and cancellation. Publish only completed validated edits; forms provide a keyboard alternative.",
+          "purpose": "Own new gestures only through the canvas response; retain capture outside its viewport. Share grab-offset movement and cancellation on focus loss/Escape. Map role-compatible connections to distinct contract or control forms. Drag, arrow nudging and position fields share edit/layout publication. src/ui/diagram/interaction.rs and layer adapters.",
           "kind": "component",
           "ports": [
             {
@@ -1761,7 +1761,7 @@
             "node": "canvas.projection",
             "port": "canvas.projection.public_view"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "canvas.internal.edge.2",
@@ -1773,7 +1773,7 @@
             "node": null,
             "port": "canvas.edit"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "canvas.internal.edge.3",
@@ -1785,7 +1785,7 @@
             "node": null,
             "port": "canvas.connection_request"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "canvas.internal.edge.4",
@@ -1951,7 +1951,7 @@
         {
           "id": "inspectors.details",
           "name": "Context inspector",
-          "purpose": "Expose exact identity, local ownership, shared call references, draft issues, information needs and deliberate navigation between layers.",
+          "purpose": "Expose identity/name and primary Edit/Enter/Move actions, local purpose, exact information/connections and accessible advanced IDs. Keep draft issues and cross-layer call references visible. src/ui/inspector.rs, src/ui/flow/inspect.rs.",
           "kind": "component",
           "ports": [
             {
@@ -2189,7 +2189,7 @@
             "node": "inspectors.details",
             "port": "inspectors.details.public_view"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "inspectors.internal.edge.2",
@@ -2201,7 +2201,7 @@
             "node": "inspectors.connection",
             "port": "inspectors.connection.public_connection_request"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "inspectors.internal.edge.3",
@@ -2213,7 +2213,7 @@
             "node": null,
             "port": "inspectors.edit"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "inspectors.internal.edge.4",
@@ -2369,7 +2369,7 @@
         {
           "id": "model.validation",
           "name": "Structural validation",
-          "purpose": "Separate saveable draft gaps from hard identity/type errors. Diagnose missing child outcomes, duplicate unguarded returns and unreviewed local information use.",
+          "purpose": "Explicitly accept project versions 1/2/3. Preserve v1/v2 finite nonnegative layout and require v3 signed coordinates within ±1,000,000. Keep reserved identities, exact ports/contracts/outcomes and saveable draft gaps explicit. src/model/validation.rs, src/behavior/validate.rs.",
           "kind": "component",
           "ports": [
             {
@@ -2448,7 +2448,7 @@
             "node": "model.validation",
             "port": "model.validation.public_edit_candidate"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "model.internal.edge.2",
@@ -2460,7 +2460,7 @@
             "node": null,
             "port": "model.edit_result"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "model.internal.edge.3",
@@ -2472,7 +2472,7 @@
             "node": "model.validation",
             "port": "model.validation.public_file_candidate"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "model.internal.edge.4",
@@ -2484,7 +2484,7 @@
             "node": null,
             "port": "model.file_result"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "model.internal.edge.5",
@@ -2518,7 +2518,7 @@
         {
           "id": "transactions.operations",
           "name": "Bounded edits",
-          "purpose": "Build validated structural and flow edits and bounded local-region extraction; preserve crossing IDs and explicit alternatives; explain unsupported crossings.",
+          "purpose": "Build complete validated structural, behavior, metadata and layout candidates. Atomically promote signed movement to v3 without inventing behavior or demoting newer versions. Preserve extraction crossing IDs and relative placement. src/edit/layout.rs, src/edit/operations.rs, src/behavior/.",
           "kind": "component",
           "ports": [
             {
@@ -2668,7 +2668,7 @@
             "node": "transactions.operations",
             "port": "transactions.operations.public_gesture"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "transactions.internal.edge.2",
@@ -2680,7 +2680,7 @@
             "node": "transactions.operations",
             "port": "transactions.operations.public_form"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "transactions.internal.edge.3",
@@ -2692,7 +2692,7 @@
             "node": "transactions.history",
             "port": "transactions.history.public_scope"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "transactions.internal.edge.4",
@@ -2704,7 +2704,7 @@
             "node": null,
             "port": "transactions.current"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "transactions.internal.edge.5",
@@ -2716,7 +2716,7 @@
             "node": null,
             "port": "transactions.status"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "transactions.internal.edge.6",
@@ -2728,7 +2728,7 @@
             "node": null,
             "port": "transactions.validate"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "transactions.internal.edge.7",
@@ -2740,7 +2740,7 @@
             "node": "transactions.history",
             "port": "transactions.history.public_validation"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "transactions.internal.edge.8",
@@ -2935,7 +2935,7 @@
             "node": "collaboration.panel",
             "port": "collaboration.panel.public_view"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "collaboration.internal.edge.2",
@@ -2947,7 +2947,7 @@
             "node": null,
             "port": "collaboration.candidate"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "collaboration.internal.edge.3",
@@ -3158,7 +3158,7 @@
             "node": "files.read",
             "port": "files.read.public_request"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "files.internal.edge.2",
@@ -3170,7 +3170,7 @@
             "node": null,
             "port": "files.loaded"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "files.internal.edge.3",
@@ -3182,7 +3182,7 @@
             "node": null,
             "port": "files.validate"
           },
-          "label": "responsible child \u2192 public output"
+          "label": "responsible child → public output"
         },
         {
           "id": "files.internal.edge.4",
@@ -3194,7 +3194,7 @@
             "node": "files.read",
             "port": "files.read.public_validation"
           },
-          "label": "public input \u2192 responsible child"
+          "label": "public input → responsible child"
         },
         {
           "id": "files.internal.edge.5",

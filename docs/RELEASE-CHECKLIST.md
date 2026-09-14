@@ -6,7 +6,15 @@ A green test suite qualifies the logic, not the installed application. Work thro
 
 Run `cargo fmt --all`, then `cargo test --locked --all-targets` and `cargo clippy --locked --all-targets` on a development machine, and build in release mode. Capture the exact compiler version, the committed `Cargo.lock`, dependency licenses, source revision and resulting binary hashes. If a dependency changed, review and commit the updated lockfile before treating the build as a baseline.
 
-Resolve compilation errors and test failures before packaging, and review the Clippy findings — CI reports them without failing the build, so they do not gate a release on their own.
+Run `python tools/verify.py` with the pinned qualified toolchain and locked
+dependencies. Every compiler, configured-Clippy and rustdoc warning blocks
+qualification. Inspect complete logs for Cargo/build-script/linker/dependency
+warnings as well. No diagnostic suppression or reporting-only exception is
+allowed. Preserve the Windows CRT flags and encoded environment flag policy.
+Demonstrate the gate rejecting injected rustc and Clippy warnings in an isolated
+checkout. Require completed Linux/Windows/macOS CI results, native interaction
+evidence and the owner's walkthrough before merge/release. See
+[UI coherence acceptance](evidence/ui-coherence/acceptance.md).
 
 ## Installed application
 

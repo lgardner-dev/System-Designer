@@ -22,13 +22,12 @@ impl Designer {
         if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::S)) {
             self.save(false);
         }
-        if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::O)) {
-            if let Some(p) = rfd::FileDialog::new()
+        if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::O))
+            && let Some(p) = rfd::FileDialog::new()
                 .add_filter("System Designer project", &["json"])
                 .pick_file()
-            {
-                self.request_load(LoadAction::Open(p), ctx);
-            }
+        {
+            self.request_load(LoadAction::Open(p), ctx);
         }
         if !ctx.wants_keyboard_input() {
             let step = if ctx.input(|i| i.modifiers.shift) {
@@ -334,13 +333,12 @@ impl Designer {
                         }
                     });
                 });
-                if !self.collapsed.contains(&node.id) {
-                    if let Some(child) = node.child.as_ref().and_then(|id| p.system(id)) {
+                if !self.collapsed.contains(&node.id)
+                    && let Some(child) = node.child.as_ref().and_then(|id| p.system(id)) {
                         for n in child.nodes.iter().rev() {
                             pending.push((child, n, depth + 1));
                         }
                     }
-                }
             }
         });
     }

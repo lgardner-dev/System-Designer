@@ -219,3 +219,24 @@ general scripting, code generation or automatic architecture regeneration is
 implemented. Native operating-system file dialogs, accessibility and platforms
 must be qualified separately from headless egui tests. Actual executed evidence
 and remaining qualification limits are recorded in [the delivery record](CONTROL-FLOW-DELIVERY.md).
+
+
+## Shared editing controls
+
+Use global **Project settings…** from any layer/scope. **Save details** updates
+name/purpose as one undoable document edit; **Save / Ctrl+S** writes the file.
+Dialog Cancel and operation-specific actions stay at top right as content scrolls.
+Ctrl/Cmd+Enter requests the primary action; Enter in multiline text adds a line.
+Escape dismisses a popup first, then cancels its form or captured gesture.
+
+Both canvases allow signed movement, middle/background pan and cursor-centred
+zoom. Fit is explicit. Focus loss cancels unpublished movement. Arrow keys nudge
+1 world unit (Shift: 10); **Move / position…** exposes exact X/Y fields. A negative
+move promotes the document to project v3 in the same undoable edit and shows a
+compatibility notice. Existing v1/v2 files stay unchanged when merely viewed.
+
+Hollow input and filled output handles are the actual connection anchors, on any
+side of the approved node shape. Drag or click output→input or input→output;
+forms remain available. Control transitions still carry conditions/exact outcomes;
+interface connections still require explicit exact contracts. Lights illustrate
+direction only. Their menu and display options preserve selection and history.

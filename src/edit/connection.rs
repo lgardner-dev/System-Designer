@@ -48,10 +48,10 @@ pub fn connection_impact(
     let s = p
         .system(sid)
         .ok_or_else(|| ModelError::one("missing system"))?;
-    if let Some(id) = editing {
-        if !s.edges.iter().any(|e| e.id == id) {
-            return Err(ModelError::one("missing connection to edit"));
-        }
+    if let Some(id) = editing
+        && !s.edges.iter().any(|e| e.id == id)
+    {
+        return Err(ModelError::one("missing connection to edit"));
     }
     if p.effective_direction(sid, from) != Some(Direction::Out)
         || p.effective_direction(sid, to) != Some(Direction::In)

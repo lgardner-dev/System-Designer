@@ -201,12 +201,11 @@ impl Designer {
         self.canvas_session.normalize(&self.selected);
     }
     fn clear_recovery(&mut self) {
-        if let Some(path) = &self.recovery {
-            if let Err(e) = std::fs::remove_file(path) {
-                if e.kind() != std::io::ErrorKind::NotFound {
-                    self.error = Some(format!("Could not remove recovery copy: {e}"));
-                }
-            }
+        if let Some(path) = &self.recovery
+            && let Err(e) = std::fs::remove_file(path)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            self.error = Some(format!("Could not remove recovery copy: {e}"));
         }
     }
     fn request_load(&mut self, action: LoadAction, ctx: &egui::Context) {

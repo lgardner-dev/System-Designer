@@ -81,3 +81,21 @@ effective-position resolution with extraction and the native canvas.
 `behavior/changes.rs` compares validated candidates by identity for Handoff review;
 draft diagnostics retain stable identity keys for distinguishing new issues from
 renamed text. Neither helper adds a publication path or an exchange protocol.
+
+
+## Coherent production editing (v3 layout extension)
+
+The current responsibility map and dependency changes are specified in
+[UI-COHERENCE.md](UI-COHERENCE.md). `ui/diagram` owns immutable camera, anchor,
+route, painting/motion and input ownership mechanics used by both `flow/scene`
+and `canvas/geometry`. Model/edit/Store remain headless. `ui/dialogs` owns the
+fixed action shell and typed intents; forms retain validation and review gates.
+`edit/layout` is the common deliberate-move candidate boundary, including atomic
+v3 promotion. Project settings is a workspace command. Historical source paths
+above describe the earlier interface-only arrangement; shared Path and motion
+now live in diagram, and show_dialog lives in dialogs/show.rs.
+
+Remaining coupling outside this assignment: recursive schema widgets and contract
+impact review remain in contracts.rs; tree rendering and native lifecycle remain
+on Designer; large text-based handoff presentation remains in handoff.rs. These
+are concrete local responsibilities, not a new service registry or GUI layer.

@@ -342,26 +342,25 @@ impl Designer {
         let mut close = false;
         ui.separator();
         {
-            if actions.take(Action::Primary, ready) {
-                if let (Some(from), Some(to), Some(contract)) =
+            if actions.take(Action::Primary, ready)
+                && let (Some(from), Some(to), Some(contract)) =
                     (d.from.clone(), d.to.clone(), chosen.clone())
-                {
-                    let request = edit::Connection {
-                        id: d.id.clone(),
-                        from,
-                        to,
-                        label: d.label.clone(),
-                        contract,
-                        new_contract: if d.define_new {
-                            Some(d.draft.clone())
-                        } else {
-                            None
-                        },
-                        consent: d.consent,
-                    };
-                    self.publish("Set connection contract", edit::connect(&p, &sid, &request));
-                    close = self.error.is_none();
-                }
+            {
+                let request = edit::Connection {
+                    id: d.id.clone(),
+                    from,
+                    to,
+                    label: d.label.clone(),
+                    contract,
+                    new_contract: if d.define_new {
+                        Some(d.draft.clone())
+                    } else {
+                        None
+                    },
+                    consent: d.consent,
+                };
+                self.publish("Set connection contract", edit::connect(&p, &sid, &request));
+                close = self.error.is_none();
             }
             if actions.cancel {
                 close = true;

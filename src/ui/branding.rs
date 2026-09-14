@@ -44,7 +44,7 @@ mod tests {
         let icon = window_icon();
         assert_eq!((icon.width, icon.height), (256, 256));
         assert_eq!(icon.rgba.len(), 256 * 256 * 4);
-        assert!(icon.rgba.chunks_exact(4).any(|p| p[3] > 0));
+        assert!(icon.rgba.as_chunks::<4>().0.iter().any(|p| p[3] > 0));
         assert_eq!(window_icon().rgba, icon.rgba);
     }
 

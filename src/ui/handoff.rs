@@ -368,18 +368,17 @@ impl Designer {
                     "Interfaces target: {} · Control Flow owner: {}",
                     d.interface_system, self.owner
                 ));
-                if ui.button("Read scope file…").clicked() {
-                    if let Some(path) = rfd::FileDialog::new()
+                if ui.button("Read scope file…").clicked()
+                    && let Some(path) = rfd::FileDialog::new()
                         .add_filter("Scope JSON", &["json"])
                         .pick_file()
-                    {
-                        match std::fs::read_to_string(path) {
-                            Ok(text) => {
-                                d.incoming = text;
-                                d.reset_preview();
-                            }
-                            Err(e) => self.error = Some(e.to_string()),
+                {
+                    match std::fs::read_to_string(path) {
+                        Ok(text) => {
+                            d.incoming = text;
+                            d.reset_preview();
                         }
+                        Err(e) => self.error = Some(e.to_string()),
                     }
                 }
                 let response = egui::ScrollArea::vertical()

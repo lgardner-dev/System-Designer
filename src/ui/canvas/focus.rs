@@ -315,74 +315,73 @@ pub(in crate::ui) fn details(app: &mut Designer, ui: &mut egui::Ui) -> bool {
     if special {
         ui.heading(description(&p, &sid, &selection));
     }
-    if let Some(ep) = &exact_port {
-        if let Some(port) = p.port(&sid, ep) {
-            ui.label(endpoint_name(&p, &sid, ep));
-            ui.monospace(&port.id);
-            ui.label(format!(
-                "{} at this level",
-                p.effective_direction(&sid, ep)
-                    .map(|d| d.label())
-                    .unwrap_or("Unknown")
-            ));
-            ui.monospace(
-                port.contract
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_else(|| "Unassigned".into()),
-            );
-            if let Some(reference) = &port.contract {
-                if ui.button("Inspect type").clicked() {
-                    if let Some(c) = p.contract(reference) {
-                        app.dialog = Some(Dialog::Contract(ContractDialog::edit(c)));
-                    }
-                }
+    if let Some(ep) = &exact_port
+        && let Some(port) = p.port(&sid, ep)
+    {
+        ui.label(endpoint_name(&p, &sid, ep));
+        ui.monospace(&port.id);
+        ui.label(format!(
+            "{} at this level",
+            p.effective_direction(&sid, ep)
+                .map(|d| d.label())
+                .unwrap_or("Unknown")
+        ));
+        ui.monospace(
+            port.contract
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_else(|| "Unassigned".into()),
+        );
+        if let Some(reference) = &port.contract
+            && ui.button("Inspect type").clicked()
+            && let Some(c) = p.contract(reference)
+        {
+            app.dialog = Some(Dialog::Contract(ContractDialog::edit(c)));
+        }
+        if let Some((next_sid, next)) = through_boundary(&p, &sid, ep) {
+            if ui
+                .button(if ep.node.is_some() {
+                    "Enter at this port"
+                } else {
+                    "Follow in parent"
+                })
+                .clicked()
+            {
+                visit = Some((next_sid, next));
             }
-            if let Some((next_sid, next)) = through_boundary(&p, &sid, ep) {
-                if ui
-                    .button(if ep.node.is_some() {
-                        "Enter at this port"
-                    } else {
-                        "Follow in parent"
-                    })
-                    .clicked()
-                {
-                    visit = Some((next_sid, next));
-                }
-            } else {
-                ui.label("No declared internal continuation. Choosing another output is not a proven continuation.");
-            }
-            if let Some(id) = &ep.node {
-                if ui.button("Whole component").clicked() {
-                    visit = Some((sid.clone(), Selection::Node(id.clone())));
-                }
-            }
+        } else {
+            ui.label("No declared internal continuation. Choosing another output is not a proven continuation.");
+        }
+        if let Some(id) = &ep.node
+            && ui.button("Whole component").clicked()
+        {
+            visit = Some((sid.clone(), Selection::Node(id.clone())));
         }
     }
-    if let Selection::Node(id) = &selection {
-        if let Some((_, node)) = p.node(id) {
-            egui::ComboBox::from_id_salt("trace-port-picker")
-                .selected_text("Inspect a specific port…")
-                .show_ui(ui, |ui| {
-                    for port in &node.ports {
-                        if ui
-                            .selectable_label(
-                                false,
-                                format!("{} · {}", port.direction.label(), port.name),
-                            )
-                            .clicked()
-                        {
-                            visit = Some((
-                                sid.clone(),
-                                port_selection(Endpoint {
-                                    node: Some(id.clone()),
-                                    port: port.id.clone(),
-                                }),
-                            ));
-                        }
+    if let Selection::Node(id) = &selection
+        && let Some((_, node)) = p.node(id)
+    {
+        egui::ComboBox::from_id_salt("trace-port-picker")
+            .selected_text("Inspect a specific port…")
+            .show_ui(ui, |ui| {
+                for port in &node.ports {
+                    if ui
+                        .selectable_label(
+                            false,
+                            format!("{} · {}", port.direction.label(), port.name),
+                        )
+                        .clicked()
+                    {
+                        visit = Some((
+                            sid.clone(),
+                            port_selection(Endpoint {
+                                node: Some(id.clone()),
+                                port: port.id.clone(),
+                            }),
+                        ));
                     }
-                });
-        }
+                }
+            });
     }
     let mut members: Vec<_> = p
         .system(&sid)

@@ -31,7 +31,7 @@ impl Designer {
             let body_height=(height-(ui.cursor().top()-top)).max(40.0);
             egui::ScrollArea::vertical().id_salt("modal_body").max_height(body_height).auto_shrink([false,false]).show(ui,|ui|{
                 match &mut dialog{
-                    Dialog::Position(d)=>{keep=!self.position_form(ui,d,&mut actions);}
+                    Dialog::Position(d)=>{keep = !self.position_form(ui,d,&mut actions);}
                     Dialog::Flow(d) => { keep = !self.flow_form(ui,d,&mut actions); }
                     Dialog::Project{
                         name,
@@ -81,7 +81,7 @@ impl Designer {
                                 ui.group(|ui|{
                                     ui.text_edit_singleline(&mut port.name);
                                     ui.small(&port.id);
-                                    let connected=!edit::port_edges(self.store.project(),&port.id).is_empty() || !crate::behavior::references(self.store.project(),&port.id).is_empty();
+                                    let connected = !edit::port_edges(self.store.project(),&port.id).is_empty() || !crate::behavior::references(self.store.project(),&port.id).is_empty();
                                     ui.add_enabled_ui(!connected,|ui|{
                                         ui.horizontal(|ui|{
                                             egui::ComboBox::from_id_salt("direction").selected_text(port.direction.label()).show_ui(ui,|ui|{
@@ -133,7 +133,7 @@ impl Designer {
                         }
                     }
                     Dialog::Connection(d)=>{
-                        keep=!self.connection_form(ui,d,&mut actions);
+                        keep = !self.connection_form(ui,d,&mut actions);
                     }
                     Dialog::Catalog=>{
                         ui.heading("Contract catalog");
@@ -177,10 +177,10 @@ impl Designer {
                         }
                     }
                     Dialog::Contract(d)=>{
-                        keep=!self.contract_form(ui,d,&mut actions);
+                        keep = !self.contract_form(ui,d,&mut actions);
                     }
                     Dialog::Handoff(d)=>{
-                        keep=!self.handoff_form(ui,d,ctx,&mut actions);
+                        keep = !self.handoff_form(ui,d,ctx,&mut actions);
                     }
                     Dialog::Confirm{
                         message,
@@ -194,12 +194,11 @@ impl Designer {
                             ConfirmAction::Node(id) | ConfirmAction::Child(id) => {
                                 let p = self.store.project();
                                 let mut ids = if deleting_node {vec![id.clone()]} else {vec![]};
-                                if let Some((_,n)) = p.node(id) {
-                                    if let Some(child) = &n.child {
+                                if let Some((_,n)) = p.node(id)
+                                    && let Some(child) = &n.child {
                                         let systems = p.descendants(child);
                                         ids.extend(p.systems.iter().filter(|s|systems.contains(&s.id)).flat_map(|s|s.nodes.iter().map(|n|n.id.clone())));
                                     }
-                                }
                                 ids
                             },
                             ConfirmAction::Port(_,id) | ConfirmAction::Edge(id) => vec![id.clone()],

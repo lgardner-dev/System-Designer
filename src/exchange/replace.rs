@@ -22,12 +22,12 @@ fn require_types<'a>(
     seen: &HashSet<ContractRef>,
 ) -> Result<()> {
     for p in ports {
-        if let Some(r) = &p.contract {
-            if !seen.contains(r) {
-                return Err(ModelError::one(format!(
-                    "scope is missing definition for {r}"
-                )));
-            }
+        if let Some(r) = &p.contract
+            && !seen.contains(r)
+        {
+            return Err(ModelError::one(format!(
+                "scope is missing definition for {r}"
+            )));
         }
     }
     Ok(())

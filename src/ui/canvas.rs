@@ -440,27 +440,27 @@ impl Designer {
                 ));
             }
         }
-        if let (Some(from), Some(cursor)) = (dragging.as_ref(), pointer) {
-            if let Some(start) = scene.port(from) {
-                let end_normal = hovered_port.map(|p| p.normal).unwrap_or(-start.normal);
-                let end = hovered_port.map(|p| screen(p.point)).unwrap_or(cursor);
-                let path = if start.direction == Direction::Out {
-                    Path::between(screen(start.point), start.normal, end, end_normal)
-                } else {
-                    Path::between(end, end_normal, screen(start.point), start.normal)
-                };
-                paint::edge(
-                    &painter,
-                    &path,
-                    EdgeStyle {
-                        selected: true,
-                        hovered: false,
-                        emphasized: true,
-                    },
-                    "",
-                    z,
-                );
-            }
+        if let (Some(from), Some(cursor)) = (dragging.as_ref(), pointer)
+            && let Some(start) = scene.port(from)
+        {
+            let end_normal = hovered_port.map(|p| p.normal).unwrap_or(-start.normal);
+            let end = hovered_port.map(|p| screen(p.point)).unwrap_or(cursor);
+            let path = if start.direction == Direction::Out {
+                Path::between(screen(start.point), start.normal, end, end_normal)
+            } else {
+                Path::between(end, end_normal, screen(start.point), start.normal)
+            };
+            paint::edge(
+                &painter,
+                &path,
+                EdgeStyle {
+                    selected: true,
+                    hovered: false,
+                    emphasized: true,
+                },
+                "",
+                z,
+            );
         }
         if system.nodes.is_empty() {
             painter.text(
@@ -490,17 +490,16 @@ impl Designer {
         }
         if interaction::owns_press(ui, &response)
             && ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary))
+            && let Some(port) = hovered_port
         {
-            if let Some(port) = hovered_port {
-                self.trace_visit(
-                    sid.clone(),
-                    if port.boundary {
-                        Selection::Boundary(port.endpoint.port.clone())
-                    } else {
-                        Selection::Port(port.endpoint.clone())
-                    },
-                );
-            }
+            self.trace_visit(
+                sid.clone(),
+                if port.boundary {
+                    Selection::Boundary(port.endpoint.port.clone())
+                } else {
+                    Selection::Port(port.endpoint.clone())
+                },
+            );
         }
         let pressed = ui.input(|i| i.pointer.button_pressed(PointerButton::Primary));
         let middle = ui.input(|i| i.pointer.button_pressed(PointerButton::Middle));
@@ -623,10 +622,10 @@ impl Designer {
                         self.canvas.pending = None;
                     }
                 }
-                Some(Gesture::Edge(Selection::Edge(id))) => {
-                    if ui.input(|i| i.pointer.button_double_clicked(PointerButton::Primary)) {
-                        self.show_exact(&id, true);
-                    }
+                Some(Gesture::Edge(Selection::Edge(id)))
+                    if ui.input(|i| i.pointer.button_double_clicked(PointerButton::Primary)) =>
+                {
+                    self.show_exact(&id, true);
                 }
                 _ => {}
             }

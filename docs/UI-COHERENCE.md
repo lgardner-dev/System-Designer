@@ -109,3 +109,20 @@ the former flow-only filled triangle. No regression obligation was removed.
 
 The mechanics/workflow checkpoint passes 226 all-target tests (86 library/UI,
 140 integration/headless-domain); this is one run, not cumulative repeat counts.
+
+## Warning repairs and durable gate
+
+Qualified compiler/rustdoc/Clippy are pinned to Rust 1.98.1, the same version as
+initial inspection. Repairs retain semantics: collapse nested guards without
+changing evaluation order, space logical-negation assignments unambiguously,
+remove an identical color branch, use fixed-size pixel chunks, and replace test
+unwraps with named fixture/extraction invariants. No lint suppressions existed
+in first-party source/tests and none were added. No dependencies were changed.
+
+`tools/verify.py` composes `.cargo/config.toml` target flags with any existing
+encoded or ordinary flags, appends `-D warnings`, and executes the full required
+matrix with complete stdout/stderr logs. CI runs it on Linux, Windows and macOS,
+archives logs even on failure, and retains installer packaging. The Rust minimum
+remains 1.88; pinned qualification upgrades must be deliberate. The first explicit
+1.98.1 activation emitted rustup's auto-install deprecation notice; installation
+completed, and subsequent qualified cargo runs use the already installed version.

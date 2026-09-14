@@ -7,7 +7,7 @@ use system_designer::{
     model::*,
 };
 fn fixture() -> Project {
-    set(&Project::blank(), ROOT, Flow::starter()).unwrap()
+    set(&Project::blank(), ROOT, Flow::starter()).expect("starter flow is valid")
 }
 fn selected() -> BTreeSet<String> {
     BTreeSet::from(["action".into()])
@@ -16,15 +16,19 @@ fn selected() -> BTreeSet<String> {
 fn legacy_stays_version_one() {
     let p = Project::blank();
     assert_eq!(p.version, 1);
-    let text = serde_json::to_string(&p).unwrap();
+    let text = serde_json::to_string(&p).expect("fixture serializes");
     assert!(!text.contains("behavior"));
-    assert_eq!(parse(&text).unwrap(), p);
+    assert_eq!(parse(&text).expect("serialized fixture reopens"), p);
 }
 #[test]
 fn behavior_promotes_explicitly() {
     let p = fixture();
     assert_eq!(p.version, 2);
-    assert_eq!(parse(&serde_json::to_string(&p).unwrap()).unwrap(), p);
+    assert_eq!(
+        parse(&serde_json::to_string(&p).expect("fixture serializes"))
+            .expect("behavior fixture reopens"),
+        p
+    );
 }
 #[test]
 fn v1_cannot_hide_behavior() {
@@ -35,14 +39,22 @@ fn v1_cannot_hide_behavior() {
 #[test]
 fn draft_decision_is_saved_but_diagnosed() {
     let mut p = fixture();
-    p.behavior.get_mut(ROOT).unwrap().steps[1].kind = StepKind::Decision;
-    validate(&p).unwrap();
+    p.behavior
+        .get_mut(ROOT)
+        .expect("starter has root flow")
+        .steps[1]
+        .kind = StepKind::Decision;
+    validate(&p).expect("draft decision remains structurally valid");
     assert!(issues(&p, ROOT).iter().any(|s| s.contains("alternatives")));
 }
 #[test]
 fn dangling_transition_rejected() {
     let mut p = fixture();
-    p.behavior.get_mut(ROOT).unwrap().transitions[0].to = "missing".into();
+    p.behavior
+        .get_mut(ROOT)
+        .expect("starter has root flow")
+        .transitions[0]
+        .to = "missing".into();
     assert!(validate(&p).is_err());
 }
 #[test]
@@ -55,16 +67,32 @@ fn one_region_produces_one_shared_child_identity() {
         "Worker",
         "Perform the named operation",
     )
-    .unwrap();
-    let q = apply(&p, &plan).unwrap();
-    assert_eq!(q.system(&q.root).unwrap().nodes.len(), 1);
+    .expect("fixture region has one entry and extractable exits");
+    let q = apply(&p, &plan).expect("validated extraction applies");
     assert_eq!(
-        q.behavior[ROOT].step(&plan.call).unwrap().target.as_ref(),
+        q.system(&q.root)
+            .expect("extraction retains root system")
+            .nodes
+            .len(),
+        1
+    );
+    assert_eq!(
+        q.behavior[ROOT]
+            .step(&plan.call)
+            .expect("extraction created exact call")
+            .target
+            .as_ref(),
         Some(&plan.component)
     );
     assert!(q.behavior[&plan.component].step("action").is_some());
     assert!(q.behavior[ROOT].step("action").is_none());
-    assert!(q.node(&plan.component).unwrap().1.child.is_none());
+    assert!(
+        q.node(&plan.component)
+            .expect("extraction created shared component")
+            .1
+            .child
+            .is_none()
+    );
 }
 #[test]
 fn extraction_needs_responsibility() {
@@ -73,14 +101,20 @@ fn extraction_needs_responsibility() {
 #[test]
 fn repeat_preview_is_deterministic() {
     let p = fixture();
-    let a = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let b = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    assert_eq!(apply(&p, &a).unwrap(), apply(&p, &b).unwrap());
+    let a = preview(&p, ROOT, &selected(), "Worker", "One duty")
+        .expect("fixture region has one entry and extractable exits");
+    let b = preview(&p, ROOT, &selected(), "Worker", "One duty")
+        .expect("fixture region has one entry and extractable exits");
+    assert_eq!(
+        apply(&p, &a).expect("validated extraction applies"),
+        apply(&p, &b).expect("validated extraction applies")
+    );
 }
 #[test]
 fn changing_layout_invalidates_extraction_preview() {
     let p = fixture();
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty")
+        .expect("fixture region has one entry and extractable exits");
     let mut q = p.clone();
     q.flow_layout
         .entry(ROOT.into())
@@ -91,7 +125,7 @@ fn changing_layout_invalidates_extraction_preview() {
 #[test]
 fn invalid_extraction_does_not_mutate_store() {
     let p = fixture();
-    let store = Store::new(p.clone()).unwrap();
+    let store = Store::new(p.clone()).expect("fixture validates before publication");
     assert!(
         preview(
             store.project(),
@@ -107,10 +141,13 @@ fn invalid_extraction_does_not_mutate_store() {
 #[test]
 fn extraction_has_one_undoable_publication() {
     let p = fixture();
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let q = apply(&p, &plan).unwrap();
-    let mut store = Store::new(p.clone()).unwrap();
-    store.publish("Extract", q.clone()).unwrap();
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty")
+        .expect("fixture region has one entry and extractable exits");
+    let q = apply(&p, &plan).expect("validated extraction applies");
+    let mut store = Store::new(p.clone()).expect("fixture validates before publication");
+    store
+        .publish("Extract", q.clone())
+        .expect("valid extraction publishes");
     assert!(store.undo());
     assert_eq!(store.project(), &p);
     assert!(store.redo());
@@ -119,8 +156,9 @@ fn extraction_has_one_undoable_publication() {
 #[test]
 fn leaf_can_be_refined_recursively() {
     let p = fixture();
-    let a = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let q = apply(&p, &a).unwrap();
+    let a = preview(&p, ROOT, &selected(), "Worker", "One duty")
+        .expect("fixture region has one entry and extractable exits");
+    let q = apply(&p, &a).expect("validated extraction applies");
     let b = preview(
         &q,
         &a.component,
@@ -128,13 +166,13 @@ fn leaf_can_be_refined_recursively() {
         "Primitive",
         "Specify the operation",
     )
-    .unwrap();
-    let r = apply(&q, &b).unwrap();
+    .expect("fixture region has one entry and extractable exits");
+    let r = apply(&q, &b).expect("nested extraction applies");
     assert!(system(&r, &a.component).is_some());
     assert_eq!(
         r.behavior[&a.component]
             .step(&b.call)
-            .unwrap()
+            .expect("nested extraction creates exact call")
             .target
             .as_ref(),
         Some(&b.component)
@@ -143,23 +181,32 @@ fn leaf_can_be_refined_recursively() {
 #[test]
 fn explicit_dependency_becomes_a_draft_boundary_port() {
     let mut p = fixture();
-    p.behavior.get_mut(ROOT).unwrap().data.push(DataLink {
-        id: "input".into(),
-        name: "Input record".into(),
-        from: DataEnd {
-            step: None,
-            port: None,
-        },
-        to: DataEnd {
-            step: Some("action".into()),
-            port: None,
-        },
-        contract: None,
-        exchange: None,
-    });
-    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty").unwrap();
-    let q = apply(&p, &plan).unwrap();
-    let port = &q.node(&plan.component).unwrap().1.ports[0];
+    p.behavior
+        .get_mut(ROOT)
+        .expect("starter has root flow")
+        .data
+        .push(DataLink {
+            id: "input".into(),
+            name: "Input record".into(),
+            from: DataEnd {
+                step: None,
+                port: None,
+            },
+            to: DataEnd {
+                step: Some("action".into()),
+                port: None,
+            },
+            contract: None,
+            exchange: None,
+        });
+    let plan = preview(&p, ROOT, &selected(), "Worker", "One duty")
+        .expect("fixture region has one entry and extractable exits");
+    let q = apply(&p, &plan).expect("validated extraction applies");
+    let port = &q
+        .node(&plan.component)
+        .expect("extraction created shared component")
+        .1
+        .ports[0];
     assert_eq!(port.name, "Input record");
     assert!(port.contract.is_none());
     assert_eq!(q.behavior[ROOT].data[0].to.port.as_ref(), Some(&port.id));
@@ -171,9 +218,9 @@ fn explicit_dependency_becomes_a_draft_boundary_port() {
 #[test]
 fn behavior_exchange_preserves_interfaces() {
     let p = fixture();
-    let mut packet = export(&p, ROOT).unwrap();
+    let mut packet = export(&p, ROOT).expect("valid root scope exports");
     packet["flow"]["steps"][1]["name"] = "Renamed work".into();
-    let q = replace(&p, &packet, ROOT).unwrap();
+    let q = replace(&p, &packet, ROOT).expect("current unaltered context permits replacement");
     assert_eq!(p.systems, q.systems);
     assert_eq!(p.contracts, q.contracts);
     assert_eq!(q.behavior[ROOT].steps[1].name, "Renamed work");
@@ -181,15 +228,19 @@ fn behavior_exchange_preserves_interfaces() {
 #[test]
 fn stale_behavior_exchange_rejected() {
     let p = fixture();
-    let packet = export(&p, ROOT).unwrap();
+    let packet = export(&p, ROOT).expect("valid root scope exports");
     let mut q = p.clone();
-    q.behavior.get_mut(ROOT).unwrap().steps[1].name = "Another edit".into();
+    q.behavior
+        .get_mut(ROOT)
+        .expect("candidate retains root flow")
+        .steps[1]
+        .name = "Another edit".into();
     assert!(replace(&q, &packet, ROOT).is_err());
 }
 #[test]
 fn behavior_exchange_context_is_read_only() {
     let p = fixture();
-    let mut packet = export(&p, ROOT).unwrap();
+    let mut packet = export(&p, ROOT).expect("valid root scope exports");
     packet["context"]["project"]["name"] = "Other name".into();
     assert!(replace(&p, &packet, ROOT).is_err());
 }

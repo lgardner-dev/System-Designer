@@ -307,7 +307,7 @@ impl Designer {
             } else {
                 Color32::from_rgb(32, 40, 53)
             };
-            let color = if selected { ACCENT } else { ACCENT };
+            let color = ACCENT;
             shape(
                 &painter,
                 r,

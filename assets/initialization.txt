@@ -237,3 +237,22 @@ effects, aliasing, conditional availability or runtime scheduling constraints.
 Say "No information requirements declared yet", never "Requires no information".
 This milestone has no runtime, concurrency, fork/join, state-machine semantics,
 code generation, general scripting or automatic architecture regeneration.
+
+
+SIGNED LAYOUT AND COHERENT EDITING
+Project versions 1 and 2 retain finite nonnegative visual coordinates. Version 3
+permits finite signed layout and flow_layout coordinates within +/-1,000,000.
+Preserve the received project version; never demote v3 through a behavior edit.
+Only a deliberate edit requiring signed coordinates promotes a legacy project,
+atomically and undoably. Viewing/cancelling does not upgrade; interface-only
+projects retain empty behavior. @root stays reserved in v2/v3; never rename IDs
+to bypass validation. Unknown future versions are unsupported. Scoped packets
+still exclude layouts, retain version 1 and use the existing v2 readonly context
+policy for v3; do not alter packet hashes or payloads to reflect presentation.
+
+Project settings is a global document command at every scope in both layers.
+Save details commits document metadata; normal Save/Save As persists to disk.
+Dialogs keep top-right actions outside their scrolling body. Preview/review and
+Apply are distinct. Arrow keys nudge 1 world unit (Shift: 10); Move / position
+opens exact coordinate fields. Escape or focus loss cancels captured movement.
+Control handles are derived step/role references, not interface contract ports.

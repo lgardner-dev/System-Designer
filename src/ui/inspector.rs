@@ -51,13 +51,11 @@ impl Designer {
                                 ui.label(format!("{} · {}",r.direction.label(),r.name));
                                 ui.monospace(r.contract.as_ref().map(ToString::to_string).unwrap_or_else(||"Unassigned".into()));
                                 ui.horizontal(|ui|{
-                                    if let Some(reference)=&r.contract{
-                                        if ui.small_button("Inspect type").clicked(){
-                                            if let Some(c)=p.contract(reference){
+                                    if let Some(reference)=&r.contract
+                                        && ui.small_button("Inspect type").clicked()
+                                            && let Some(c)=p.contract(reference){
                                                 self.dialog=Some(Dialog::Contract(ContractDialog::edit(c)));
                                             }
-                                        }
-                                    }
                                     if ui.small_button("Refine contract…").clicked() { self.open_port_refinement(&r.id); }
                                     if ui.small_button("Remove port").clicked(){
                                         let refs=edit::port_edges(&p,&r.id);

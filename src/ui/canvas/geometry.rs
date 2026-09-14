@@ -417,20 +417,20 @@ impl Scene {
     pub fn route(&self, from: &Endpoint, to: &Endpoint, lane: usize) -> Option<Path> {
         let a = self.port(from)?;
         let b = self.port(to)?;
-        if let Some(id) = &from.node {
-            if to.node.as_ref() == Some(id) {
-                let rect = self.cards.iter().find(|c| c.id == *id)?.rect;
-                return Some(routes::route(
-                    a.resolved(),
-                    b.resolved(),
-                    routes::Lane {
-                        index: lane,
-                        count: lane + 1,
-                        axis: Vec2::X,
-                        loop_rect: Some(rect),
-                    },
-                ));
-            }
+        if let Some(id) = &from.node
+            && to.node.as_ref() == Some(id)
+        {
+            let rect = self.cards.iter().find(|c| c.id == *id)?.rect;
+            return Some(routes::route(
+                a.resolved(),
+                b.resolved(),
+                routes::Lane {
+                    index: lane,
+                    count: lane + 1,
+                    axis: Vec2::X,
+                    loop_rect: Some(rect),
+                },
+            ));
         }
         Some(Path::between(a.point, a.normal, b.point, b.normal))
     }

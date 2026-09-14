@@ -63,7 +63,7 @@ pub fn validate(p: &Project) -> Result<()> {
     if p.format != FORMAT {
         issue(&mut errors, "format", format!("expected {FORMAT}"));
     }
-    if !matches!(p.version, 1 | 2 | 3) {
+    if !matches!(p.version, 1..=3) {
         issue(&mut errors, "version", "unsupported project version");
     }
     identity(&mut errors, &mut ids, "id", &p.id);
@@ -220,14 +220,14 @@ pub fn validate(p: &Project) -> Result<()> {
             };
             let a = resolve(&edge.from, Direction::Out);
             let b = resolve(&edge.to, Direction::In);
-            if let (Some(a), Some(b)) = (a, b) {
-                if a.contract.is_none() || a.contract != b.contract {
-                    issue(
-                        &mut errors,
-                        &edge.id,
-                        "connected ports need the same assigned contract ID/version",
-                    );
-                }
+            if let (Some(a), Some(b)) = (a, b)
+                && (a.contract.is_none() || a.contract != b.contract)
+            {
+                issue(
+                    &mut errors,
+                    &edge.id,
+                    "connected ports need the same assigned contract ID/version",
+                );
             }
         }
     }

@@ -2,7 +2,7 @@
 
 ## Set up
 
-Install Rust stable; `rust-toolchain.toml` pins the channel and pulls in rustfmt
+Install the qualified Rust 1.98.1 toolchain; `rust-toolchain.toml` pins the version and pulls in rustfmt
 and clippy. The crate needs Rust 1.88 or newer (edition 2024).
 
 * **Windows** also needs the Visual C++ build tools. `.cargo/config.toml` links
@@ -119,14 +119,23 @@ running application, which is what
 ```sh
 cargo fmt --all
 cargo test --locked --all-targets
-cargo clippy --locked --all-targets
+python tools/verify.py
 ```
 
-CI runs the same three on Ubuntu, Windows and macOS, then builds the release
+CI runs the complete verification matrix on Ubuntu, Windows and macOS, then builds the release
 binaries, validates the embedded design with `designer-check`, and packages the
 platform installers as workflow artifacts. Formatting and the tests gate the
-build; Clippy is reported but does not fail it, and the crate currently carries
-some existing lint warnings — avoid adding more.
+build. Compiler, configured Clippy (including `unwrap_used`), and rustdoc warnings
+are blocking. Run `python tools/verify.py` for the exact CI matrix and complete
+logs. The script composes target flags (including Windows static CRT) and existing
+encoded flags, then applies `-D warnings` to rustc, Clippy and rustdoc. Do not add
+allow/expect lint attributes, cap workspace diagnostics, filter logs or ignore
+exit codes to pass. Inspect Cargo/build-script/linker diagnostics too; an emitted
+third-party warning remains unresolved until repaired through a supported change.
+Tests may use `expect` for an explicitly named fixture invariant; production
+fallible operations must retain meaningful error handling. Toolchain upgrades
+are deliberate qualification changes; the stated minimum Rust remains 1.88.
+
 
 If your change touches the on-disk or exchange format, update [MODEL.md](MODEL.md)
 in the same commit — it is the specification `src/model` and `src/exchange` are
