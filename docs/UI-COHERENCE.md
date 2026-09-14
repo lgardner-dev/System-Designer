@@ -126,3 +126,9 @@ archives logs even on failure, and retains installer packaging. The Rust minimum
 remains 1.88; pinned qualification upgrades must be deliberate. The first explicit
 1.98.1 activation emitted rustup's auto-install deprecation notice; installation
 completed, and subsequent qualified cargo runs use the already installed version.
+
+The first CI pass exposed warnings outside Cargo: deprecated Node 20 action
+runtimes and `punycode`/`url.parse()` in old setup/upload bundles. These were not
+waived. CI now uses the current upstream checkout v7.0.1, setup-python v7.0.0 and
+upload-artifact v7.0.1 releases (Node 24), verified against their release notes and
+action.yml on 2026-09-14. This updates CI tooling, not Cargo dependencies.
