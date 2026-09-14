@@ -228,3 +228,28 @@ Extraction resolves defaults plus sparse saved coordinates before changing step
 membership. It preserves unselected effective parent positions, places the Call
 at the region entry's position, and reserves child marker rows outside the moved
 work's bounds. The whole layout change is part of the same undoable candidate.
+
+## Project version 3: signed layout coordinates
+
+Supported project versions are explicitly 1, 2 and 3. Versions 1/2 retain their
+original finite nonnegative layout contract. Version 3 retains all v2 semantic
+fields but permits signed `layout` and `flow_layout` coordinates. Each coordinate
+must be finite and in [-1,000,000, +1,000,000] world units. Layout is f64 in the
+model; desktop scene geometry is f32. Viewport transforms subtract the camera
+origin before screen rendering where practical. No NaN, infinity or silent
+coordinate clamping is permitted. Unknown versions are rejected.
+
+A deliberate edit first requiring signed coordinates promotes the complete
+candidate to v3 in the same undoable Store publication. Opening/viewing, camera
+movement, cancelled/invalid gestures and animation do not promote a document.
+Promotion preserves the empty behavior layer of an interface-only project. The
+v2/v3 `@root` reserved component identity is validated, never automatically renamed.
+Subsequent behavior edits/extraction/replacement preserve v3. There is no lossy
+save-as-v1/v2 operation. The normal backup retains the prior valid saved file;
+older readers reject v3 explicitly.
+
+Both scope packet formats remain version 1; they still exclude layout from
+payloads/hashes. Version 3 uses the v2 interface readonly behavior-context policy.
+Replacement preserves the current document version and unrelated signed layouts.
+All v1/v2 canonical golden exports remain unchanged. This versioned extension is
+smaller and safer than rebasing other components or weakening legacy validation.

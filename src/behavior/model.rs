@@ -171,7 +171,9 @@ pub fn set(p: &Project, owner: &str, flow: Flow) -> Result<Project> {
         return Err(ModelError::one("Missing behavior owner"));
     }
     crate::edit::candidate(p, |q| {
-        q.version = 2;
+        if q.version == 1 {
+            q.version = 2;
+        }
         q.behavior.insert(owner.into(), flow);
         prune_layout(q);
         Ok(())

@@ -125,15 +125,40 @@ pub(super) fn links_for<'a>(
         .filter_map(|e| Some((e.from.node.as_ref()?.clone(), e.to.node.as_ref()?.clone())))
         .collect();
     let mut out = vec![];
-    let mut lanes = BTreeMap::<String, usize>::new();
     for group in groups {
         let edge = group[0];
-        let lane = lanes
-            .entry(edge.from.node.clone().unwrap_or_default())
-            .or_default();
-        let mut route = scene.route(&edge.from, &edge.to, *lane);
-        if edge.from.node.is_some() && edge.from.node == edge.to.node {
-            *lane += 1;
+        let mut siblings: Vec<_> = system
+            .edges
+            .iter()
+            .filter(|e| {
+                (e.from.node == edge.from.node && e.to.node == edge.to.node)
+                    || (e.from.node == edge.to.node && e.to.node == edge.from.node)
+            })
+            .collect();
+        siblings.sort_by(|a, b| a.id.cmp(&b.id));
+        let index = siblings
+            .iter()
+            .position(|e| e.id == edge.id)
+            .expect("edge belongs to its group");
+        let mut route = scene.route(&edge.from, &edge.to, index);
+        if edge.from.node != edge.to.node
+            && let (Some(a), Some(b)) = (scene.port(&edge.from), scene.port(&edge.to))
+        {
+            let axis = if edge.from.node <= edge.to.node {
+                b.point - a.point
+            } else {
+                a.point - b.point
+            };
+            route = Some(crate::ui::diagram::routes::route(
+                a.resolved(),
+                b.resolved(),
+                crate::ui::diagram::routes::Lane {
+                    index,
+                    count: siblings.len(),
+                    axis,
+                    loop_rect: None,
+                },
+            ));
         }
         if compact
             && let (Some(a), Some(b)) = (&edge.from.node, &edge.to.node)
@@ -232,5 +257,15 @@ impl Link<'_> {
                 self.members.contains(&e.id) && emphasis.edge(&e.id) && motion.includes(e, selected)
             })
         })
+    }
+}
+
+impl motion::Motion {
+    pub fn includes(self, edge: &Edge, selected: &Selection) -> bool {
+        match self {
+            Self::Off => false,
+            Self::All => true,
+            Self::Selected => focus::matches(edge, selected, Focus::Selection),
+        }
     }
 }

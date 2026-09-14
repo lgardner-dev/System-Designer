@@ -63,7 +63,9 @@ pub fn replace(p: &Project, value: &Value, owner: &str) -> Result<Project> {
     }
     crate::edit::candidate(p, |q| {
         if let Some(flow) = packet.flow {
-            q.version = 2;
+            if q.version == 1 {
+                q.version = 2;
+            }
             q.behavior.insert(owner.into(), flow);
         } else {
             q.behavior.remove(owner);

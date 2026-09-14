@@ -197,7 +197,9 @@ pub fn preview(
     let region = inspect(f, members)?;
     let before = stamp(p);
     let mut q = p.clone();
-    q.version = 2;
+    if q.version == 1 {
+        q.version = 2;
+    }
     let sid = if let Some(s) = system(&q, owner) {
         s.id.clone()
     } else {

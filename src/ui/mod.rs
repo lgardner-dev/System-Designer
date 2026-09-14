@@ -2,7 +2,11 @@
 mod branding;
 pub use branding::window_icon;
 mod canvas;
+#[cfg(test)]
+mod coherence_tests;
 mod contracts;
+mod diagram;
+mod dialogs;
 mod flow;
 mod handoff;
 mod inspector;
@@ -45,6 +49,7 @@ enum ConfirmAction {
     Contract(ContractRef),
 }
 enum Dialog {
+    Position(dialogs::PositionForm),
     Flow(flow::FlowDialog),
     Project {
         name: String,
@@ -91,6 +96,7 @@ impl Designer {
         cc.egui_ctx.set_visuals(egui::Visuals::dark());
         let mut style = (*cc.egui_ctx.style()).clone();
         style.spacing.item_spacing = egui::vec2(8.0, 7.0);
+        style.spacing.interact_size.y = 26.0;
         style.visuals.panel_fill = egui::Color32::from_rgb(21, 25, 32);
         cc.egui_ctx.set_style(style);
         let mut app = Self::blank();
@@ -142,10 +148,19 @@ impl Designer {
         self.saved.as_ref() != Some(self.store.project())
     }
     fn publish(&mut self, label: &str, result: Result<Project>) {
+        let promoted = result
+            .as_ref()
+            .is_ok_and(|p| p.version == 3 && self.store.project().version != 3);
         match result.and_then(|p| self.store.publish(label, p)) {
             Ok(()) => {
                 self.error = None;
-                self.status = label.into();
+                self.status = if promoted {
+                    format!(
+                        "{label}. Signed layout uses project version 3; older readers cannot open it. Undo restores the previous version."
+                    )
+                } else {
+                    label.into()
+                };
                 self.normalize_selection();
             }
             Err(e) => self.error = Some(e.to_string()),

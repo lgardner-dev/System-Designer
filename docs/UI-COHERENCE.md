@@ -85,3 +85,27 @@ qualification. No suppression, filtered success logs or toolchain downgrade.
 Preserve Windows static CRT and preexisting encoded flags when composing CI.
 Final evidence must distinguish headless tests, native synthetic input, OS tasks,
 platform build/package checks and pending human acceptance. Do not merge/release.
+
+## Implemented boundaries and first checkpoint
+
+`ui/diagram/viewport` now owns both adapters' Fit, inverse transform and zoom;
+`anchors` owns four-side scoring and true rectangle/diamond/ellipse intersections;
+`routes` owns sampled cubic routes and stable lanes/loops; `paint` owns connector,
+static arrow, caption, handle and light presentation; `interaction` owns press
+ownership, focus cancellation and grab-offset displacement. The adapters retain
+semantic eligibility and exact-identity selection. `flow/scene` supplies derived
+step/role anchors; `canvas/geometry` retains component/boundary projection only.
+Both freeze presentation during capture, and both route from displayed handles.
+`edit/layout` publishes version-aware position candidates for drag, nudge and
+position forms. No mechanics module takes Designer, Store or contract operations.
+
+`dialogs` owns the fixed action shell and dispatch; form modules own candidates
+and review gates. Actions are explicit typed intents consumed after input. Handoff
+keeps removal confirmation in the header and review details ahead of raw JSON.
+Project settings uses the same command from toolbar and inspector. Native pickers
+remain native. Existing flow Cancel labels became the shared Cancel label; the
+F2 static-arrow test now checks the shared stroked arrow's two wings instead of
+the former flow-only filled triangle. No regression obligation was removed.
+
+The mechanics/workflow checkpoint passes 226 all-target tests (86 library/UI,
+140 integration/headless-domain); this is one run, not cumulative repeat counts.

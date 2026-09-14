@@ -58,11 +58,11 @@ fn port<'a>(
 }
 pub fn check(p: &Project) -> Result<()> {
     require(
-        p.version == 2 || (p.behavior.is_empty() && p.flow_layout.is_empty()),
-        "Control flow requires project version 2; use Start flow to upgrade",
+        matches!(p.version, 2 | 3) || (p.behavior.is_empty() && p.flow_layout.is_empty()),
+        "Control flow requires project version 2 or 3; use Start flow to upgrade",
     )?;
     require(
-        p.version != 2 || p.node(ROOT).is_none(),
+        !matches!(p.version, 2 | 3) || p.node(ROOT).is_none(),
         "@root is reserved as the behavior root",
     )?;
     for (owner, f) in &p.behavior {
@@ -192,11 +192,7 @@ pub fn check(p: &Project) -> Result<()> {
             .ok_or_else(|| ModelError::one("Flow layout has no behavior scope"))?;
         for (id, pos) in positions {
             require(
-                f.step(id).is_some()
-                    && pos.x.is_finite()
-                    && pos.y.is_finite()
-                    && pos.x >= 0.0
-                    && pos.y >= 0.0,
+                f.step(id).is_some() && pos.valid_for(p.version),
                 "Invalid flow layout step or coordinates",
             )?;
         }

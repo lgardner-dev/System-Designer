@@ -179,6 +179,20 @@ pub struct Position {
     pub x: f64,
     pub y: f64,
 }
+/// Version-3 layout range keeps practical f32 scene precision at supported zoom.
+pub const MAX_LAYOUT_COORDINATE: f64 = 1_000_000.0;
+impl Position {
+    pub fn valid_for(self, version: u32) -> bool {
+        self.x.is_finite()
+            && self.y.is_finite()
+            && match version {
+                1 | 2 => self.x >= 0.0 && self.y >= 0.0,
+                3 => self.x.abs() <= MAX_LAYOUT_COORDINATE && self.y.abs() <= MAX_LAYOUT_COORDINATE,
+                _ => false,
+            }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Contract {

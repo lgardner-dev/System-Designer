@@ -1,5 +1,6 @@
 use super::*;
 use crate::edit;
+use crate::ui::dialogs::{Action, Actions};
 use egui::{ComboBox, DragValue, TextEdit, Ui};
 pub(super) struct ConnectionDialog {
     pub id: Option<String>,
@@ -211,7 +212,12 @@ fn shape_form(ui: &mut Ui, shape: &mut Shape) {
     }
 }
 impl Designer {
-    pub(super) fn connection_form(&mut self, ui: &mut Ui, d: &mut ConnectionDialog) -> bool {
+    pub(super) fn connection_form(
+        &mut self,
+        ui: &mut Ui,
+        d: &mut ConnectionDialog,
+        actions: &mut Actions,
+    ) -> bool {
         let p = self.store.snapshot();
         let sid = self.current.clone();
         ui.heading(if d.id.is_some() {
@@ -335,18 +341,8 @@ impl Designer {
                 .is_some_and(|x| !x.requires_consent || d.consent);
         let mut close = false;
         ui.separator();
-        ui.horizontal(|ui| {
-            if ui
-                .add_enabled(
-                    ready,
-                    egui::Button::new(if d.id.is_some() {
-                        "Apply connection change"
-                    } else {
-                        "Create connection"
-                    }),
-                )
-                .clicked()
-            {
+        {
+            if actions.take(Action::Primary, ready) {
                 if let (Some(from), Some(to), Some(contract)) =
                     (d.from.clone(), d.to.clone(), chosen.clone())
                 {
@@ -367,13 +363,18 @@ impl Designer {
                     close = self.error.is_none();
                 }
             }
-            if ui.button("Cancel").clicked() {
+            if actions.cancel {
                 close = true;
             }
-        });
+        }
         close
     }
-    pub(super) fn contract_form(&mut self, ui: &mut Ui, d: &mut ContractDialog) -> bool {
+    pub(super) fn contract_form(
+        &mut self,
+        ui: &mut Ui,
+        d: &mut ContractDialog,
+        actions: &mut Actions,
+    ) -> bool {
         ui.heading(if d.editing.is_some() {
             "Edit shared contract definition"
         } else {
@@ -413,8 +414,8 @@ impl Designer {
         }
         let mut close = false;
         ui.separator();
-        ui.horizontal(|ui| {
-            if ui.button("Save contract").clicked() {
+        {
+            if actions.take(Action::Primary, true) {
                 let q = edit::save_contract(
                     self.store.project(),
                     d.draft.clone(),
@@ -424,10 +425,10 @@ impl Designer {
                 self.publish("Save contract definition", q);
                 close = self.error.is_none();
             }
-            if ui.button("Cancel").clicked() {
+            if actions.cancel {
                 close = true;
             }
-        });
+        }
         close
     }
 }

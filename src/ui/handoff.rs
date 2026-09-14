@@ -1,3 +1,4 @@
+use super::dialogs::{Action, Actions, Header};
 use super::*;
 use crate::behavior::BehaviorChanges;
 use crate::exchange::{self, Scope};
@@ -23,6 +24,64 @@ pub(super) struct HandoffDialog {
     changes: Option<BehaviorChanges>,
 }
 impl HandoffDialog {
+    pub(super) fn header(&self) -> Header<'_> {
+        Header {
+            title: "AI handoff",
+            primary: (self.tab == Tab::Import).then_some("Apply validated changes"),
+            preview: (self.tab == Tab::Import).then_some("Validate candidate"),
+        }
+    }
+    pub(super) fn status(&self) -> String {
+        format!(
+            "{}{}",
+            if self.clear {
+                "Destructive removals require confirmation. "
+            } else {
+                ""
+            },
+            self.summary
+        )
+    }
+
+    pub(super) fn confirmation(&mut self, ui: &mut Ui) {
+        if self.clear {
+            ui.checkbox(
+                &mut self.clear_confirmed,
+                "Confirm the control flow removals listed above",
+            );
+        }
+    }
+    fn review_details(&self, ui: &mut Ui) {
+        ui.label(&self.summary);
+        if let Some(changes) = &self.changes {
+            for clear in &changes.clears {
+                ui.colored_label(egui::Color32::YELLOW, clear);
+            }
+            if !changes.details.is_empty() {
+                ui.collapsing(
+                    format!("Exact behavior changes ({})", changes.details.len()),
+                    |ui| {
+                        egui::ScrollArea::vertical()
+                            .id_salt("behavior_changes")
+                            .max_height(180.0)
+                            .show(ui, |ui| {
+                                for detail in &changes.details {
+                                    ui.label(detail);
+                                }
+                            });
+                    },
+                );
+            }
+            if !changes.new_issues.is_empty() {
+                egui::CollapsingHeader::new(format!("New draft issues ({})", changes.new_issues.len())).default_open(true).show(ui, |ui| {
+                            ui.small("These are saveable incomplete drafts, not validation failures or execution results.");
+                            egui::ScrollArea::vertical().id_salt("new_behavior_issues").max_height(110.0).show(ui, |ui| {
+                                for issue in &changes.new_issues { ui.label(issue); }
+                            });
+                        });
+            }
+        }
+    }
     fn reset_preview(&mut self) {
         self.validated = None;
         self.summary.clear();
@@ -165,6 +224,7 @@ impl Designer {
         ui: &mut Ui,
         d: &mut HandoffDialog,
         ctx: &egui::Context,
+        actions: &mut Actions,
     ) -> bool {
         ui.heading("AI handoff");
         ui.label("Manual exchange only. This app does not send data to any AI service.");
@@ -302,6 +362,7 @@ impl Designer {
                     });
             }
             Tab::Import => {
+                d.review_details(ui);
                 ui.label("Load the complete returned scope packet at the original level. Do not change its base, context, or public boundary. Full-project JSON is intentionally rejected here.");
                 ui.monospace(format!(
                     "Interfaces target: {} · Control Flow owner: {}",
@@ -338,60 +399,22 @@ impl Designer {
                 if response.inner.changed() {
                     d.reset_preview();
                 }
-                ui.horizontal(|ui| {
-                    if ui.button("Validate candidate").clicked() {
+                {
+                    if actions.take(Action::Preview, true) {
                         self.validate_handoff(d);
                     }
-                    if ui
-                        .add_enabled(
-                            d.validated.as_ref() == Some(&d.incoming)
-                                && (!d.clear || d.clear_confirmed),
-                            egui::Button::new("Apply validated changes"),
-                        )
-                        .clicked()
-                    {
+                    if actions.take(
+                        Action::Primary,
+                        d.validated.as_ref() == Some(&d.incoming)
+                            && (!d.clear || d.clear_confirmed),
+                    ) {
                         self.apply_handoff(d);
-                    }
-                });
-                ui.label(&d.summary);
-                if let Some(changes) = &d.changes {
-                    for clear in &changes.clears {
-                        ui.colored_label(egui::Color32::YELLOW, clear);
-                    }
-                    if d.clear {
-                        ui.checkbox(
-                            &mut d.clear_confirmed,
-                            "Confirm the control flow removals listed above",
-                        );
-                    }
-                    if !changes.details.is_empty() {
-                        ui.collapsing(
-                            format!("Exact behavior changes ({})", changes.details.len()),
-                            |ui| {
-                                egui::ScrollArea::vertical()
-                                    .id_salt("behavior_changes")
-                                    .max_height(180.0)
-                                    .show(ui, |ui| {
-                                        for detail in &changes.details {
-                                            ui.label(detail);
-                                        }
-                                    });
-                            },
-                        );
-                    }
-                    if !changes.new_issues.is_empty() {
-                        egui::CollapsingHeader::new(format!("New draft issues ({})", changes.new_issues.len())).default_open(true).show(ui, |ui| {
-                            ui.small("These are saveable incomplete drafts, not validation failures or execution results.");
-                            egui::ScrollArea::vertical().id_salt("new_behavior_issues").max_height(110.0).show(ui, |ui| {
-                                for issue in &changes.new_issues { ui.label(issue); }
-                            });
-                        });
                     }
                 }
             }
         }
         ui.separator();
-        ui.button("Close").clicked()
+        actions.cancel
     }
 }
 
@@ -558,7 +581,7 @@ mod tests {
         packet["flow"]["transitions"] = serde_json::json!([]);
         open(&mut a, &packet);
         click(&mut a, &ctx, "Validate candidate");
-        click(&mut a, &ctx, "Close");
+        click(&mut a, &ctx, "Cancel");
         assert!(a.dialog.is_none());
         assert_eq!(a.store.project(), &p);
         assert_eq!(a.store.generation, generation);

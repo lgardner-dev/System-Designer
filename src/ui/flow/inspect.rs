@@ -18,7 +18,9 @@ impl Designer {
         for id in self.flow.selection.steps.clone() {
             if let Some(s) = f.step(&id) {
                 ui.heading(&s.name);
-                ui.monospace(&s.id);
+                ui.collapsing("Identity", |ui| {
+                    ui.monospace(&s.id);
+                });
                 if let Some(target) = &s.target {
                     ui.label(format!("Shared component: {}", behavior::name(&p, target)));
                     if ui.button("Show in Interfaces").clicked() {
@@ -40,6 +42,9 @@ impl Designer {
                     } else {
                         "Review needed: What information is needed?"
                     });
+                }
+                if ui.button("Move / position…").clicked() {
+                    self.position_dialog();
                 }
                 if ui.button("Edit step…").clicked() {
                     self.dialog = Some(Dialog::Flow(FlowDialog::Step(s.clone())));

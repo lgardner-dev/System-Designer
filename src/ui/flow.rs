@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 mod drawing;
 mod forms;
 mod inspect;
+mod scene;
 #[cfg(test)]
 mod tests;
 
@@ -50,8 +51,15 @@ impl FlowSelection {
 pub(super) struct FlowState {
     pub selection: FlowSelection,
     gesture: Option<drawing::Gesture>,
+    frozen: Option<(
+        std::collections::BTreeMap<String, egui::Rect>,
+        scene::Anchors,
+    )>,
+    pending: Option<(String, bool)>,
     pub focus: bool,
     pub success: Option<(String, String)>,
+    #[cfg(test)]
+    pub handles: std::collections::BTreeMap<(String, bool), egui::Pos2>,
     #[cfg(test)]
     pub rects: std::collections::BTreeMap<String, egui::Rect>,
     #[cfg(test)]
@@ -60,9 +68,11 @@ pub(super) struct FlowState {
 impl FlowState {
     pub fn cancel(&mut self) {
         self.gesture = None;
+        self.frozen = None;
+        self.pending = None;
     }
     pub fn has_gesture(&self) -> bool {
-        self.gesture.is_some()
+        self.gesture.is_some() || self.pending.is_some()
     }
 }
 pub(super) struct ExtractDialog {

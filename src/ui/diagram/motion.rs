@@ -1,6 +1,5 @@
 //! Directional illustration only: no execution, throughput or timing semantics.
-use super::{Selection, geometry::Path};
-use crate::model::Edge;
+use super::routes::Path;
 use eframe::egui::{self, Color32, Id, Painter};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -25,13 +24,6 @@ impl Motion {
         }).response.on_hover_text("Direction preview, not live execution. Focus takes precedence: muted context never animates. Off is available on every platform; automatic OS reduced-motion detection is not implemented.");
         ui.ctx().data_mut(|d| d.insert_temp(id, mode));
         mode
-    }
-    pub fn includes(self, edge: &Edge, selected: &Selection) -> bool {
-        match self {
-            Self::Off => false,
-            Self::All => true,
-            Self::Selected => super::focus::matches(edge, selected, super::Focus::Selection),
-        }
     }
 }
 

@@ -1,5 +1,10 @@
 //! Presentation-only geometry. Port identity, direction and contracts never change.
 use crate::model::{Direction, Endpoint, Node, Port, Position, Project, System, node_height};
+pub(in crate::ui) use crate::ui::diagram::{anchors::Side, routes::Path};
+use crate::ui::diagram::{
+    anchors::{ResolvedAnchor, choose_side},
+    routes,
+};
 use eframe::egui::{Pos2, Rect, Vec2, pos2, vec2};
 use std::collections::BTreeMap;
 
@@ -7,78 +12,12 @@ const WIDTH: f32 = 300.0;
 const ROW: f32 = 38.0;
 const END_LABEL: f32 = 44.0;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(super) enum Side {
-    Top,
-    Right,
-    Bottom,
-    Left,
-}
-impl Side {
-    const ALL: [Self; 4] = [Self::Top, Self::Right, Self::Bottom, Self::Left];
-    pub fn normal(self) -> Vec2 {
-        match self {
-            Self::Top => vec2(0.0, -1.0),
-            Self::Right => vec2(1.0, 0.0),
-            Self::Bottom => vec2(0.0, 1.0),
-            Self::Left => vec2(-1.0, 0.0),
-        }
-    }
-    fn midpoint(self, r: Rect) -> Pos2 {
-        match self {
-            Self::Top => pos2(r.center().x, r.top()),
-            Self::Right => pos2(r.right(), r.center().y),
-            Self::Bottom => pos2(r.center().x, r.bottom()),
-            Self::Left => pos2(r.left(), r.center().y),
-        }
-    }
-    fn horizontal(self) -> bool {
-        matches!(self, Self::Top | Self::Bottom)
-    }
-    fn projection(self, p: Pos2) -> f32 {
-        if self.horizontal() { p.x } else { p.y }
-    }
-    fn escape(self, r: Rect, p: Pos2) -> Pos2 {
-        match self {
-            Self::Top => pos2(p.x, r.top()),
-            Self::Right => pos2(r.right(), p.y),
-            Self::Bottom => pos2(p.x, r.bottom()),
-            Self::Left => pos2(r.left(), p.y),
-        }
-    }
-}
 fn fallback(direction: Direction) -> Side {
     if direction == Direction::In {
         Side::Left
     } else {
         Side::Right
     }
-}
-
-/// A shared/fan-out port gets ONE side, scored against all of its neighbours.
-/// The normal penalty discourages initially pointing away from those neighbours.
-fn choose_side(rect: Rect, peers: &[Pos2], default: Side, boundary: bool) -> Side {
-    if peers.is_empty() {
-        return default;
-    }
-    let cost = |side: Side| {
-        let origin = side.midpoint(rect);
-        let normal = side.normal() * if boundary { -1.0 } else { 1.0 };
-        peers
-            .iter()
-            .map(|p| {
-                let delta = *p - origin;
-                delta.length() + 2.0 * (-delta.dot(normal)).max(0.0)
-            })
-            .sum::<f32>()
-    };
-    let mut best = default;
-    for side in Side::ALL {
-        if cost(side) + 0.01 < cost(best) {
-            best = side;
-        }
-    }
-    best
 }
 
 #[derive(Clone)]
@@ -121,7 +60,10 @@ fn frame_for(rects: impl Iterator<Item = Rect>, port_count: usize) -> Rect {
         extent = extent.union(r);
     }
     Rect::from_min_max(
-        pos2(40.0, 40.0),
+        pos2(
+            (extent.left() - 240.0).min(40.0),
+            (extent.top() - 100.0).min(40.0),
+        ),
         pos2(
             (extent.right() + 240.0).max(160.0 + port_count as f32 * 90.0),
             (extent.bottom() + 100.0).max(180.0 + port_count as f32 * 70.0),
@@ -314,6 +256,15 @@ fn anchors(
     }
     result
 }
+impl Anchor {
+    pub fn resolved(&self) -> ResolvedAnchor {
+        ResolvedAnchor {
+            point: self.point,
+            normal: self.normal,
+            side: self.side,
+        }
+    }
+}
 impl Scene {
     pub fn move_card(&mut self, id: &str, position: Position) {
         if let Some(card) = self.cards.iter_mut().find(|c| c.id == id) {
@@ -333,6 +284,33 @@ impl Scene {
                 port.label_rect = port.label_rect.translate(delta);
             }
         }
+        if let Some(old) = self.frame {
+            let frame = frame_for(
+                self.cards.iter().map(|c| c.rect),
+                self.ports.iter().filter(|a| a.boundary).count(),
+            );
+            for port in self.ports.iter_mut().filter(|a| a.boundary) {
+                let t = if port.side.horizontal() {
+                    (port.point.x - old.left()) / old.width()
+                } else {
+                    (port.point.y - old.top()) / old.height()
+                };
+                let mut point = port.side.midpoint(frame);
+                if port.side.horizontal() {
+                    point.x = frame.left() + t * frame.width();
+                } else {
+                    point.y = frame.top() + t * frame.height();
+                }
+                port.label_rect = port.label_rect.translate(point - port.point);
+                port.point = point;
+            }
+            self.frame = Some(frame);
+        }
+        self.bounds = self
+            .cards
+            .iter()
+            .fold(self.frame.unwrap_or(Rect::NOTHING), |r, c| r.union(c.rect))
+            .expand(50.0);
     }
 
     pub fn new(project: &Project, sid: &str, positions: &BTreeMap<String, Position>) -> Self {
@@ -442,154 +420,18 @@ impl Scene {
         if let Some(id) = &from.node {
             if to.node.as_ref() == Some(id) {
                 let rect = self.cards.iter().find(|c| c.id == *id)?.rect;
-                return Some(Path::loop_around(a, b, rect, 36.0 + lane as f32 * 9.0));
+                return Some(routes::route(
+                    a.resolved(),
+                    b.resolved(),
+                    routes::Lane {
+                        index: lane,
+                        count: lane + 1,
+                        axis: Vec2::X,
+                        loop_rect: Some(rect),
+                    },
+                ));
             }
         }
         Some(Path::between(a.point, a.normal, b.point, b.normal))
-    }
-}
-
-/// Drawing, picking, arrowheads and animation all use this SAME sampled path.
-#[derive(Clone)]
-pub(in crate::ui) struct Path {
-    pub points: Vec<Pos2>,
-    distances: Vec<f32>,
-    pub length: f32,
-    pub bounds: Rect,
-}
-impl Path {
-    pub fn new(points: Vec<Pos2>) -> Self {
-        let mut distances = Vec::with_capacity(points.len());
-        let mut length = 0.0;
-        let mut bounds = Rect::NOTHING;
-        for (i, point) in points.iter().enumerate() {
-            if i > 0 {
-                length += point.distance(points[i - 1]);
-            }
-            distances.push(length);
-            bounds = bounds.union(Rect::from_min_max(*point, *point));
-        }
-        Self {
-            points,
-            distances,
-            length,
-            bounds,
-        }
-    }
-    pub fn between(a: Pos2, a_normal: Vec2, b: Pos2, b_normal: Vec2) -> Self {
-        let distance = (a.distance(b) * 0.4).clamp(20.0, 180.0);
-        let controls = [a, a + a_normal * distance, b + b_normal * distance, b];
-        let samples = (a.distance(b) / 12.0).ceil().clamp(24.0, 128.0) as usize;
-        Self::sample_cubic(controls, samples)
-    }
-    pub fn cubic(controls: [Pos2; 4]) -> Self {
-        let length: f32 = controls.windows(2).map(|w| w[0].distance(w[1])).sum();
-        Self::sample_cubic(controls, (length / 12.0).ceil().clamp(24.0, 256.0) as usize)
-    }
-    fn sample_cubic(controls: [Pos2; 4], samples: usize) -> Self {
-        Self::new(
-            (0..=samples)
-                .map(|i| {
-                    let t = i as f32 / samples as f32;
-                    let u = 1.0 - t;
-                    let v = controls[0].to_vec2() * (u * u * u)
-                        + controls[1].to_vec2() * (3.0 * u * u * t)
-                        + controls[2].to_vec2() * (3.0 * u * t * t)
-                        + controls[3].to_vec2() * (t * t * t);
-                    pos2(v.x, v.y)
-                })
-                .collect(),
-        )
-    }
-    fn loop_around(a: &Anchor, b: &Anchor, rect: Rect, margin: f32) -> Self {
-        let outer = rect.expand(margin);
-        let escape_a = a.side.escape(outer, a.point);
-        let escape_b = b.side.escape(outer, b.point);
-        let w = outer.width();
-        let h = outer.height();
-        let perimeter = 2.0 * (w + h);
-        let offset = |p: Pos2, side: Side| match side {
-            Side::Top => p.x - outer.left(),
-            Side::Right => w + p.y - outer.top(),
-            Side::Bottom => w + h + outer.right() - p.x,
-            Side::Left => 2.0 * w + h + outer.bottom() - p.y,
-        };
-        let start = offset(escape_a, a.side);
-        let end = offset(escape_b, b.side);
-        let clockwise = (end - start).rem_euclid(perimeter);
-        let forward = clockwise <= perimeter * 0.5;
-        let travel = if forward {
-            clockwise
-        } else {
-            perimeter - clockwise
-        };
-        let mut corners: Vec<_> = [
-            (0.0, outer.left_top()),
-            (w, outer.right_top()),
-            (w + h, outer.right_bottom()),
-            (2.0 * w + h, outer.left_bottom()),
-        ]
-        .into_iter()
-        .filter_map(|(at, p)| {
-            let distance = if forward { at - start } else { start - at }.rem_euclid(perimeter);
-            (distance > 0.01 && distance < travel - 0.01).then_some((distance, p))
-        })
-        .collect();
-        corners.sort_by(|a, b| a.0.total_cmp(&b.0));
-        let mut points = vec![a.point, escape_a];
-        points.extend(corners.into_iter().map(|(_, p)| p));
-        points.extend([escape_b, b.point]);
-        Self::new(points)
-    }
-    pub fn at(&self, distance: f32) -> (Pos2, Vec2) {
-        if self.points.len() < 2 {
-            return (
-                self.points.first().copied().unwrap_or(Pos2::ZERO),
-                Vec2::ZERO,
-            );
-        }
-        let distance = distance.clamp(0.0, self.length);
-        let i = self
-            .distances
-            .partition_point(|d| *d < distance)
-            .clamp(1, self.points.len() - 1);
-        let a = self.points[i - 1];
-        let delta = self.points[i] - a;
-        let span = self.distances[i] - self.distances[i - 1];
-        let t = if span > 0.0 {
-            (distance - self.distances[i - 1]) / span
-        } else {
-            0.0
-        };
-        (
-            a + delta * t,
-            if delta.length_sq() > 0.0 {
-                delta.normalized()
-            } else {
-                Vec2::ZERO
-            },
-        )
-    }
-    pub fn distance(&self, point: Pos2) -> f32 {
-        self.points
-            .windows(2)
-            .map(|pair| {
-                let delta = pair[1] - pair[0];
-                let t = if delta.length_sq() > 0.0 {
-                    ((point - pair[0]).dot(delta) / delta.length_sq()).clamp(0.0, 1.0)
-                } else {
-                    0.0
-                };
-                point.distance(pair[0] + delta * t)
-            })
-            .fold(f32::INFINITY, f32::min)
-    }
-    pub fn screen(&self, origin: Pos2, pan: Vec2, zoom: f32) -> Self {
-        Self::new(
-            self.points
-                .iter()
-                .map(|p| origin + pan + p.to_vec2() * zoom)
-                .collect(),
-        )
     }
 }

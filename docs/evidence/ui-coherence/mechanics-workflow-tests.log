@@ -1,0 +1,294 @@
+   Compiling system-designer v0.2.0 (/home/luke/projects/System-Designer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.85s
+     Running unittests src/lib.rs (target/debug/deps/system_designer-3453b289cf9e8421)
+
+running 86 tests
+test ui::canvas::arrangement::tests::cycles_group_without_reversing_edges ... ok
+test ui::canvas::arrangement::tests::condensation_ranks_follow_forward_edges ... ok
+test ui::canvas::arrangement::tests::vertical_orientation_uses_y_ranks ... ok
+test ui::canvas::arrangement::tests::leaf_and_empty_system_work ... ok
+test ui::canvas::arrangement::tests::layout_is_deterministic ... ok
+test ui::canvas::arrangement::tests::arrangement_is_one_undoable_local_edit ... ok
+test ui::canvas::integration_tests::defaults_are_detail_focus_off_and_no_new_project_state ... ok
+test ui::canvas::integration_tests::deleted_trace_target_is_reported_not_followed_by_name ... ok
+test ui::canvas::integration_tests::exact_selection_normalizes_directional_focus_visibly ... ok
+test ui::canvas::integration_tests::exact_edge_selection_survives_overview_without_promoting_members ... ok
+test ui::canvas::integration_tests::focus_is_one_hop_and_has_no_hidden_input_to_output_inference ... ok
+test ui::canvas::integration_tests::frozen_side_order_does_not_jump_during_node_drag ... ok
+test ui::canvas::integration_tests::grouping_preserves_every_edge_once_and_opposite_directions ... ok
+test ui::canvas::integration_tests::lights_respect_focus_before_summary_aggregation ... ok
+test ui::canvas::integration_tests::multi_edge_summary_cannot_be_deleted ... ok
+test ui::canvas::integration_tests::opaque_leaf_has_no_automatic_trace_continuation ... ok
+test ui::canvas::integration_tests::new_document_resets_view_focus_trace_but_not_light_choice ... ok
+test ui::canvas::arrangement::tests::all_edges_contracts_and_scope_base_are_preserved ... ok
+test ui::canvas::integration_tests::no_fake_boundary_or_cross_level_link_is_added_in_overview ... ok
+test ui::canvas::integration_tests::partial_summary_reports_one_of_four_not_one_total ... ok
+test ui::canvas::integration_tests::summary_edit_establishes_one_exact_edge_and_detail ... ok
+test ui::canvas::tests::a_shared_fanout_port_keeps_one_anchor ... ok
+test ui::canvas::tests::both_inputs_and_outputs_can_occupy_all_four_sides ... ok
+test ui::canvas::tests::degenerate_paths_do_not_panic_or_animate ... ok
+test ui::canvas::integration_tests::trace_crosses_identical_port_and_restores_all_navigation_state ... ok
+test ui::canvas::tests::editing_existing_wire_keeps_its_current_contract ... ok
+test ui::canvas::tests::exact_interface_routes_keep_single_visible_anchor_across_signed_scenes_and_lanes ... ok
+test ui::canvas::tests::light_has_arrival_gap_and_deterministic_per_edge_phase ... ok
+test ui::canvas::tests::labels_have_distinct_nonoverlapping_slots_on_each_side ... ok
+test ui::canvas::tests::lights_advance_source_to_destination_at_constant_screen_speed ... ok
+test ui::canvas::tests::paths_start_and_finish_at_real_ports_with_correct_tangents ... ok
+test ui::canvas::integration_tests::arrangement_depends_on_full_graph_not_view_or_focus_and_preserves_scope ... ok
+test ui::canvas::tests::projected_child_ports_keep_owner_identity_and_effective_direction ... ok
+test ui::canvas::arrangement::tests::deep_graph_uses_no_recursive_dfs ... ok
+test ui::canvas::tests::reciprocal_ports_align_without_an_avoidable_crossing ... ok
+test ui::canvas::tests::root_does_not_gain_fake_external_ports ... ok
+test ui::canvas::tests::selected_motion_only_uses_actual_incident_edges ... ok
+test ui::canvas::tests::self_loop_routes_outside_its_own_card ... ok
+test ui::canvas::tests::side_assignment_does_not_change_the_project_or_exchange_base ... ok
+test ui::branding::tests::embedded_icon_decodes_to_complete_rgba ... ok
+test ui::canvas::integration_tests::cancelling_connection_keeps_detail_and_preserves_project ... ok
+test ui::canvas::tests::signed_child_frame_encloses_all_sides_and_frozen_move_preserves_boundary_identity ... ok
+test ui::canvas::tests::text_truncation_is_unicode_safe ... ok
+test ui::canvas::tests::side_assignment_is_deterministic_and_not_an_edge_order_effect ... ok
+test ui::canvas::tests::zoom_and_pan_preserve_path_endpoints_and_hit_testing ... ok
+test ui::canvas::tests::unconnected_draft_ports_remain_visible_and_unassigned ... ok
+test ui::canvas::integration_tests::view_switches_leave_origins_and_camera_fixed ... ok
+test ui::canvas::tests::invalid_drop_cancels_without_mutation ... ok
+test ui::canvas::tests::child_boundary_drag_preserves_projected_source_identity ... ok
+test ui::branding::tests::embedded_icon_is_owner_selected_color_mark ... ok
+test ui::diagram::viewport::tests::signed_roundtrips_and_cursor_centered_zoom ... ok
+test ui::flow::tests::diamond_and_terminator_intersections_are_on_visible_perimeters ... ok
+test ui::canvas::tests::motion_off_survives_navigation ... ok
+test ui::canvas::integration_tests::inspect_rows_render_for_ports_summaries_and_crossing_edges_without_hover ... ok
+test ui::branding::tests::icon_texture_is_cached_per_context ... ok
+test ui::flow::tests::f2_geometry_parallel_reciprocal_and_loop_routes_are_stable_and_exact ... ok
+test ui::canvas::tests::animation_frames_leave_publication_and_history_unchanged ... ok
+test ui::canvas::tests::click_connect_still_requires_contract_choice ... ok
+test ui::flow::tests::f1_extracted_parent_and_child_scenes_keep_cards_separate ... ok
+test ui::flow::tests::document_load_resets_scope_and_layer_state_and_preserves_v1 ... ok
+test ui::flow::tests::leaf_rendering_does_not_report_an_empty_selection_as_removed ... ok
+test ui::canvas::arrangement::tests::application_design_has_no_overlapping_cards ... ok
+test ui::flow::tests::f2_review_distinct_return_labels_have_separate_canvas_routes ... ok
+test ui::flow::tests::changing_meaning_in_form_and_deleting_is_undoable ... ok
+test ui::flow::tests::root_leaf_and_layer_navigation_never_invent_structural_children ... ok
+test ui::flow::tests::stale_plan_and_visual_camera_motion_preserve_store_history ... ok
+test ui::flow::tests::f2_raw_canvas_selects_each_return_with_lights_off_and_static_arrows ... ok
+test ui::flow::tests::raw_move_and_escape_do_not_publish_cancelled_gestures ... ok
+test ui::flow::tests::raw_multiselect_and_explicit_start_promotion_are_undoable ... ok
+test ui::canvas::tests::real_pointer_drag_from_every_side_opens_explicit_contract_dialog ... ok
+test ui::flow::tests::f2_raw_canvas_selects_three_siblings_reciprocals_and_two_self_loops ... ok
+test ui::flow::tests::raw_connection_drags_in_both_directions_open_unpublished_drafts ... ok
+test ui::canvas::tests::reverse_pointer_drag_from_every_side_preserves_flow_direction ... ok
+test ui::flow::tests::raw_information_review_cancel_and_apply_reconcile_both_layers ... ok
+test ui::flow::tests::full_workspace_modal_resizes_after_short_start_dialog ... ok
+test ui::flow::tests::raw_selection_preview_cancel_apply_cross_view_and_undo ... ok
+test ui::coherence_tests::lights_popup_does_not_clear_selection_or_capture_background ... ok
+test ui::coherence_tests::both_layers_capture_signed_moves_and_cancel_on_focus_loss ... ok
+test ui::handoff::tests::f3_review_removed_transition_is_disclosed_before_apply ... ok
+test ui::handoff::tests::f3_empty_contents_need_confirmation_and_empty_creation_does_not ... ok
+test ui::handoff::tests::full_workspace_handoff_requires_explicit_clear_and_rechecks_stale_input ... ok
+test ui::handoff::tests::f3_cancel_invalid_and_stale_reviews_preserve_history_and_generation ... ok
+test ui::handoff::tests::full_workspace_long_handoff_keeps_validation_visible ... ok
+test ui::canvas::integration_tests::every_view_focus_light_combination_preserves_all_scope_packets ... ok
+test ui::coherence_tests::global_settings_preserves_scope_layer_camera_selection_and_publishes_last_character_once ... ok
+test ui::coherence_tests::modal_actions_remain_fixed_at_long_body_top_middle_bottom_and_ui_scales ... ok
+
+test result: ok. 86 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running unittests src/check.rs (target/debug/deps/designer_check-5b13cbf7c639a5e5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/system_designer-5f87da5d23cecfbc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/behavior.rs (target/debug/deps/behavior-bd9b50d5adc8916f)
+
+running 36 tests
+test behavior_data_prevents_contract_deletion ... ok
+test behavior_promotes_explicitly ... ok
+test dangling_transition_rejected ... ok
+test draft_decision_is_saved_but_diagnosed ... ok
+test changing_layout_invalidates_extraction_preview ... ok
+test behavior_exchange_context_is_read_only ... ok
+test behavior_exchange_preserves_interfaces ... ok
+test extraction_needs_responsibility ... ok
+test exact_refinement_preserves_unrelated_same_named_channels_and_cancel ... ok
+test legacy_stays_version_one ... ok
+test no_metric_claim_for_unreachable_draft ... ok
+test invalid_extraction_does_not_mutate_store ... ok
+test exact_format_dispatch_rejects_wrong_scopes_and_unknown_formats ... ok
+test explicit_dependency_becomes_a_draft_boundary_port ... ok
+test interface_packet_stales_when_preserved_behavior_changes ... ok
+test extraction_expansion_preserves_parent_reentry_and_all_data_boundary_directions ... ok
+test extraction_has_one_undoable_publication ... ok
+test r1_missing_flow_is_not_clear ... ok
+test one_region_produces_one_shared_child_identity ... ok
+test simple_metric_is_one ... ok
+test review_is_invalidated_by_meaning_and_incident_data_edits ... ok
+test v1_cannot_hide_behavior ... ok
+test extraction_preserves_each_explicit_outcome_path ... ok
+test r2_reserve_crossing_transition_identity ... ok
+test r4_missing_and_duplicate_returns_are_draft_issues ... ok
+test removing_occurrence_preserves_shared_definition_and_other_uses ... ok
+test interface_replacement_preserves_behavior ... ok
+test leaf_can_be_refined_recursively ... ok
+test r3_connection_refines_extracted_information_atomically ... ok
+test repeat_preview_is_deterministic ... ok
+test stale_behavior_exchange_rejected ... ok
+test explicit_clear_empty_and_rejected_packets_preserve_history ... ok
+test behavior_packets_keep_conservative_context_policy_and_ignore_layout ... ok
+test extraction_expansion_covers_loops_alternatives_merges_and_data_collisions ... ok
+test command_line_validates_both_packet_formats_without_writing ... ok
+test both_layers_and_layouts_survive_save_backup_and_recovery ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/behavior_changes.rs (target/debug/deps/behavior_changes-eec81344c4c270fe)
+
+running 8 tests
+test purpose_kind_review_primitive_and_endpoint_edits_have_actual_values ... ok
+test removing_an_action_incident_transitions_and_data_lists_every_record ... ok
+test renaming_existing_draft_issues_or_reducing_review_count_does_not_introduce_issues ... ok
+test supplied_removed_return_reports_exact_transition_and_new_draft_issues ... ok
+test call_target_and_outcome_changes_without_renames_are_explicit ... ok
+test unchanged_and_reordered_packets_are_quiet_guard_only_edits_are_named ... ok
+test information_diff_names_exact_ports_contract_versions_and_wire_associations ... ok
+test empty_existing_flow_and_null_clear_require_review_but_empty_creation_does_not ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/behavior_layout.rs (target/debug/deps/behavior_layout-f11d0baf37069b08)
+
+running 4 tests
+test f1_review_parent_keeps_nonoverlapping_positions ... ok
+test f1_review_child_markers_do_not_overlap_moved_work ... ok
+test extraction_layout_loop_and_multiple_outcomes_stay_clear ... ok
+test extraction_layout_one_three_eight_steps_default_manual_sparse_and_history ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/core.rs (target/debug/deps/core-1725bc1580a4874d)
+
+running 51 tests
+test blank_root ... ok
+test boundary_mirrors_owner ... ok
+test create_only_one_child ... ok
+test delete_referenced_type_rejected ... ok
+test all_shape_forms ... ok
+test connected_null_rejected ... ok
+test cross_level_rejected ... ok
+test disconnected_cycle ... ok
+test duplicate_enum_value ... ok
+test external_labels_derived ... ok
+test fixture_with_feedback_loops ... ok
+test explicit_shared_definition_confirmation ... ok
+test duplicate_public_boundary_rejected ... ok
+test duplicate_port ... ok
+test duplicate_edge ... ok
+test frame_snapshot_remains_immutable_after_publication ... ok
+test duplicate_node ... ok
+test empty_enum ... ok
+test history_is_bounded ... ok
+test explicit_null_child_rejected ... ok
+test invalid_publication_preserves_redo ... ok
+test full_json_round_trip ... ok
+test invalid_schema_duplicate_field ... ok
+test invented_root_boundary ... ok
+test invented_edge_contract_rejected ... ok
+test missing_child ... ok
+test mismatched_version ... ok
+test missing_contract_field_is_not_null ... ok
+test port_delete_cleans_projected_edges ... ok
+test removing_internals_keeps_owner ... ok
+test missing_root ... ok
+test missing_endpoint_node_is_not_boundary ... ok
+test nonlocal_layout ... ok
+test missing_endpoint ... ok
+test negative_layout ... ok
+test missing_contract ... ok
+test orphan_system ... ok
+test unassigned_unconnected_port_allowed ... ok
+test undo_redo_snapshot ... ok
+test safe_recursive_node_delete ... ok
+test unknown_project_field ... ok
+test structural_id_spaces_overlap ... ok
+test unknown_shape_keyword ... ok
+test two_owners ... ok
+test root_cannot_have_owner ... ok
+test wrong_boundary_direction ... ok
+test wrong_port_owner ... ok
+test unsafe_integer_version ... ok
+test wrong_direction ... ok
+test more_than_eight_allowed ... ok
+test arbitrary_containment_depth ... ok
+
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/exchange.rs (target/debug/deps/exchange-c553dbda84fdbc6b)
+
+running 24 tests
+test connected_retype_requires_consent ... ok
+test full_project_rejected_from_scope_action ... ok
+test first_assignment_creates_contract_and_edge_together ... ok
+test contract_retype_matches_original ... ok
+test component_cannot_change_child ... ok
+test component_cannot_break_wires ... ok
+test component_preserves_siblings_and_internals ... ok
+test level_cannot_delete_hidden_child ... ok
+test canvas_positions_do_not_stale_scope ... ok
+test original_replacement_matches_reference ... ok
+test independent_hidden_child_edit_survives ... ok
+test context_is_read_only ... ok
+test missing_referenced_definition_rejected ... ok
+test boundary_is_read_only ... ok
+test new_contract_versions_can_be_added ... ok
+test wrong_project_rejected ... ok
+test unicode_protocol_matches_reference ... ok
+test wrong_target_rejected ... ok
+test stale_local_input_rejected ... ok
+test unknown_packet_property_rejected ... ok
+test subtree_can_remove_internal_descendants ... ok
+test stale_ancestor_rejected ... ok
+test scope_import_cannot_rewrite_catalog ... ok
+test original_export_bytes_and_hashes ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/self_design.rs (target/debug/deps/self_design-fe0422653906f116)
+
+running 4 tests
+test blank_start_does_not_load_self_design ... ok
+test initialization_embeds_exact_protocol ... ok
+test embedded_design_is_a_real_project ... ok
+test self_design_all_scopes_round_trip ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/signed_layout.rs (target/debug/deps/signed_layout-f0476a0f03a6d240)
+
+running 4 tests
+test signed_flow_and_behavior_edits_preserve_version ... ok
+test signed_layout_is_explicitly_versioned ... ok
+test promotion_is_atomic_undoable_and_rejects_nonfinite_out_of_range_and_reserved_ids ... ok
+test signed_positions_survive_extraction_replacement_save_and_recovery ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/storage.rs (target/debug/deps/storage-39319edcddc23a38)
+
+running 9 tests
+test invalid_recovery_preserves_bytes ... ok
+test io_failure_is_visible ... ok
+test invalid_target_is_not_destroyed ... ok
+test missing_expected_file_is_not_silently_recreated ... ok
+test invalid_candidate_never_replaces_disk ... ok
+test project_file_save_and_open ... ok
+test recovery_round_trip ... ok
+test external_edit_is_not_overwritten ... ok
+test save_keeps_prior_valid_backup ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

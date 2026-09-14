@@ -11,15 +11,19 @@ pub(super) mod geometry;
 #[cfg(test)]
 mod integration_tests;
 mod overview;
+pub(super) use super::diagram::motion;
 pub(super) use focus::{Focus, Session, Viewport};
 pub(super) use focus::{details, valid as selection_valid};
 pub(super) use overview::View;
-pub(super) mod motion;
 #[cfg(test)]
 mod tests;
 use geometry::{Anchor, Path, Scene, Side};
 
-const ACCENT: Color32 = Color32::from_rgb(91, 183, 217);
+use super::diagram::{
+    interaction,
+    paint::{self, ACCENT, EdgeStyle},
+    viewport::Transform,
+};
 const MUTED: Color32 = Color32::from_rgb(142, 153, 172);
 #[derive(Clone)]
 enum Gesture {
@@ -48,7 +52,9 @@ pub(super) struct CanvasState {
     frozen_scene: Option<Scene>,
     pub generation: Option<u64>,
     #[cfg(test)]
-    port_positions: BTreeMap<String, Pos2>,
+    pub(super) port_positions: BTreeMap<String, Pos2>,
+    #[cfg(test)]
+    pub(super) rects: BTreeMap<String, Rect>,
 }
 impl Default for CanvasState {
     fn default() -> Self {
@@ -62,6 +68,8 @@ impl Default for CanvasState {
             generation: None,
             #[cfg(test)]
             port_positions: BTreeMap::new(),
+            #[cfg(test)]
+            rects: BTreeMap::new(),
         }
     }
 }
@@ -136,6 +144,21 @@ impl Designer {
         if matches!(self.dialog, Some(Dialog::Connection(_))) {
             self.canvas_session.view = View::Detail;
         }
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("+ Component").clicked() {
+                self.new_component();
+            }
+            if ui.button("Connect ports…").clicked() {
+                self.canvas_session.view = View::Detail;
+                self.canvas.cancel();
+                self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
+                    self.store.project(),
+                    &self.current,
+                    None,
+                    None,
+                )));
+            }
+        });
         let motion = self.canvas_controls(ui);
         let compact = self.canvas_session.view == View::Overview;
         let mut emphasis = focus::Emphasis::new(
@@ -188,28 +211,30 @@ impl Designer {
         for link in &local_paths {
             bounds = bounds.union(link.path.bounds.expand(20.0));
         }
+        let mut transform = Transform {
+            area,
+            pan: self.canvas.pan,
+            zoom: self.canvas.zoom,
+        };
         if self.canvas.fit_requested {
-            self.canvas.zoom = ((area.width() - 32.0) / bounds.width())
-                .min((area.height() - 32.0) / bounds.height())
-                .clamp(0.2, 1.0);
-            self.canvas.pan = area.size() * 0.5 - bounds.center().to_vec2() * self.canvas.zoom;
+            transform.fit(bounds);
             self.canvas.fit_requested = false;
         }
         let pointer = ui.input(|i| i.pointer.interact_pos());
-        if ui.is_enabled() && response.hovered() {
+        if interaction::owns_press(ui, &response) {
             let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-            if scroll.abs() > 0.01 {
-                if let Some(cursor) = pointer {
-                    let world = (cursor - area.min - self.canvas.pan) / self.canvas.zoom;
-                    self.canvas.zoom = (self.canvas.zoom * (scroll * 0.002).exp()).clamp(0.2, 2.5);
-                    self.canvas.pan = cursor - area.min - world * self.canvas.zoom;
-                }
+            if scroll.abs() > 0.01
+                && let Some(cursor) = pointer
+            {
+                transform.zoom_at(cursor, scroll);
             }
         }
-        let z = self.canvas.zoom;
-        let pan = self.canvas.pan;
-        let screen = |point: Pos2| area.min + pan + point.to_vec2() * z;
-        let screen_rect = |rect: Rect| Rect::from_min_max(screen(rect.min), screen(rect.max));
+        self.canvas.pan = transform.pan;
+        self.canvas.zoom = transform.zoom;
+        let z = transform.zoom;
+        let pan = transform.pan;
+        let screen = |p| transform.screen(p);
+        let screen_rect = |r| transform.rect(r);
         let grid = 40.0 * z;
         if grid >= 10.0 {
             let origin = area.min + pan;
@@ -243,71 +268,35 @@ impl Designer {
             }
         }
         let mut paths = Vec::with_capacity(local_paths.len());
-        let time = ui.input(|i| i.time);
-        let animate =
-            ui.is_enabled() && ui.input(|i| i.focused && !i.viewport().minimized.unwrap_or(false));
         let mut repaint = false;
         for link in local_paths {
             let path = link.path.screen(area.min, pan, z);
             let selected = link.selected(&self.selected);
             let emphasized = link.focused_count(&emphasis) > 0;
             if path.bounds.expand(15.0).intersects(area) {
-                let color = if selected {
-                    ACCENT
-                } else if emphasized {
-                    Color32::from_rgb(111, 129, 151)
-                } else {
-                    Color32::from_rgb(46, 56, 70)
-                };
-                painter.add(egui::Shape::line(
-                    path.points.clone(),
-                    Stroke::new(
-                        if selected {
-                            3.0_f32
-                        } else if emphasized {
-                            1.8
-                        } else {
-                            1.0
-                        },
-                        color,
-                    ),
-                ));
-                if path.length > 8.0 {
-                    let (head, tangent) = path.at((path.length - 7.0).max(0.0));
-                    painter.arrow(
-                        head - tangent * 13.0,
-                        tangent * 13.0,
-                        Stroke::new(1.5_f32, color),
-                    );
-                }
-                if animate
-                    && path.length > 0.01
-                    && link.animate(motion, &self.selected, &emphasis, &p, &sid)
-                {
-                    motion::paint(&painter, &path, time, &link.edge.id);
-                    repaint = true;
-                }
-                if emphasized {
-                    let label = link.caption(&emphasis);
-                    let mid = path.at(path.length * 0.5).0;
-                    let galley = painter.layout_no_wrap(
-                        if compact { label } else { short(&label, 32) },
-                        FontId::proportional((11.0 * z).max(9.0)),
-                        MUTED,
-                    );
-                    let rect = Rect::from_center_size(
-                        mid - vec2(0.0, 11.0),
-                        galley.size() + vec2(10.0, 4.0),
-                    );
-                    painter.rect_filled(rect, 3, Color32::from_rgb(14, 18, 24));
-                    painter.galley(rect.min + vec2(5.0, 2.0), galley, MUTED);
-                }
+                let label = link.caption(&emphasis);
+                paint::edge(
+                    &painter,
+                    &path,
+                    EdgeStyle {
+                        selected,
+                        emphasized,
+                        hovered: response.hovered()
+                            && pointer.is_some_and(|p| path.distance(p) < 7.0),
+                    },
+                    &if compact { label } else { short(&label, 32) },
+                    z,
+                );
+                repaint |= paint::light(
+                    ui,
+                    &path,
+                    link.animate(motion, &self.selected, &emphasis, &p, &sid),
+                    &link.edge.id,
+                );
             }
             paths.push((link.selection, path));
         }
-        if repaint {
-            ui.ctx().request_repaint_after(Duration::from_millis(16));
-        }
+        paint::repaint(ui, repaint);
         for card in &scene.cards {
             let Some((_, node)) = p.node(&card.id) else {
                 continue;
@@ -390,17 +379,21 @@ impl Designer {
             scene
                 .ports
                 .iter()
-                .filter(|r| {
-                    (!compact || r.boundary) && screen(r.point).distance(pos) < (11.0 * z).max(9.0)
-                })
+                .filter(|r| (!compact || r.boundary) && screen(r.point).distance(pos) <= 12.0)
                 .min_by(|a, b| {
                     screen(a.point)
                         .distance(pos)
                         .total_cmp(&screen(b.point).distance(pos))
+                        .then(a.endpoint.port.cmp(&b.endpoint.port))
                 })
         });
         #[cfg(test)]
         {
+            self.canvas.rects = scene
+                .cards
+                .iter()
+                .map(|c| (c.id.clone(), screen_rect(c.rect)))
+                .collect();
             self.canvas.port_positions = scene
                 .ports
                 .iter()
@@ -423,16 +416,13 @@ impl Designer {
             } else {
                 Color32::from_rgb(63, 74, 88)
             };
-            let radius = (5.0 * z).max(4.0);
-            if anchor.direction == Direction::Out {
-                painter.circle_filled(point, radius, color);
-            } else {
-                painter.circle_filled(point, radius, Color32::from_rgb(14, 18, 24));
-                painter.circle_stroke(point, radius, Stroke::new(1.5_f32, color));
-            }
-            if hover || compatible {
-                painter.circle_stroke(point, (9.0 * z).max(8.0), Stroke::new(1.0_f32, color));
-            }
+            paint::handle(
+                &painter,
+                point,
+                anchor.direction == Direction::Out,
+                hover || compatible,
+                color,
+            );
             if hover || compatible || emphasis.port(&anchor.endpoint.port) {
                 port_labels(&painter, anchor, screen_rect(anchor.label_rect), z);
             }
@@ -459,7 +449,17 @@ impl Designer {
                 } else {
                     Path::between(end, end_normal, screen(start.point), start.normal)
                 };
-                painter.add(egui::Shape::line(path.points, Stroke::new(2.5_f32, ACCENT)));
+                paint::edge(
+                    &painter,
+                    &path,
+                    EdgeStyle {
+                        selected: true,
+                        hovered: false,
+                        emphasized: true,
+                    },
+                    "",
+                    z,
+                );
             }
         }
         if system.nodes.is_empty() {
@@ -475,19 +475,22 @@ impl Designer {
                 MUTED,
             );
         }
-        if !ui.is_enabled() {
+        if interaction::cancelled(ui) {
+            self.canvas.cancel();
             return;
         }
         let Some(cursor) = pointer else {
             if ui.input(|i| !i.pointer.any_down()) {
-                self.canvas.gesture = None;
+                self.canvas.cancel();
             }
             return;
         };
         if ui.input(|i| !i.pointer.any_down() && !i.pointer.any_released()) {
             self.canvas.gesture = None;
         }
-        if ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary)) {
+        if interaction::owns_press(ui, &response)
+            && ui.input(|i| i.pointer.button_pressed(PointerButton::Secondary))
+        {
             if let Some(port) = hovered_port {
                 self.trace_visit(
                     sid.clone(),
@@ -501,7 +504,7 @@ impl Designer {
         }
         let pressed = ui.input(|i| i.pointer.button_pressed(PointerButton::Primary));
         let middle = ui.input(|i| i.pointer.button_pressed(PointerButton::Middle));
-        if (pressed || middle) && area.contains(cursor) {
+        if (pressed || middle) && interaction::owns_press(ui, &response) {
             if middle {
                 self.canvas.gesture = Some(Gesture::Pan {
                     start: cursor,
@@ -552,7 +555,7 @@ impl Designer {
                 });
             }
         }
-        if ui.input(|i| i.pointer.any_down()) {
+        if ui.input(|i| i.pointer.any_down() || i.pointer.any_released()) {
             match &mut self.canvas.gesture {
                 Some(Gesture::Move {
                     start,
@@ -560,11 +563,7 @@ impl Designer {
                     current,
                     ..
                 }) => {
-                    let delta = (cursor - *start) / z;
-                    *current = Position {
-                        x: (initial.x + delta.x as f64).max(0.0),
-                        y: (initial.y + delta.y as f64).max(0.0),
-                    };
+                    *current = interaction::moved(*initial, *start, cursor, z);
                     ui.ctx().request_repaint();
                 }
                 Some(Gesture::Pan { start, initial }) => {
@@ -592,13 +591,11 @@ impl Designer {
                             self.dialog = Some(Dialog::Node(node.clone()));
                         }
                     } else if initial != current {
-                        let candidate = edit::candidate(&p, |q| {
-                            q.layout
-                                .entry(sid.clone())
-                                .or_insert_with(BTreeMap::new)
-                                .insert(id, current);
-                            Ok(())
-                        });
+                        let candidate = edit::move_elements(
+                            &p,
+                            &edit::LayoutScope::Interfaces(sid.clone()),
+                            BTreeMap::from([(id, current)]),
+                        );
                         self.publish("Move component", candidate);
                     }
                 }

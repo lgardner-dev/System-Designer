@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::dialogs::{Action, Actions};
 use egui::{ComboBox, TextEdit, Ui};
 fn step_picker(ui: &mut Ui, id: &str, value: &mut String, f: &Flow, source: bool) {
     ComboBox::from_id_salt(id)
@@ -149,11 +150,16 @@ fn impact(ui: &mut Ui, impact: &edit::Impact, chosen: Option<&ContractRef>) {
     }
     ui.small("Only these exact bindings are reconciled. Equal names or old types do not connect unrelated requirements.");
 }
-fn cancel(ui: &mut Ui) -> bool {
-    ui.button("Cancel — discard draft").clicked()
+fn cancel(actions: &Actions) -> bool {
+    actions.cancel
 }
 impl Designer {
-    pub(in crate::ui) fn flow_form(&mut self, ui: &mut Ui, dialog: &mut FlowDialog) -> bool {
+    pub(in crate::ui) fn flow_form(
+        &mut self,
+        ui: &mut Ui,
+        dialog: &mut FlowDialog,
+        actions: &mut Actions,
+    ) -> bool {
         let p = self.store.snapshot();
         let owner = self.owner.clone();
         let f = p.behavior.get(&owner);
@@ -161,8 +167,8 @@ impl Designer {
         match dialog {
             FlowDialog::Start => {
                 ui.heading("Start a flow");
-                ui.label("Create an editable Begin -> Action -> Complete flow for this scope. Saving will use project version 2, which older readers may not support. This change is undoable.");
-                if ui.button("Start flow").clicked() {
+                ui.label("Create an editable Begin -> Action -> Complete flow for this scope. This enables behavior using project version 2 or preserves version 3; older readers may not support it. This change is undoable.");
+                if actions.take(Action::Primary, true) {
                     self.publish(
                         "Start flow (version 2)",
                         behavior::set(&p, &owner, Flow::starter()),
@@ -215,7 +221,7 @@ impl Designer {
                     );
                     ui.small("Changing meaning or incident information clears review. Save those edits, then review the resulting step.");
                 }
-                if ui.button("Save step").clicked() {
+                if actions.take(Action::Primary, true) {
                     self.publish("Save flow step", behavior::save_step(&p, &owner, s.clone()));
                     close = self.error.is_none();
                     if close {
@@ -265,7 +271,7 @@ impl Designer {
                     ui.small(
                         "Descriptive alternatives only. No guard evaluation or parallel execution.",
                     );
-                    if ui.button("Save transition").clicked() {
+                    if actions.take(Action::Primary, true) {
                         self.publish(
                             "Save control transition",
                             behavior::save_transition(&p, &owner, t.clone()),
@@ -283,7 +289,7 @@ impl Designer {
                         .desired_width(f32::INFINITY),
                 );
                 if let Some(f) = f
-                    && ui.button("Save explanation").clicked()
+                    && actions.take(Action::Primary, true)
                 {
                     let mut f = f.clone();
                     f.primitive = reason.clone();
@@ -291,7 +297,7 @@ impl Designer {
                     close = self.error.is_none();
                 }
             }
-            FlowDialog::Extract(d) => return self.extraction_form(ui, d),
+            FlowDialog::Extract(d) => return self.extraction_form(ui, d, actions),
             FlowDialog::Information(d) => {
                 ui.heading("Information requirement");
                 ui.monospace(&d.link.id);
@@ -362,19 +368,10 @@ impl Designer {
                         ui.colored_label(egui::Color32::LIGHT_RED, e.to_string());
                     }
                 }
-                if ui
-                    .add_enabled(candidate.is_ok(), egui::Button::new("Review complete edit"))
-                    .clicked()
-                {
+                if actions.take(Action::Preview, candidate.is_ok()) {
                     d.reviewed = Some(token.clone());
                 }
-                if ui
-                    .add_enabled(
-                        d.reviewed.as_ref() == Some(&token),
-                        egui::Button::new("Apply information requirement"),
-                    )
-                    .clicked()
-                {
+                if actions.take(Action::Primary, d.reviewed.as_ref() == Some(&token)) {
                     self.publish(
                         "Edit information requirement",
                         behavior::information_candidate(
@@ -424,19 +421,10 @@ impl Designer {
                 if let Err(e) = &candidate {
                     ui.colored_label(egui::Color32::LIGHT_RED, e.to_string());
                 }
-                if ui
-                    .add_enabled(candidate.is_ok(), egui::Button::new("Review complete edit"))
-                    .clicked()
-                {
+                if actions.take(Action::Preview, candidate.is_ok()) {
                     d.reviewed = Some(token.clone());
                 }
-                if ui
-                    .add_enabled(
-                        d.reviewed.as_ref() == Some(&token),
-                        egui::Button::new("Apply contract refinement"),
-                    )
-                    .clicked()
-                {
+                if actions.take(Action::Primary, d.reviewed.as_ref() == Some(&token)) {
                     self.publish(
                         "Refine public contract",
                         edit::refine_port(
@@ -482,7 +470,7 @@ impl Designer {
                         ui.label(format!("Remove {id}"));
                     }
                     ui.label("Removing an occurrence preserves its shared component definition. This edit can be undone.");
-                    if ui.button("Delete listed items").clicked() {
+                    if actions.take(Action::Primary, true) {
                         let result = (|| {
                             let mut q = (*p).clone();
                             for id in &selection.steps {
@@ -533,9 +521,14 @@ impl Designer {
             }
         }
         ui.separator();
-        close || cancel(ui)
+        close || cancel(actions)
     }
-    fn extraction_form(&mut self, ui: &mut Ui, d: &mut ExtractDialog) -> bool {
+    fn extraction_form(
+        &mut self,
+        ui: &mut Ui,
+        d: &mut ExtractDialog,
+        actions: &mut Actions,
+    ) -> bool {
         let p = self.store.snapshot();
         let owner = self.owner.clone();
         let Some(f) = p.behavior.get(&owner) else {
@@ -580,7 +573,7 @@ impl Designer {
             d.plan = None;
             d.problem = None;
         }
-        if ui.button("Preview boundary").clicked() {
+        if actions.take(Action::Preview, true) {
             match behavior::preview(&p, &owner, &d.members, &d.name, &d.purpose) {
                 Ok(plan) => {
                     d.plan = Some(plan);
@@ -605,15 +598,13 @@ impl Designer {
             } else {ui.label("Preview to see entry, outgoing alternatives, declared requirements and blockers.");}
         });
         let mut close = false;
-        if ui
-            .add_enabled(d.plan.is_some(), egui::Button::new("Create component"))
-            .clicked()
+        if actions.take(Action::Primary, d.plan.is_some())
             && let Some(plan) = &d.plan
         {
             self.accept_extraction(plan);
             close = self.error.is_none();
         }
         ui.separator();
-        close || cancel(ui)
+        close || cancel(actions)
     }
 }

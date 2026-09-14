@@ -2,8 +2,21 @@ use super::*;
 use crate::edit;
 use egui::{Key, Modifiers};
 impl Designer {
+    pub(super) fn project_settings(&mut self) {
+        let p = self.store.project();
+        self.dialog = Some(Dialog::Project {
+            name: p.name.clone(),
+            purpose: p.purpose.clone(),
+        });
+        self.error = None;
+    }
+
     pub(super) fn shortcuts(&mut self, ctx: &egui::Context) {
-        if self.dialog.is_some() {
+        if ctx.input(|i| !i.focused) {
+            self.canvas.cancel();
+            self.flow.cancel();
+        }
+        if self.dialog.is_some() || egui::Popup::is_any_open(ctx) {
             return;
         }
         if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::S)) {
@@ -18,6 +31,30 @@ impl Designer {
             }
         }
         if !ctx.wants_keyboard_input() {
+            let step = if ctx.input(|i| i.modifiers.shift) {
+                10.0
+            } else {
+                1.0
+            };
+            let mut delta = Position::default();
+            for (key, x, y) in [
+                (Key::ArrowLeft, -step, 0.0),
+                (Key::ArrowRight, step, 0.0),
+                (Key::ArrowUp, 0.0, -step),
+                (Key::ArrowDown, 0.0, step),
+            ] {
+                if ctx.input(|i| i.key_pressed(key)) {
+                    delta.x += x;
+                    delta.y += y;
+                }
+            }
+            if delta != Position::default()
+                && !self.canvas.has_gesture()
+                && !self.flow.has_gesture()
+            {
+                self.nudge_selection(delta);
+            }
+
             if ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Z)) {
                 self.store.undo();
                 self.normalize_selection();
@@ -120,30 +157,8 @@ impl Designer {
                         self.store.redo();
                     }
                     ui.separator();
-                    if ui
-                        .add_enabled(
-                            self.interface_system().is_some(),
-                            egui::Button::new("+ Component"),
-                        )
-                        .clicked()
-                    {
-                        self.new_component();
-                    }
-                    if ui
-                        .add_enabled(
-                            self.interface_system().is_some(),
-                            egui::Button::new("Connect ports"),
-                        )
-                        .clicked()
-                    {
-                        self.canvas_session.view = canvas::View::Detail;
-                        self.canvas.cancel();
-                        self.dialog = Some(Dialog::Connection(ConnectionDialog::new(
-                            self.store.project(),
-                            &self.current,
-                            None,
-                            None,
-                        )));
+                    if ui.button("Project settings…").clicked() {
+                        self.project_settings();
                     }
                     if ui.button("Contract types").clicked() {
                         self.dialog = Some(Dialog::Catalog);

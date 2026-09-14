@@ -63,7 +63,7 @@ pub fn validate(p: &Project) -> Result<()> {
     if p.format != FORMAT {
         issue(&mut errors, "format", format!("expected {FORMAT}"));
     }
-    if p.version != 1 && p.version != 2 {
+    if !matches!(p.version, 1 | 2 | 3) {
         issue(&mut errors, "version", "unsupported project version");
     }
     identity(&mut errors, &mut ids, "id", &p.id);
@@ -239,11 +239,11 @@ pub fn validate(p: &Project) -> Result<()> {
             if nodes.get(nid.as_str()).map(|(s, _)| *s) != Some(sid.as_str()) {
                 issue(&mut errors, "layout", "unknown or nonlocal component");
             }
-            if !pos.x.is_finite() || !pos.y.is_finite() || pos.x < 0.0 || pos.y < 0.0 {
+            if !pos.valid_for(p.version) {
                 issue(
                     &mut errors,
                     "layout",
-                    "coordinates must be finite and nonnegative",
+                    "coordinates must be finite; v1/v2 require nonnegative values, v3 allows ±1,000,000",
                 );
             }
         }

@@ -1,13 +1,14 @@
 use super::*;
-use crate::ui::canvas::{
-    geometry::Path,
-    motion::{self, Motion},
+use crate::ui::canvas::{geometry::Path, motion::Motion};
+use crate::ui::diagram::{
+    interaction,
+    paint::{self, ACCENT, EdgeStyle},
+    viewport::Transform,
 };
 use egui::{
     Align2, Color32, FontId, PointerButton, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2, pos2, vec2,
 };
 use std::collections::BTreeMap;
-const ACCENT: Color32 = Color32::from_rgb(99, 195, 219);
 #[derive(Clone)]
 pub(super) enum Gesture {
     Move {
@@ -26,100 +27,15 @@ pub(super) enum Gesture {
         initial: Vec2,
     },
 }
-/// Ray intersection with the actual shape, not its invisible bounding corners.
 pub(super) fn perimeter(rect: Rect, kind: StepKind, toward: Pos2) -> (Pos2, Vec2) {
-    let d = toward - rect.center();
-    let d = if d.length_sq() < 0.001 { Vec2::X } else { d };
-    let a = rect.width() * 0.5;
-    let b = rect.height() * 0.5;
-    let t = match kind {
-        StepKind::Decision => 1.0 / (d.x.abs() / a + d.y.abs() / b),
-        StepKind::Entry | StepKind::Outcome => 1.0 / ((d.x / a).powi(2) + (d.y / b).powi(2)).sqrt(),
-        _ => 1.0 / (d.x.abs() / a).max(d.y.abs() / b),
-    };
-    let v = d * t;
-    let normal = match kind {
-        StepKind::Decision => vec2(d.x.signum() / a, d.y.signum() / b).normalized(),
-        StepKind::Entry | StepKind::Outcome => vec2(v.x / (a * a), v.y / (b * b)).normalized(),
-        _ => {
-            if (v.x.abs() - a).abs() < 0.01 {
-                vec2(d.x.signum(), 0.0)
-            } else {
-                vec2(0.0, d.y.signum())
-            }
-        }
-    };
-    (rect.center() + v, normal)
+    scene::outline(kind).perimeter(rect, toward)
 }
-/// An unordered endpoint group includes reciprocal edges. Stable endpoint and
-/// transition IDs determine lanes, independently of labels and array order.
+#[cfg(test)]
 pub(super) fn routes<'a>(
     f: &'a Flow,
     rects: &BTreeMap<String, Rect>,
 ) -> Vec<(&'a Transition, Path)> {
-    let mut groups: BTreeMap<(&str, &str), Vec<&Transition>> = BTreeMap::new();
-    for t in &f.transitions {
-        let pair = if t.from <= t.to {
-            (t.from.as_str(), t.to.as_str())
-        } else {
-            (t.to.as_str(), t.from.as_str())
-        };
-        groups.entry(pair).or_default().push(t);
-    }
-    let mut result = Vec::new();
-    for ((first, last), mut siblings) in groups {
-        siblings.sort_by(|a, b| a.id.cmp(&b.id));
-        let (Some(a), Some(b)) = (rects.get(first), rects.get(last)) else {
-            continue;
-        };
-        let delta = b.center() - a.center();
-        let axis = if delta.length_sq() < 0.001 {
-            Vec2::X
-        } else {
-            delta.normalized()
-        };
-        let side = vec2(-axis.y, axis.x);
-        let count = siblings.len();
-        for (index, t) in siblings.into_iter().enumerate() {
-            let (a, b) = (rects[&t.from], rects[&t.to]);
-            let (ak, bk) = (
-                f.step(&t.from).expect("endpoint").kind,
-                f.step(&t.to).expect("endpoint").kind,
-            );
-            let path = if first == last {
-                // Nested smooth loops with distinct attachments and increasing reach.
-                let spread = (index + 1) as f32 / (count + 1) as f32 - 0.5;
-                let (from, na) =
-                    perimeter(a, ak, a.center() + vec2(a.width(), a.height() * spread));
-                let (to, nb) = perimeter(a, ak, a.center() + vec2(a.width() * spread, -a.height()));
-                let reach = a.width().max(a.height()) * 0.6 + index as f32 * 100.0;
-                Path::cubic([from, from + na * reach, to + nb * reach, to])
-            } else if count == 1 {
-                let (from, na) = perimeter(a, ak, b.center());
-                let (to, nb) = perimeter(b, bk, a.center());
-                Path::between(from, na, to, nb)
-            } else {
-                let offset = (index as f32 - (count - 1) as f32 * 0.5) * 100.0;
-                let middle = a.center().lerp(b.center(), 0.5) + side * offset;
-                let (from, na) = perimeter(a, ak, middle);
-                let (to, nb) = perimeter(b, bk, middle);
-                let forward = if t.from == first { axis } else { -axis };
-                let handle = (from.distance(to) * 0.2).clamp(16.0, 90.0);
-                // Two tangent-continuous cubics maintain outward endpoint normals
-                // while passing through a separate lane, even on rectangular cards.
-                let mut points =
-                    Path::cubic([from, from + na * handle, middle - forward * handle, middle])
-                        .points;
-                points.pop();
-                points.extend(
-                    Path::cubic([middle, middle + forward * handle, to + nb * handle, to]).points,
-                );
-                Path::new(points)
-            };
-            result.push((t, path));
-        }
-    }
-    result
+    scene::routes(f, rects, &scene::anchors(f, rects))
 }
 fn shape(painter: &egui::Painter, r: Rect, kind: StepKind, fill: Color32, stroke: Stroke) {
     match kind {
@@ -267,7 +183,16 @@ impl Designer {
                 )
             })
             .collect();
-        let paths = routes(f, &rects);
+        let anchors = if let Some((before, frozen)) = &self.flow.frozen {
+            let mut anchors = frozen.clone();
+            for ((id, _), anchor) in &mut anchors {
+                anchor.point += rects[id].min - before[id].min;
+            }
+            anchors
+        } else {
+            scene::anchors(f, &rects)
+        };
+        let paths = scene::routes(f, &rects, &anchors);
         let mut bounds = rects.values().fold(Rect::NOTHING, |r, c| r.union(*c));
         for (_, path) in &paths {
             bounds = bounds.union(path.bounds);
@@ -276,32 +201,29 @@ impl Designer {
             bounds = Rect::from_min_size(Pos2::ZERO, vec2(600.0, 400.0));
         }
         bounds = bounds.expand(45.0);
+        let mut transform = Transform {
+            area,
+            pan: self.canvas.pan,
+            zoom: self.canvas.zoom,
+        };
         if self.canvas.fit_requested {
-            self.canvas.zoom = ((area.width() - 30.0) / bounds.width())
-                .min((area.height() - 30.0) / bounds.height())
-                .clamp(0.2, 1.0);
-            self.canvas.pan = area.size() * 0.5 - bounds.center().to_vec2() * self.canvas.zoom;
+            transform.fit(bounds);
             self.canvas.fit_requested = false;
         }
         let cursor = ui.input(|i| i.pointer.interact_pos());
-        if response.hovered() && ui.is_enabled() {
+        if interaction::owns_press(ui, &response) {
             let scroll = ui.input(|i| i.smooth_scroll_delta.y);
             if scroll.abs() > 0.01
                 && let Some(cursor) = cursor
             {
-                let world = (cursor - area.min - self.canvas.pan) / self.canvas.zoom;
-                self.canvas.zoom = (self.canvas.zoom * (scroll * 0.002).exp()).clamp(0.2, 2.5);
-                self.canvas.pan = cursor - area.min - world * self.canvas.zoom;
+                transform.zoom_at(cursor, scroll);
             }
         }
-        let z = self.canvas.zoom;
-        let pan = self.canvas.pan;
-        let screen_rect = |r: Rect| {
-            Rect::from_min_max(
-                area.min + pan + r.min.to_vec2() * z,
-                area.min + pan + r.max.to_vec2() * z,
-            )
-        };
+        self.canvas.pan = transform.pan;
+        self.canvas.zoom = transform.zoom;
+        let z = transform.zoom;
+        let pan = transform.pan;
+        let screen_rect = |r| transform.rect(r);
         let screen: BTreeMap<_, _> = rects
             .iter()
             .map(|(id, r)| (id.clone(), screen_rect(*r)))
@@ -309,6 +231,10 @@ impl Designer {
         #[cfg(test)]
         {
             self.flow.rects = screen.clone();
+            self.flow.handles = anchors
+                .iter()
+                .map(|(id, a)| (id.clone(), transform.screen(a.point)))
+                .collect();
         }
         let screen_paths: Vec<_> = paths
             .iter()
@@ -336,28 +262,6 @@ impl Designer {
             }
             let selected = self.flow.selection.transition.as_ref() == Some(&t.id);
             let emphasized = active(t);
-            let color = if !emphasized {
-                Color32::from_gray(54)
-            } else if selected {
-                Color32::YELLOW
-            } else {
-                ACCENT
-            };
-            painter.add(egui::Shape::line(
-                path.points.clone(),
-                Stroke::new(if selected { 3.0_f32 } else { 1.8_f32 }, color),
-            ));
-            let (tip, direction) = path.at(path.length);
-            let side = vec2(-direction.y, direction.x);
-            painter.add(egui::Shape::convex_polygon(
-                vec![
-                    tip,
-                    tip - direction * 11.0 + side * 5.0,
-                    tip - direction * 11.0 - side * 5.0,
-                ],
-                color,
-                Stroke::NONE,
-            ));
             let label = if let Some(outcome) = &t.outcome {
                 let name = f
                     .step(&t.from)
@@ -374,25 +278,23 @@ impl Designer {
             } else {
                 t.condition.clone()
             };
-            if !label.is_empty() {
-                let pos = path.at(path.length * 0.5).0 + vec2(0.0, -12.0);
-                painter.text(
-                    pos,
-                    Align2::CENTER_BOTTOM,
-                    short(&label, 36),
-                    FontId::proportional((12.0 * z).max(10.0)),
-                    color,
-                );
-            }
+            paint::edge(
+                &painter,
+                path,
+                EdgeStyle {
+                    selected,
+                    emphasized,
+                    hovered: response.hovered() && cursor.is_some_and(|p| path.distance(p) < 7.0),
+                },
+                &short(&label, 36),
+                z,
+            );
             let lit = lights == Motion::All
                 || (lights == Motion::Selected
                     && (selected
                         || self.flow.selection.steps.contains(&t.from)
                         || self.flow.selection.steps.contains(&t.to)));
-            if emphasized && lit && self.dialog.is_none() {
-                motion::paint(&painter, path, ui.input(|i| i.time), &t.id);
-                animate = true;
-            }
+            animate |= paint::light(ui, path, emphasized && lit && self.dialog.is_none(), &t.id);
         }
         for s in &f.steps {
             let r = screen[&s.id];
@@ -405,7 +307,7 @@ impl Designer {
             } else {
                 Color32::from_rgb(32, 40, 53)
             };
-            let color = if selected { Color32::YELLOW } else { ACCENT };
+            let color = if selected { ACCENT } else { ACCENT };
             shape(
                 &painter,
                 r,
@@ -435,66 +337,72 @@ impl Designer {
                 FontId::proportional((11.0 * z).max(8.0)),
                 Color32::from_gray(172),
             );
-            if s.kind != StepKind::Entry {
-                painter.circle_filled(r.left_center(), 6.0, Color32::from_rgb(156, 204, 157));
-                painter.text(
-                    r.left_center() + vec2(10.0, 12.0),
-                    Align2::LEFT_TOP,
-                    "in",
-                    FontId::proportional(9.0),
-                    Color32::GRAY,
-                );
-            }
-            if s.kind != StepKind::Outcome {
-                painter.circle_filled(r.right_center(), 6.0, ACCENT);
-                painter.text(
-                    r.right_center() + vec2(-10.0, 12.0),
-                    Align2::RIGHT_TOP,
-                    "out",
-                    FontId::proportional(9.0),
-                    Color32::GRAY,
-                );
+            for output in [false, true] {
+                if let Some(anchor) = anchors.get(&(s.id.clone(), output)) {
+                    let point = transform.screen(anchor.point);
+                    paint::handle(&painter, point, output, false, color);
+                    painter.text(
+                        point + anchor.normal * 14.0,
+                        Align2::CENTER_CENTER,
+                        if output { "out" } else { "in" },
+                        FontId::proportional(9.0),
+                        Color32::GRAY,
+                    );
+                }
             }
         }
-        if animate {
-            ui.ctx().request_repaint_after(Duration::from_millis(33));
-        }
-        if let (Some(Gesture::Connect { id, output, .. }), Some(cursor)) =
-            (&self.flow.gesture, cursor)
-            && let Some(r) = screen.get(id)
+        paint::repaint(ui, animate);
+        let connecting = match &self.flow.gesture {
+            Some(Gesture::Connect { id, output, .. }) => Some((id.clone(), *output)),
+            _ => self.flow.pending.clone(),
+        };
+        let handle = cursor.and_then(|cursor| {
+            anchors
+                .iter()
+                .filter(|(_, a)| transform.screen(a.point).distance(cursor) <= 12.0)
+                .min_by(|(ka, a), (kb, b)| {
+                    transform
+                        .screen(a.point)
+                        .distance(cursor)
+                        .total_cmp(&transform.screen(b.point).distance(cursor))
+                        .then(ka.cmp(kb))
+                })
+                .map(|(key, _)| key.clone())
+        });
+        if let (Some(key), Some(cursor)) = (&connecting, cursor)
+            && let Some(a) = anchors.get(key)
         {
-            let a = if *output {
-                r.right_center()
+            let target = handle.as_ref().and_then(|key| anchors.get(key));
+            let end = target.map(|b| transform.screen(b.point)).unwrap_or(cursor);
+            let normal = target.map(|b| b.normal).unwrap_or(-a.normal);
+            let path = if key.1 {
+                Path::between(transform.screen(a.point), a.normal, end, normal)
             } else {
-                r.left_center()
+                Path::between(end, normal, transform.screen(a.point), a.normal)
             };
-            let path = if *output {
-                Path::between(a, Vec2::X, cursor, -Vec2::X)
-            } else {
-                Path::between(cursor, Vec2::X, a, -Vec2::X)
-            };
-            painter.add(egui::Shape::line(
-                path.points,
-                Stroke::new(2.0_f32, Color32::YELLOW),
-            ));
+            paint::edge(
+                &painter,
+                &path,
+                EdgeStyle {
+                    selected: true,
+                    hovered: false,
+                    emphasized: true,
+                },
+                "",
+                z,
+            );
         }
-        if !ui.is_enabled() {
+        if interaction::cancelled(ui) {
+            self.flow.cancel();
             return;
         }
         let Some(cursor) = cursor else {
+            if ui.input(|i| !i.pointer.any_down()) {
+                self.flow.cancel();
+            }
             return;
         };
-        let handle = f.steps.iter().find_map(|s| {
-            let r = screen[&s.id];
-            if s.kind != StepKind::Outcome && cursor.distance(r.right_center()) < 11.0 {
-                Some((s.id.clone(), true))
-            } else if s.kind != StepKind::Entry && cursor.distance(r.left_center()) < 11.0 {
-                Some((s.id.clone(), false))
-            } else {
-                None
-            }
-        });
-        if area.contains(cursor) && ui.input(|i| i.pointer.any_pressed()) {
+        if interaction::owns_press(ui, &response) && ui.input(|i| i.pointer.any_pressed()) {
             if ui.input(|i| i.pointer.button_pressed(PointerButton::Middle)) {
                 self.flow.gesture = Some(Gesture::Pan {
                     start: cursor,
@@ -502,6 +410,7 @@ impl Designer {
                 });
             } else if ui.input(|i| i.pointer.button_pressed(PointerButton::Primary)) {
                 if let Some((id, output)) = &handle {
+                    self.flow.frozen = Some((rects.clone(), anchors.clone()));
                     self.flow.gesture = Some(Gesture::Connect {
                         id: id.clone(),
                         output: *output,
@@ -517,6 +426,8 @@ impl Designer {
                         ui.input(|i| i.modifiers.ctrl || i.modifiers.shift || i.modifiers.command);
                     self.flow.selection.step(s.id.clone(), additive);
                     if !additive {
+                        self.flow.pending = None;
+                        self.flow.frozen = Some((rects.clone(), anchors.clone()));
                         let initial = positions[&s.id];
                         self.flow.gesture = Some(Gesture::Move {
                             id: s.id.clone(),
@@ -535,6 +446,7 @@ impl Designer {
                         ..Default::default()
                     };
                 } else {
+                    self.flow.pending = None;
                     self.flow.selection = FlowSelection::default();
                     self.flow.gesture = Some(Gesture::Pan {
                         start: cursor,
@@ -543,16 +455,12 @@ impl Designer {
                 }
             }
         }
-        if ui.input(|i| i.pointer.any_down()) {
+        if ui.input(|i| i.pointer.any_down() || i.pointer.any_released()) {
             match &mut self.flow.gesture {
                 Some(Gesture::Move {
                     start, initial, at, ..
                 }) => {
-                    let delta = (cursor - *start) / z;
-                    *at = Position {
-                        x: (initial.x + delta.x as f64).max(0.0),
-                        y: (initial.y + delta.y as f64).max(0.0),
-                    };
+                    *at = interaction::moved(*initial, *start, cursor, z);
                 }
                 Some(Gesture::Pan { start, initial }) => {
                     self.canvas.pan = *initial + (cursor - *start)
@@ -580,27 +488,42 @@ impl Designer {
                     } else if at != initial {
                         self.publish(
                             "Move flow step",
-                            edit::candidate(&p, |q| {
-                                q.flow_layout.entry(owner).or_default().insert(id, at);
-                                Ok(())
-                            }),
+                            edit::move_elements(
+                                &p,
+                                &edit::LayoutScope::Flow(owner),
+                                BTreeMap::from([(id, at)]),
+                            ),
                         );
                     }
                 }
                 Some(Gesture::Connect { id, output, start }) => {
-                    if cursor.distance(start) > 4.0
-                        && let Some((target, target_output)) = handle
-                        && output != target_output
-                    {
-                        self.transition_dialog(Some(if output {
-                            (id, target)
+                    let from = if cursor.distance(start) <= 4.0 {
+                        self.flow.pending.clone().unwrap_or((id, output))
+                    } else {
+                        (id, output)
+                    };
+                    if let Some((target, target_output)) = handle {
+                        if from.1 != target_output {
+                            self.flow.pending = None;
+                            self.transition_dialog(Some(if from.1 {
+                                (from.0, target)
+                            } else {
+                                (target, from.0)
+                            }));
+                        } else if cursor.distance(start) <= 4.0 {
+                            self.flow.pending = Some((target, target_output));
                         } else {
-                            (target, id)
-                        }));
+                            self.flow.pending = None;
+                        }
+                    } else {
+                        self.flow.pending = None;
                     }
                 }
                 _ => {}
             }
+        }
+        if !self.flow.has_gesture() {
+            self.flow.frozen = None;
         }
     }
 }

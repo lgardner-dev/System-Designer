@@ -458,3 +458,114 @@ fn reciprocal_ports_align_without_an_avoidable_crossing() {
         }
     }
 }
+
+#[test]
+fn signed_child_frame_encloses_all_sides_and_frozen_move_preserves_boundary_identity() {
+    let mut p = fixture();
+    p.version = 3;
+    let system = p
+        .systems
+        .iter()
+        .find(|s| s.id != p.root && !s.nodes.is_empty())
+        .expect("nested fixture");
+    let positions: BTreeMap<_, _> = system
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| {
+            (
+                n.id.clone(),
+                Position {
+                    x: -800.0 + i as f64 * 350.0,
+                    y: -500.0,
+                },
+            )
+        })
+        .collect();
+    let mut scene = Scene::new(&p, &system.id, &positions);
+    let original: Vec<_> = scene
+        .ports
+        .iter()
+        .filter(|a| a.boundary)
+        .map(|a| (a.endpoint.clone(), a.direction))
+        .collect();
+    for card in &scene.cards {
+        assert!(
+            scene
+                .frame
+                .expect("frame")
+                .contains_rect(card.rect.expand(40.0))
+        );
+    }
+    let id = scene.cards[0].id.clone();
+    scene.move_card(
+        &id,
+        Position {
+            x: -1600.0,
+            y: -1200.0,
+        },
+    );
+    for card in &scene.cards {
+        assert!(
+            scene
+                .frame
+                .expect("frame")
+                .contains_rect(card.rect.expand(40.0))
+        );
+    }
+    assert_eq!(
+        scene
+            .ports
+            .iter()
+            .filter(|a| a.boundary)
+            .map(|a| (a.endpoint.clone(), a.direction))
+            .collect::<Vec<_>>(),
+        original
+    );
+}
+#[test]
+fn exact_interface_routes_keep_single_visible_anchor_across_signed_scenes_and_lanes() {
+    let mut p = fixture();
+    p.version = 3;
+    let mut extra = p.system("root").expect("root").edges[0].clone();
+    extra.id = "parallel.exact".into();
+    p.system_mut("root").expect("root").edges.push(extra);
+    for (b, _) in cases() {
+        let mut positions = positions(b);
+        for position in positions.values_mut() {
+            position.x -= 700.0;
+            position.y -= 700.0;
+        }
+        let scene = Scene::new(&p, "root", &positions);
+        let links = overview::links_for(&p, "root", &scene, false);
+        for link in links {
+            for zoom in [0.2, 1.0, 2.5] {
+                let transform = super::super::diagram::viewport::Transform {
+                    area: Rect::from_min_size(pos2(220.0, 80.0), vec2(700.0, 500.0)),
+                    pan: vec2(-98.0, 377.0),
+                    zoom,
+                };
+                let path = link.path.screen(transform.area.min, transform.pan, zoom);
+                for (endpoint, at) in [
+                    (&link.edge.from, path.at(0.0).0),
+                    (&link.edge.to, path.at(path.length).0),
+                ] {
+                    let handle =
+                        transform.screen(scene.port(endpoint).expect("visible port").point);
+                    assert!(handle.distance(at) <= 0.5);
+                    let nearest = scene
+                        .ports
+                        .iter()
+                        .min_by(|a, b| {
+                            transform
+                                .screen(a.point)
+                                .distance(at)
+                                .total_cmp(&transform.screen(b.point).distance(at))
+                        })
+                        .expect("hit target");
+                    assert_eq!(&nearest.endpoint, endpoint);
+                }
+            }
+        }
+    }
+}

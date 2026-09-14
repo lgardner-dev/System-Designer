@@ -148,7 +148,7 @@ pub fn export(p: &Project, sid: &str, scope: Scope, nid: Option<&str>) -> Result
             }
         })
     };
-    if p.version >= 2 {
+    if matches!(p.version, 2 | 3) {
         // Interface packets never carry writable behavior. Relevant behavior is
         // read-only context; the final merged validator checks all cross references.
         let selected = if scope == Scope::Subtree {

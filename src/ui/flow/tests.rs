@@ -46,8 +46,27 @@ fn f2_raw_canvas_selects_each_return_with_lights_off_and_static_arrows() {
     let output = frame(&mut a, &ctx, vec![], false);
     for id in ["accepted", "rejected"] {
         let path = a.flow.paths[id].clone();
-        let tip = path.at(path.length).0;
-        assert!(output.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Path(p) if p.closed && p.points.len() == 3 && p.points[0].distance(tip) < 0.1)), "missing static arrow for {id}");
+        let transition = a.store.project().behavior[ROOT]
+            .transitions
+            .iter()
+            .find(|t| t.id == id)
+            .expect("transition");
+        for (key, at) in [
+            ((transition.from.clone(), true), path.at(0.0).0),
+            ((transition.to.clone(), false), path.at(path.length).0),
+        ] {
+            let handle = a.flow.handles[&key];
+            assert!(at.distance(handle) < 0.5);
+            assert!(
+                output.shapes.iter().any(
+                    |s| matches!(&s.shape,egui::Shape::Circle(c) if c.center.distance(handle)<0.5)
+                ),
+                "visible handle missing"
+            );
+        }
+        let tip = path.at((path.length - 7.0).max(0.0)).0;
+        // The common renderer uses stroked arrow wings in both layers.
+        assert!(output.shapes.iter().filter(|s| matches!(&s.shape, egui::Shape::LineSegment {points,..} if points.iter().any(|p|p.distance(tip)<0.1))).count() >= 2, "missing static arrow for {id}");
         let at = path.at(path.length * 0.5).0;
         click(&mut a, &ctx, at, Modifiers::NONE, false);
         assert_eq!(a.flow.selection.transition.as_deref(), Some(id));
@@ -158,11 +177,14 @@ fn f2_geometry_parallel_reciprocal_and_loop_routes_are_stable_and_exact() {
                 ),
             ]);
             let routes = drawing::routes(&f, &rects);
+            let handles = scene::anchors(&f, &rects);
             for (i, (t, path)) in routes.iter().enumerate() {
                 assert!(path.bounds.is_finite() && path.length.is_finite() && path.length > 1.0);
                 assert!(path.points.iter().all(|p| p.is_finite()));
                 let (from, direction) = path.at(0.0);
                 let (to, arriving) = path.at(path.length);
+                assert!(from.distance(handles[&(t.from.clone(), true)].point) < 0.01);
+                assert!(to.distance(handles[&(t.to.clone(), false)].point) < 0.01);
                 let (expected_from, outward) = drawing::perimeter(rects[&t.from], kind, from);
                 let (expected_to, target_normal) = drawing::perimeter(rects[&t.to], kind, to);
                 assert!(expected_from.distance(from) < 0.01 && expected_to.distance(to) < 0.01);
@@ -375,7 +397,7 @@ fn raw_connection_drags_in_both_directions_open_unpublished_drafts() {
         );
         assert_eq!(a.store.project(), &p);
         assert_eq!(a.store.generation, 0);
-        button(&mut a, &ctx, "Cancel — discard draft");
+        button(&mut a, &ctx, "Cancel");
         assert!(a.dialog.is_none());
         assert_eq!(a.store.project(), &p);
     }
@@ -396,7 +418,7 @@ fn raw_selection_preview_cancel_apply_cross_view_and_undo() {
     }
     button(&mut a, &ctx, "Preview boundary");
     assert!(matches!(&a.dialog,Some(Dialog::Flow(FlowDialog::Extract(d))) if d.plan.is_some()));
-    button(&mut a, &ctx, "Cancel — discard draft");
+    button(&mut a, &ctx, "Cancel");
     assert_eq!(a.store.project(), &original);
     assert_eq!(a.store.generation, 0);
     a.extraction_dialog(false);
@@ -568,7 +590,7 @@ fn raw_information_review_cancel_and_apply_reconcile_both_layers() {
         d.definition = Contract::draft("Input".into());
     }
     button(&mut a, &ctx, "Review complete edit");
-    button(&mut a, &ctx, "Cancel — discard draft");
+    button(&mut a, &ctx, "Cancel");
     assert_eq!(a.store.project(), &original);
     assert_eq!(a.store.generation, 0);
     a.open_port_refinement(&plan.requirements[0].id);
@@ -648,7 +670,7 @@ fn full_workspace_modal_resizes_after_short_start_dialog() {
     draw(&mut a);
     let out = draw(&mut a);
     assert!(text_position(&out, "Save step").is_some());
-    assert!(text_position(&out, "Cancel — discard draft").is_some());
+    assert!(text_position(&out, "Cancel").is_some());
 }
 
 #[test]
